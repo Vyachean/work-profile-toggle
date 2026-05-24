@@ -19,6 +19,7 @@ import kotlin.math.roundToInt
 private const val STATE_LAST_RESULT = "last_result"
 
 class MainActivity : Activity() {
+    private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.ROOT)
     private lateinit var userManager: UserManager
     private lateinit var content: LinearLayout
     private var lastResult: String = ""
@@ -192,7 +193,7 @@ class MainActivity : Activity() {
     }
 
     private fun timestamp(): String {
-        return SimpleDateFormat("HH:mm:ss", Locale.ROOT).format(Date())
+        return timeFormat.format(Date())
     }
 
     private val Int.dp: Int
