@@ -45,11 +45,33 @@ jobs:
 
       - name: Build release APK
         env:
-          ORG_GRADLE_PROJECT_releaseKeystorePath: ${{ env.RELEASE_KEYSTORE_PATH }}
-          ORG_GRADLE_PROJECT_releaseKeystorePassword: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          ORG_GRADLE_PROJECT_releaseKeyAlias: ${{ secrets.RELEASE_KEY_ALIAS }}
-          ORG_GRADLE_PROJECT_releaseKeyPassword: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: sh ./gradlew lint test assembleRelease
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$RELEASE_KEYSTORE_PATH" ]; then
+            echo "RELEASE_KEYSTORE_PATH is required." >&2
+            exit 1
+          fi
+          if [ -z "$RELEASE_KEYSTORE_PASSWORD" ]; then
+            echo "RELEASE_KEYSTORE_PASSWORD is required." >&2
+            exit 1
+          fi
+          if [ -z "$RELEASE_KEY_ALIAS" ]; then
+            echo "RELEASE_KEY_ALIAS is required." >&2
+            exit 1
+          fi
+          if [ -z "$RELEASE_KEY_PASSWORD" ]; then
+            echo "RELEASE_KEY_PASSWORD is required." >&2
+            exit 1
+          fi
+
+          sh ./gradlew \
+            -PreleaseKeystorePath="$RELEASE_KEYSTORE_PATH" \
+            -PreleaseKeystorePassword="$RELEASE_KEYSTORE_PASSWORD" \
+            -PreleaseKeyAlias="$RELEASE_KEY_ALIAS" \
+            -PreleaseKeyPassword="$RELEASE_KEY_PASSWORD" \
+            lint test assembleRelease
 
       - name: Verify release APK
         run: |
