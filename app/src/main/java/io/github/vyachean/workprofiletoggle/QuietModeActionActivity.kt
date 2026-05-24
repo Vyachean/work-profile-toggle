@@ -6,7 +6,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.UserHandle
 import android.os.UserManager
-import android.widget.Toast
 
 class QuietModeActionActivity : Activity() {
     private lateinit var userManager: UserManager
@@ -27,14 +26,9 @@ class QuietModeActionActivity : Activity() {
         val serialNumber = if (intent.hasExtra(EXTRA_PROFILE_SERIAL)) {
             intent.getLongExtra(EXTRA_PROFILE_SERIAL, INVALID_SERIAL_NUMBER)
         } else {
-            showToast(getString(R.string.shortcut_missing_serial))
             return
         }
-        val userHandle = findUserHandle(serialNumber)
-        if (userHandle == null) {
-            showToast(getString(R.string.shortcut_unknown_profile, serialNumber))
-            return
-        }
+        val userHandle = findUserHandle(serialNumber) ?: return
 
         requestQuietMode(userHandle, action)
     }
@@ -55,10 +49,7 @@ class QuietModeActionActivity : Activity() {
             QuietModeAction.Toggle -> {
                 val currentQuietMode = runCatching { userManager.isQuietModeEnabled(userHandle) }
                     .getOrNull()
-                if (currentQuietMode == null) {
-                    showToast(getString(R.string.toast_toggle_state_unavailable))
-                    return
-                }
+                    ?: return
                 !currentQuietMode
             }
         }
@@ -73,38 +64,6 @@ class QuietModeActionActivity : Activity() {
             } else {
                 userManager.requestQuietModeEnabled(targetQuietMode, userHandle)
             }
-        }.fold(
-            onSuccess = { changed ->
-                showToast(
-                    getString(
-                        R.string.toast_action_returned,
-                        operationLabel(action),
-                        changed.toString(),
-                    ),
-                )
-            },
-            onFailure = { error ->
-                showToast(
-                    getString(
-                        R.string.toast_action_failed,
-                        operationLabel(action),
-                        error::class.java.simpleName,
-                    ),
-                )
-            },
-        )
-    }
-
-    private fun operationLabel(action: QuietModeAction): String {
-        val stringId = when (action) {
-            QuietModeAction.Enable -> R.string.operation_enable_quiet_mode
-            QuietModeAction.Disable -> R.string.operation_disable_quiet_mode
-            QuietModeAction.Toggle -> R.string.operation_toggle_quiet_mode
         }
-        return getString(stringId)
-    }
-
-    private fun showToast(message: String) {
-        Toast.makeText(applicationContext, message, Toast.LENGTH_SHORT).show()
     }
 }
