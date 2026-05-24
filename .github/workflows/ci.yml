@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  android:
+    name: Android checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Check project
+        run: |
+          if [ ! -x ./gradlew ]; then
+            echo "Gradle wrapper is not present yet. Skipping Android checks during repository bootstrap."
+            exit 0
+          fi
+
+          ./gradlew lint test assembleDebug
