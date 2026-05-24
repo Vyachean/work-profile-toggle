@@ -17,7 +17,7 @@ class MainActivity : Activity() {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                 )
                 gravity = Gravity.CENTER
-                text = "Work Profile Toggle"
+                text = getString(R.string.app_name)
                 textSize = 20f
             },
         )
