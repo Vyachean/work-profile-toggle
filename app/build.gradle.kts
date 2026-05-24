@@ -13,6 +13,15 @@ android {
         versionCode = 1
         versionName = "0.1.0"
     }
+
+    signingConfigs {
+        getByName("debug") {
+            storeFile = rootProject.file(".github/ci-debug.keystore")
+            storePassword = "android"
+            keyAlias = "AndroidDebugKey"
+            keyPassword = "android"
+        }
+    }
 }
 
 dependencies {
