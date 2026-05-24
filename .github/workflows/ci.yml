@@ -42,7 +42,7 @@ jobs:
 
       - name: Verify debug APK signing certificate
         run: |
-          expected_sha256="5464ec657871d3a209daa118cf2b14e688052f7bd018c33d6a12ecfd574313ac"
+          expected_sha256="5f49f7e574cac855329af8151a480f4757615e5b28afae1372e7991a5215cb77"
           apksigner_path="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           if [ -z "$apksigner_path" ]; then
             echo "apksigner was not found under $ANDROID_HOME/build-tools" >&2
