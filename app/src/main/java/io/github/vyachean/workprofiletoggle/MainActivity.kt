@@ -1,6 +1,7 @@
 package io.github.vyachean.workprofiletoggle
 
 import android.app.Activity
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.os.UserHandle
@@ -24,7 +25,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         lastResult = getString(R.string.no_action_executed)
-        userManager = getSystemService(UserManager::class.java)
+        userManager = getSystemService(Context.USER_SERVICE) as UserManager
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(16.dp, 16.dp, 16.dp, 16.dp)
@@ -182,7 +183,7 @@ class MainActivity : Activity() {
     }
 
     private fun timestamp(): String {
-        return SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        return SimpleDateFormat("HH:mm:ss", Locale.ROOT).format(Date())
     }
 
     private val Int.dp: Int
