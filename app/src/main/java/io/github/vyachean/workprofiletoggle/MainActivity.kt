@@ -264,10 +264,10 @@ class MainActivity : Activity() {
     }
 
     private fun shortcutIntent(action: QuietModeAction, serialNumber: Long): Intent {
-        return Intent(this, MainActivity::class.java).apply {
+        return Intent(this, QuietModeActionActivity::class.java).apply {
             this.action = action.intentAction
             putExtra(EXTRA_PROFILE_SERIAL, serialNumber)
-            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            flags = Intent.FLAG_ACTIVITY_NO_ANIMATION
         }
     }
 
