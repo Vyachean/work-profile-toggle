@@ -57,8 +57,10 @@ adb shell pm grant io.github.vyachean.workprofiletoggle android.permission.MODIF
 Verify that the permission is granted:
 
 ```sh
-adb shell dumpsys package io.github.vyachean.workprofiletoggle | grep MODIFY_QUIET_MODE
+adb shell "dumpsys package io.github.vyachean.workprofiletoggle | grep MODIFY_QUIET_MODE"
 ```
+
+The output should show `granted=true` for `android.permission.MODIFY_QUIET_MODE`.
 
 Expected successful setup behavior:
 
