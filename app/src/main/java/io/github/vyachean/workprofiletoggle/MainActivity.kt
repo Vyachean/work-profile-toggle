@@ -44,6 +44,9 @@ class MainActivity : Activity() {
     }
 
     private fun render() {
+        val profilesResult = runCatching { userManager.userProfiles }
+        val profiles = profilesResult.getOrElse { emptyList() }
+
         content.removeAllViews()
 
         content.addView(
@@ -54,12 +57,12 @@ class MainActivity : Activity() {
         )
         content.addView(textView(getString(R.string.poc_description)))
         content.addView(button(getString(R.string.refresh_profiles)) { render() })
+
+        profilesResult.exceptionOrNull()?.let { error ->
+            content.addView(textView(formatFailure("getUserProfiles", error)))
+        }
+
         content.addView(textView("Last result:\n$lastResult"))
-
-        val profiles = runCatching { userManager.userProfiles }
-            .onFailure { error -> lastResult = formatFailure("getUserProfiles", error) }
-            .getOrElse { emptyList() }
-
         content.addView(textView("Profiles found: ${profiles.size}"))
 
         profiles.forEachIndexed { index, userHandle ->
