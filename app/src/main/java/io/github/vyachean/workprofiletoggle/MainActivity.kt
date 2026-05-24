@@ -2,6 +2,9 @@ package io.github.vyachean.workprofiletoggle
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.content.pm.ShortcutInfo
+import android.content.pm.ShortcutManager
 import android.os.Build
 import android.os.Bundle
 import android.os.UserHandle
@@ -16,12 +19,14 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
+private const val EXTRA_PROFILE_SERIAL = "io.github.vyachean.workprofiletoggle.extra.PROFILE_SERIAL"
 private const val INVALID_SERIAL_NUMBER = -1L
 private const val STATE_LAST_RESULT = "last_result"
 
 class MainActivity : Activity() {
     private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.ROOT)
     private lateinit var userManager: UserManager
+    private lateinit var shortcutManager: ShortcutManager
     private lateinit var content: LinearLayout
     private var lastResult: String = ""
 
@@ -31,6 +36,7 @@ class MainActivity : Activity() {
         lastResult = savedInstanceState?.getString(STATE_LAST_RESULT)
             ?: getString(R.string.no_action_executed)
         userManager = getSystemService(Context.USER_SERVICE) as UserManager
+        shortcutManager = getSystemService(ShortcutManager::class.java)
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(16.dp, 16.dp, 16.dp, 16.dp)
@@ -49,6 +55,14 @@ class MainActivity : Activity() {
             },
         )
 
+        handleShortcutIntent(intent)
+        render()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleShortcutIntent(intent)
         render()
     }
 
@@ -61,6 +75,8 @@ class MainActivity : Activity() {
         val profilesResult = runCatching { userManager.userProfiles }
         val profiles = profilesResult.getOrElse { emptyList() }
         val profileEntries = createProfileEntries(profiles)
+        val labeledEntries = profileEntries.filterIsInstance<ProfileEntry.Labeled>()
+        val shortcutUpdateResult = updateShortcuts(labeledEntries)
 
         content.removeAllViews()
 
@@ -76,9 +92,23 @@ class MainActivity : Activity() {
         profilesResult.exceptionOrNull()?.let { error ->
             content.addView(textView(formatFailure("getUserProfiles", error)))
         }
+        shortcutUpdateResult.exceptionOrNull()?.let { error ->
+            content.addView(textView(formatFailure("updateShortcuts", error)))
+        }
 
         content.addView(textView(getString(R.string.last_result, lastResult)))
         content.addView(textView(getString(R.string.profiles_found, profileEntries.size)))
+        shortcutUpdateResult.getOrNull()?.let { shortcutsCount ->
+            content.addView(
+                textView(
+                    getString(
+                        R.string.shortcuts_updated,
+                        shortcutsCount,
+                        shortcutManager.maxShortcutCountPerActivity,
+                    ),
+                ),
+            )
+        }
 
         profileEntries.forEach { profileEntry ->
             content.addView(profileView(profileEntry))
@@ -153,21 +183,86 @@ class MainActivity : Activity() {
             addView(textView(profileInfo))
 
             addView(button(getString(R.string.enable_quiet_mode)) {
-                requestQuietMode(userHandle, enableQuietMode = true)
+                requestQuietMode(userHandle, QuietModeAction.Enable)
             })
             addView(button(getString(R.string.disable_quiet_mode)) {
-                requestQuietMode(userHandle, enableQuietMode = false)
+                requestQuietMode(userHandle, QuietModeAction.Disable)
             })
             addView(button(getString(R.string.toggle_quiet_mode)) {
-                val currentQuietMode = readQuietMode(userHandle).value
-                if (currentQuietMode == null) {
-                    lastResult = getString(R.string.toggle_skipped, userHandle.toString())
-                    render()
-                } else {
-                    requestQuietMode(userHandle, enableQuietMode = !currentQuietMode)
-                }
+                requestQuietMode(userHandle, QuietModeAction.Toggle)
             })
         }
+    }
+
+    private fun updateShortcuts(profiles: List<ProfileEntry.Labeled>): Result<Int> {
+        return runCatching {
+            val maxShortcuts = shortcutManager.maxShortcutCountPerActivity
+            val shortcuts = profiles
+                .flatMap { profileEntry -> quietModeShortcutInfos(profileEntry) }
+                .take(maxShortcuts)
+
+            shortcutManager.dynamicShortcuts = shortcuts
+            shortcuts.size
+        }
+    }
+
+    private fun quietModeShortcutInfos(profileEntry: ProfileEntry.Labeled): List<ShortcutInfo> {
+        return QuietModeAction.entries.map { action ->
+            ShortcutInfo.Builder(
+                this,
+                shortcutId(action, profileEntry.profile.identifier.serialNumber),
+            )
+                .setShortLabel(shortcutLabel(action, profileEntry.profile.label))
+                .setIntent(shortcutIntent(action, profileEntry.profile.identifier.serialNumber))
+                .build()
+        }
+    }
+
+    private fun shortcutId(action: QuietModeAction, serialNumber: Long): String {
+        return "${action.name.lowercase(Locale.ROOT)}-$serialNumber"
+    }
+
+    private fun shortcutIntent(action: QuietModeAction, serialNumber: Long): Intent {
+        return Intent(this, MainActivity::class.java).apply {
+            this.action = action.intentAction
+            putExtra(EXTRA_PROFILE_SERIAL, serialNumber)
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+    }
+
+    private fun shortcutLabel(action: QuietModeAction, profileLabel: String): String {
+        val stringId = when (action) {
+            QuietModeAction.Enable -> R.string.shortcut_enable_label
+            QuietModeAction.Disable -> R.string.shortcut_disable_label
+            QuietModeAction.Toggle -> R.string.shortcut_toggle_label
+        }
+        return getString(stringId, profileLabel)
+    }
+
+    private fun handleShortcutIntent(intent: Intent) {
+        val action = QuietModeAction.fromIntentAction(intent.action) ?: return
+        val serialNumber = if (intent.hasExtra(EXTRA_PROFILE_SERIAL)) {
+            intent.getLongExtra(EXTRA_PROFILE_SERIAL, INVALID_SERIAL_NUMBER)
+        } else {
+            lastResult = getString(R.string.shortcut_missing_serial)
+            return
+        }
+        val userHandle = findUserHandle(serialNumber)
+        if (userHandle == null) {
+            lastResult = getString(R.string.shortcut_unknown_profile, serialNumber)
+            return
+        }
+
+        requestQuietMode(userHandle, action)
+    }
+
+    private fun findUserHandle(serialNumber: Long): UserHandle? {
+        return runCatching { userManager.userProfiles }
+            .getOrElse { emptyList() }
+            .firstOrNull { userHandle ->
+                runCatching { userManager.getSerialNumberForUser(userHandle) }
+                    .getOrNull() == serialNumber
+            }
     }
 
     private fun readQuietMode(userHandle: UserHandle): QuietModeState {
@@ -183,31 +278,44 @@ class MainActivity : Activity() {
             )
     }
 
-    private fun requestQuietMode(userHandle: UserHandle, enableQuietMode: Boolean) {
-        val action = getString(
-            if (enableQuietMode) {
-                R.string.operation_enable_quiet_mode
-            } else {
-                R.string.operation_disable_quiet_mode
-            },
-        )
+    private fun requestQuietMode(userHandle: UserHandle, action: QuietModeAction) {
+        val targetQuietMode = when (action) {
+            QuietModeAction.Enable -> true
+            QuietModeAction.Disable -> false
+            QuietModeAction.Toggle -> {
+                val currentQuietMode = readQuietMode(userHandle).value
+                if (currentQuietMode == null) {
+                    lastResult = getString(R.string.toggle_skipped, userHandle.toString())
+                    return
+                }
+                !currentQuietMode
+            }
+        }
+
         lastResult = runCatching {
-            val changed = if (!enableQuietMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val changed = if (!targetQuietMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 userManager.requestQuietModeEnabled(
                     false,
                     userHandle,
                     UserManager.QUIET_MODE_DISABLE_ONLY_IF_CREDENTIAL_NOT_REQUIRED,
                 )
             } else {
-                userManager.requestQuietModeEnabled(enableQuietMode, userHandle)
+                userManager.requestQuietModeEnabled(targetQuietMode, userHandle)
             }
 
-            getString(R.string.operation_returned, action, userHandle.toString(), changed.toString(), timestamp())
+            getString(R.string.operation_returned, operationLabel(action), userHandle.toString(), changed.toString(), timestamp())
         }.getOrElse { error ->
-            formatFailure(action, error)
+            formatFailure(operationLabel(action), error)
         }
+    }
 
-        render()
+    private fun operationLabel(action: QuietModeAction): String {
+        val stringId = when (action) {
+            QuietModeAction.Enable -> R.string.operation_enable_quiet_mode
+            QuietModeAction.Disable -> R.string.operation_disable_quiet_mode
+            QuietModeAction.Toggle -> R.string.operation_toggle_quiet_mode
+        }
+        return getString(stringId)
     }
 
     private fun formatFailure(operation: String, error: Throwable): String {
