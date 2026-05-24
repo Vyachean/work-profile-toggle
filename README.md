@@ -36,19 +36,35 @@ Known constraints to verify during implementation:
 - Profile display names may not be available to ordinary apps; shortcuts may need stable technical labels when profile names cannot be resolved.
 - Devices and OEM ROMs may behave differently. The first implementation task must prove the API flow on a real device.
 
-## Planned package name
-
-Tentative package name:
+## Package name
 
 ```text
 io.github.vyachean.workprofiletoggle
 ```
 
-This can still change before the first release.
+## Development
+
+Requirements:
+
+- JDK 17
+- Android SDK with platform 36
+
+Build and verify locally:
+
+```sh
+./gradlew lint test assembleDebug
+```
+
+If the executable bit is lost on a Unix-like system, run:
+
+```sh
+chmod +x ./gradlew
+./gradlew lint test assembleDebug
+```
 
 ## Development status
 
-No APK is available yet. The repository is currently being bootstrapped.
+The project currently contains a minimal Android application skeleton. Quiet-mode control is not implemented yet.
 
 ## License
 
