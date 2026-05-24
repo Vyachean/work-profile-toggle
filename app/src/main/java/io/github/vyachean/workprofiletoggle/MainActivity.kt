@@ -22,6 +22,7 @@ import kotlin.math.roundToInt
 
 private const val EXTRA_PROFILE_SERIAL = "io.github.vyachean.workprofiletoggle.extra.PROFILE_SERIAL"
 private const val INVALID_SERIAL_NUMBER = -1L
+private const val OWNER_PROFILE_SERIAL_NUMBER = 0L
 private const val SHORTCUTS_PER_PROFILE = 3
 private const val STATE_LAST_RESULT = "last_result"
 
@@ -93,6 +94,9 @@ class MainActivity : Activity() {
             ),
         )
         content.addView(textView(getString(R.string.poc_description)))
+        content.addView(textView(getString(R.string.adb_setup_title), textSize = 16f))
+        content.addView(textView(getString(R.string.adb_setup_description)))
+        content.addView(textView(getString(R.string.adb_setup_command)))
         content.addView(button(getString(R.string.refresh_profiles)) { render() })
 
         profilesResult.exceptionOrNull()?.let { error ->
@@ -116,6 +120,9 @@ class MainActivity : Activity() {
             )
         }
 
+        if (profileEntries.isEmpty()) {
+            content.addView(textView(getString(R.string.no_switchable_profiles)))
+        }
         profileEntries.forEach { profileEntry ->
             content.addView(profileView(profileEntry))
         }
@@ -129,13 +136,15 @@ class MainActivity : Activity() {
             runCatching { userManager.getSerialNumberForUser(userHandle) }
                 .fold(
                     onSuccess = { serialNumber ->
-                        if (serialNumber == INVALID_SERIAL_NUMBER) {
-                            diagnosticEntries += ProfileEntry.Diagnostic(
-                                userHandle = userHandle,
-                                serialDiagnostic = getString(R.string.profile_serial_invalid),
-                            )
-                        } else {
-                            handlesBySerialNumber.putIfAbsent(serialNumber, userHandle)
+                        when (serialNumber) {
+                            INVALID_SERIAL_NUMBER -> {
+                                diagnosticEntries += ProfileEntry.Diagnostic(
+                                    userHandle = userHandle,
+                                    serialDiagnostic = getString(R.string.profile_serial_invalid),
+                                )
+                            }
+                            OWNER_PROFILE_SERIAL_NUMBER -> Unit
+                            else -> handlesBySerialNumber.putIfAbsent(serialNumber, userHandle)
                         }
                     },
                     onFailure = { error ->
