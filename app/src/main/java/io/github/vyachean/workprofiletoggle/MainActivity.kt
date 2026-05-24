@@ -89,6 +89,7 @@ class MainActivity : Activity() {
         profiles.forEach { userHandle ->
             runCatching { userManager.getSerialNumberForUser(userHandle) }
                 .getOrNull()
+                ?.takeIf { serialNumber -> serialNumber != -1L }
                 ?.let { serialNumber ->
                     handlesBySerialNumber.putIfAbsent(serialNumber, userHandle)
                 }
@@ -96,17 +97,17 @@ class MainActivity : Activity() {
 
         return ProfileLabels.fromSerialNumbers(handlesBySerialNumber.keys) { ordinal, serialNumber ->
             getString(R.string.profile_fallback_label, ordinal, serialNumber)
-        }.mapNotNull { profile ->
-            handlesBySerialNumber[profile.identifier.serialNumber]?.let { userHandle ->
-                ProfileEntry(userHandle = userHandle, profile = profile)
-            }
+        }.map { profile ->
+            ProfileEntry(
+                userHandle = handlesBySerialNumber.getValue(profile.identifier.serialNumber),
+                profile = profile,
+            )
         }
     }
 
     private fun profileView(profileEntry: ProfileEntry): LinearLayout {
         val userHandle = profileEntry.userHandle
         val profile = profileEntry.profile
-        val serialNumberText = profile.identifier.serialNumber.toString()
         val quietMode = readQuietMode(userHandle)
 
         return LinearLayout(this).apply {
@@ -119,7 +120,7 @@ class MainActivity : Activity() {
                         R.string.profile_info,
                         profile.label,
                         userHandle.toString(),
-                        serialNumberText,
+                        profile.identifier.serialNumber,
                         quietMode.message,
                     ),
                 ),
