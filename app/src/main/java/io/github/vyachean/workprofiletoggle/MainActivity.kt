@@ -20,9 +20,6 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
-private const val EXTRA_PROFILE_SERIAL = "io.github.vyachean.workprofiletoggle.extra.PROFILE_SERIAL"
-private const val INVALID_SERIAL_NUMBER = -1L
-private const val OWNER_PROFILE_SERIAL_NUMBER = 0L
 private const val SHORTCUTS_PER_PROFILE = 3
 private const val STATE_LAST_RESULT = "last_result"
 
