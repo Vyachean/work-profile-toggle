@@ -16,10 +16,13 @@ android {
 
     signingConfigs {
         getByName("debug") {
-            storeFile = rootProject.file(".github/ci-debug.keystore")
-            storePassword = "android"
-            keyAlias = "AndroidDebugKey"
-            keyPassword = "android"
+            val ciDebugKeystorePath = providers.gradleProperty("ciDebugKeystorePath")
+            if (ciDebugKeystorePath.isPresent) {
+                storeFile = file(ciDebugKeystorePath.get())
+                storePassword = "android"
+                keyAlias = "AndroidDebugKey"
+                keyPassword = "android"
+            }
         }
     }
 }
