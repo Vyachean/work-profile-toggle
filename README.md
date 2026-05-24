@@ -142,6 +142,52 @@ CI verifies this fingerprint and fails if the debug APK signing certificate chan
 
 This key is only for development APKs. It must not be used for release builds.
 
+## Release APK signing
+
+Release APKs are signed only by the tag-based `Release` GitHub Actions workflow. The release key must be stored in GitHub Secrets and must not be committed to the repository.
+
+Required repository secrets:
+
+```text
+RELEASE_KEYSTORE_BASE64
+RELEASE_KEYSTORE_PASSWORD
+RELEASE_KEY_ALIAS
+RELEASE_KEY_PASSWORD
+```
+
+Create a release keystore locally and keep it private:
+
+```sh
+keytool -genkeypair \
+  -v \
+  -keystore work-profile-toggle-release.keystore \
+  -alias work-profile-toggle \
+  -keyalg RSA \
+  -keysize 4096 \
+  -validity 10000
+```
+
+Encode it for `RELEASE_KEYSTORE_BASE64`:
+
+```sh
+base64 -w 0 work-profile-toggle-release.keystore
+```
+
+On systems where `base64` does not support `-w`, remove line breaks before storing the value as a secret.
+
+Set the other secrets to the keystore password, key alias, and key password used when creating the keystore.
+
+Create a release by pushing a version tag:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The workflow builds `assembleRelease`, verifies the APK with `apksigner`, renames it to `work-profile-toggle-<tag>.apk`, and publishes it to the GitHub Release for the tag.
+
+A debug APK and a release APK cannot update each other unless they are signed with the same certificate. This project intentionally uses separate debug and release signing identities, so switching between debug and release installs requires uninstalling the existing package first.
+
 ## Development
 
 Requirements:
@@ -164,9 +210,9 @@ chmod +x ./gradlew
 
 ## Development status
 
-The project currently contains a minimal Android application proving profile discovery, quiet-mode control through an ADB-granted permission, dynamic launcher shortcuts, MacroDroid-compatible legacy shortcuts, and stable CI debug APK updates.
+The project currently contains a minimal Android application proving profile discovery, quiet-mode control through an ADB-granted permission, dynamic launcher shortcuts, MacroDroid-compatible legacy shortcuts, stable CI debug APK updates, and release APK publishing infrastructure.
 
-Release APK signing is not implemented yet.
+The first signed release still requires configuring release signing secrets and pushing a version tag.
 
 ## License
 
