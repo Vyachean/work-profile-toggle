@@ -49,7 +49,13 @@ jobs:
 
       - name: Print debug APK signing certificate
         run: |
-          apksigner verify --print-certs app/build/outputs/apk/debug/app-debug.apk
+          apksigner_path="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          if [ -z "$apksigner_path" ]; then
+            echo "apksigner was not found under $ANDROID_HOME/build-tools" >&2
+            exit 1
+          fi
+
+          "$apksigner_path" verify --print-certs app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
