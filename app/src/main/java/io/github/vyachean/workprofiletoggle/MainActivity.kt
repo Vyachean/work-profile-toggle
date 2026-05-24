@@ -281,19 +281,12 @@ class MainActivity : Activity() {
     }
 
     private fun findUserHandle(serialNumber: Long): UserHandle? {
-        if (userHandlesBySerialNumber.isEmpty()) {
-            refreshUserHandleCache()
-        }
         userHandlesBySerialNumber[serialNumber]?.let { userHandle ->
             return userHandle
         }
 
-        return runCatching { userManager.userProfiles }
-            .getOrElse { emptyList() }
-            .firstOrNull { userHandle ->
-                runCatching { userManager.getSerialNumberForUser(userHandle) }
-                    .getOrNull() == serialNumber
-            }
+        refreshUserHandleCache()
+        return userHandlesBySerialNumber[serialNumber]
     }
 
     private fun refreshUserHandleCache() {
