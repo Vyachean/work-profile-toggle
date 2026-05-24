@@ -48,16 +48,14 @@ Requirements:
 
 - JDK 17
 - Android SDK with platform 36
-- curl or wget on Linux/macOS for the repository Gradle launcher script
-- PowerShell on Windows for the repository Gradle launcher script
 
 Build and verify locally:
 
 ```sh
-sh ./gradlew lint test assembleDebug
+./gradlew lint test assembleDebug
 ```
 
-On Unix-like systems, you may also mark the launcher executable once:
+If the executable bit is lost on a Unix-like system, run:
 
 ```sh
 chmod +x ./gradlew
