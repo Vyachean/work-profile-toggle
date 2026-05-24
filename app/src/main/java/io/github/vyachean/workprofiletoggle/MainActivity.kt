@@ -59,6 +59,7 @@ class MainActivity : Activity() {
     private fun render() {
         val profilesResult = runCatching { userManager.userProfiles }
         val profiles = profilesResult.getOrElse { emptyList() }
+        val profileLabels = createProfileLabelMap(profiles)
 
         content.removeAllViews()
 
@@ -78,18 +79,30 @@ class MainActivity : Activity() {
         content.addView(textView(getString(R.string.last_result, lastResult)))
         content.addView(textView(getString(R.string.profiles_found, profiles.size)))
 
-        profiles.forEachIndexed { index, userHandle ->
-            content.addView(profileView(index, userHandle))
+        profiles.forEach { userHandle ->
+            content.addView(profileView(profileLabels[userHandle], userHandle))
         }
     }
 
-    private fun profileView(index: Int, userHandle: UserHandle): LinearLayout {
-        val serialNumber = runCatching { userManager.getSerialNumberForUser(userHandle) }
-            .fold(
-                onSuccess = { it.toString() },
-                onFailure = { error -> formatFailure("getSerialNumberForUser", error) },
-            )
+    private fun createProfileLabelMap(profiles: List<UserHandle>): Map<UserHandle, DiscoveredProfile> {
+        val handlesBySerialNumber = profiles.mapNotNull { userHandle ->
+            runCatching { userManager.getSerialNumberForUser(userHandle) }
+                .getOrNull()
+                ?.let { serialNumber -> serialNumber to userHandle }
+        }.toMap()
 
+        return ProfileLabels.fromSerialNumbers(handlesBySerialNumber.keys) { ordinal, serialNumber ->
+            getString(R.string.profile_fallback_label, ordinal, serialNumber)
+        }.mapNotNull { profile ->
+            handlesBySerialNumber[profile.identifier.serialNumber]?.let { userHandle ->
+                userHandle to profile
+            }
+        }.toMap()
+    }
+
+    private fun profileView(profile: DiscoveredProfile?, userHandle: UserHandle): LinearLayout {
+        val serialNumberText = profile?.identifier?.serialNumber?.toString()
+            ?: getString(R.string.profile_serial_unavailable)
         val quietMode = readQuietMode(userHandle)
 
         return LinearLayout(this).apply {
@@ -100,9 +113,9 @@ class MainActivity : Activity() {
                 textView(
                     getString(
                         R.string.profile_info,
-                        index + 1,
+                        profile?.label ?: userHandle.toString(),
                         userHandle.toString(),
-                        serialNumber,
+                        serialNumberText,
                         quietMode.message,
                     ),
                 ),
