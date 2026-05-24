@@ -36,19 +36,37 @@ Known constraints to verify during implementation:
 - Profile display names may not be available to ordinary apps; shortcuts may need stable technical labels when profile names cannot be resolved.
 - Devices and OEM ROMs may behave differently. The first implementation task must prove the API flow on a real device.
 
-## Planned package name
-
-Tentative package name:
+## Package name
 
 ```text
 io.github.vyachean.workprofiletoggle
 ```
 
-This can still change before the first release.
+## Development
+
+Requirements:
+
+- JDK 17
+- Android SDK with platform 36
+- curl or wget on Linux/macOS for the repository Gradle launcher script
+- PowerShell on Windows for the repository Gradle launcher script
+
+Build and verify locally:
+
+```sh
+sh ./gradlew lint test assembleDebug
+```
+
+On Unix-like systems, you may also mark the launcher executable once:
+
+```sh
+chmod +x ./gradlew
+./gradlew lint test assembleDebug
+```
 
 ## Development status
 
-No APK is available yet. The repository is currently being bootstrapped.
+The project currently contains a minimal Android application skeleton. Quiet-mode control is not implemented yet.
 
 ## License
 
