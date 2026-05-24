@@ -37,7 +37,12 @@ jobs:
           fi
 
           mkdir -p "$HOME/.android"
-          printf '%s' "$CI_DEBUG_KEYSTORE_BASE64" | base64 --decode > "$HOME/.android/debug.keystore"
+          normalized_keystore_base64="$(printf '%s' "$CI_DEBUG_KEYSTORE_BASE64" | tr -d '\r\n[:space:]')"
+          printf '%s' "$normalized_keystore_base64" | base64 --decode > "$HOME/.android/debug.keystore"
+          keytool -list \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android \
+            -alias AndroidDebugKey >/dev/null
 
       - name: Check project
         run: sh ./gradlew lint test assembleDebug
