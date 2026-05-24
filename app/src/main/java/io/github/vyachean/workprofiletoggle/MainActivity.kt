@@ -114,8 +114,11 @@ class MainActivity : Activity() {
         val labeledEntries = ProfileLabels.fromSerialNumbers(handlesBySerialNumber.keys) { ordinal, serialNumber ->
             getString(R.string.profile_fallback_label, ordinal, serialNumber)
         }.map { profile ->
+            val serialNumber = profile.identifier.serialNumber
             ProfileEntry.Labeled(
-                userHandle = handlesBySerialNumber.getValue(profile.identifier.serialNumber),
+                userHandle = requireNotNull(handlesBySerialNumber[serialNumber]) {
+                    "Missing UserHandle for profile serial $serialNumber"
+                },
                 profile = profile,
             )
         }
