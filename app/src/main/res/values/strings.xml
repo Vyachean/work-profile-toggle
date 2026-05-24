@@ -16,6 +16,9 @@
     <string name="shortcut_disable_long_label">Disable quiet mode: %1$s</string>
     <string name="shortcut_toggle_long_label">Toggle quiet mode: %1$s</string>
     <string name="shortcut_profile_short_label">P%1$d</string>
+    <string name="legacy_shortcut_picker_title">Choose shortcut action</string>
+    <string name="legacy_shortcut_picker_description">Select the profile and action to expose as a legacy Android shortcut for automation apps.</string>
+    <string name="legacy_shortcut_picker_empty">No switchable profiles are available for shortcut creation.</string>
     <string name="shortcuts_updated">Shortcuts updated: %1$d of %2$d available slots used.</string>
     <string name="shortcut_missing_serial">Shortcut skipped: missing profile serial.</string>
     <string name="shortcut_unknown_profile">Shortcut skipped: profile serial %1$d is unavailable.</string>
