@@ -21,6 +21,7 @@ import kotlin.math.roundToInt
 
 private const val EXTRA_PROFILE_SERIAL = "io.github.vyachean.workprofiletoggle.extra.PROFILE_SERIAL"
 private const val INVALID_SERIAL_NUMBER = -1L
+private const val SHORTCUTS_PER_PROFILE = 3
 private const val STATE_LAST_RESULT = "last_result"
 
 class MainActivity : Activity() {
@@ -197,9 +198,10 @@ class MainActivity : Activity() {
     private fun updateShortcuts(profiles: List<ProfileEntry.Labeled>): Result<Int> {
         return runCatching {
             val maxShortcuts = shortcutManager.maxShortcutCountPerActivity
+            val shortcutProfileCount = maxShortcuts / SHORTCUTS_PER_PROFILE
             val shortcuts = profiles
+                .take(shortcutProfileCount)
                 .flatMap { profileEntry -> quietModeShortcutInfos(profileEntry) }
-                .take(maxShortcuts)
 
             shortcutManager.dynamicShortcuts = shortcuts
             shortcuts.size
