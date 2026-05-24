@@ -13,6 +13,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.LinkedHashMap
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -59,7 +60,7 @@ class MainActivity : Activity() {
     private fun render() {
         val profilesResult = runCatching { userManager.userProfiles }
         val profiles = profilesResult.getOrElse { emptyList() }
-        val profileLabels = createProfileLabelMap(profiles)
+        val profileEntries = createProfileEntries(profiles)
 
         content.removeAllViews()
 
@@ -77,32 +78,36 @@ class MainActivity : Activity() {
         }
 
         content.addView(textView(getString(R.string.last_result, lastResult)))
-        content.addView(textView(getString(R.string.profiles_found, profiles.size)))
+        content.addView(textView(getString(R.string.profiles_found, profileEntries.size)))
 
-        profiles.forEach { userHandle ->
-            content.addView(profileView(profileLabels[userHandle], userHandle))
+        profileEntries.forEach { profileEntry ->
+            content.addView(profileView(profileEntry))
         }
     }
 
-    private fun createProfileLabelMap(profiles: List<UserHandle>): Map<UserHandle, DiscoveredProfile> {
-        val handlesBySerialNumber = profiles.mapNotNull { userHandle ->
+    private fun createProfileEntries(profiles: List<UserHandle>): List<ProfileEntry> {
+        val handlesBySerialNumber = LinkedHashMap<Long, UserHandle>()
+        profiles.forEach { userHandle ->
             runCatching { userManager.getSerialNumberForUser(userHandle) }
                 .getOrNull()
-                ?.let { serialNumber -> serialNumber to userHandle }
-        }.toMap()
+                ?.let { serialNumber ->
+                    handlesBySerialNumber.putIfAbsent(serialNumber, userHandle)
+                }
+        }
 
         return ProfileLabels.fromSerialNumbers(handlesBySerialNumber.keys) { ordinal, serialNumber ->
             getString(R.string.profile_fallback_label, ordinal, serialNumber)
         }.mapNotNull { profile ->
             handlesBySerialNumber[profile.identifier.serialNumber]?.let { userHandle ->
-                userHandle to profile
+                ProfileEntry(userHandle = userHandle, profile = profile)
             }
-        }.toMap()
+        }
     }
 
-    private fun profileView(profile: DiscoveredProfile?, userHandle: UserHandle): LinearLayout {
-        val serialNumberText = profile?.identifier?.serialNumber?.toString()
-            ?: getString(R.string.profile_serial_unavailable)
+    private fun profileView(profileEntry: ProfileEntry): LinearLayout {
+        val userHandle = profileEntry.userHandle
+        val profile = profileEntry.profile
+        val serialNumberText = profile.identifier.serialNumber.toString()
         val quietMode = readQuietMode(userHandle)
 
         return LinearLayout(this).apply {
@@ -113,7 +118,7 @@ class MainActivity : Activity() {
                 textView(
                     getString(
                         R.string.profile_info,
-                        profile?.label ?: userHandle.toString(),
+                        profile.label,
                         userHandle.toString(),
                         serialNumberText,
                         quietMode.message,
@@ -212,6 +217,11 @@ class MainActivity : Activity() {
     private val Int.dp: Int
         get() = (this * resources.displayMetrics.density).roundToInt()
 }
+
+private data class ProfileEntry(
+    val userHandle: UserHandle,
+    val profile: DiscoveredProfile,
+)
 
 private data class QuietModeState(
     val value: Boolean?,
