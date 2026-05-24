@@ -6,27 +6,27 @@ Minimal Android app for advanced users. It provides launcher shortcuts for Andro
 
 The app is intentionally small:
 
-- create launcher shortcuts for available Android profiles;
-- enable quiet mode for a selected profile;
-- disable quiet mode for a selected profile;
-- toggle quiet mode for a selected profile.
+- Create launcher shortcuts for available Android profiles.
+- Enable quiet mode for a selected profile.
+- Disable quiet mode for a selected profile.
+- Toggle quiet mode for a selected profile.
 
 ## Non-goals
 
 This app is not a Shelter, Island, or work-profile manager replacement. It must not:
 
-- create, provision, or delete profiles;
-- install, clone, freeze, or manage apps inside a profile;
-- provide schedules, automations, or background policies;
-- duplicate Tasker, MacroDroid, or launcher functionality;
-- add a complex settings UI unless a platform limitation makes it unavoidable.
+- Create, provision, or delete profiles.
+- Install, clone, freeze, or manage apps inside a profile.
+- Provide schedules, automations, or background policies.
+- Duplicate Tasker, MacroDroid, or launcher functionality.
+- Add a complex settings UI unless a platform limitation makes it unavoidable.
 
 ## Platform assumptions
 
 The implementation is based on Android profile quiet-mode APIs:
 
-- `UserManager.getUserProfiles()` for associated user/profile handles;
-- `UserManager.isQuietModeEnabled(UserHandle)` for current quiet-mode state;
+- `UserManager.getUserProfiles()` for associated user/profile handles.
+- `UserManager.isQuietModeEnabled(UserHandle)` for current quiet-mode state.
 - `UserManager.requestQuietModeEnabled(...)` for changing quiet mode.
 
 Verified constraints:
@@ -64,15 +64,15 @@ The output should show `granted=true` for `android.permission.MODIFY_QUIET_MODE`
 
 Expected successful setup behavior:
 
-- the app can list associated user/profile handles;
-- the app can read quiet-mode state;
-- quiet-mode actions return `true` when Android accepts the requested state change.
+- The app can list associated user/profile handles.
+- The app can read quiet-mode state.
+- Quiet-mode actions return `true` when Android accepts the requested state change.
 
 Known failure modes:
 
-- `SecurityException: Can't modify quiet mode, caller is neither foreground default launcher nor has MANAGE_USERS/MODIFY_QUIET_MODE permission` means the permission is missing or was not accepted by the device;
-- `pm grant` can fail on some devices or ROMs because `MODIFY_QUIET_MODE` is a protected permission. Some OEM Android distributions require additional developer options for privileged ADB operations; for example, Xiaomi/MIUI devices may require enabling `USB Debugging (Security Settings)`;
-- disabling quiet mode can return `false` when Android requires profile credentials or refuses the request.
+- `SecurityException: Can't modify quiet mode, caller is neither foreground default launcher nor has MANAGE_USERS/MODIFY_QUIET_MODE permission` means the permission is missing or was not accepted by the device.
+- `pm grant` can fail on some devices or ROMs because `MODIFY_QUIET_MODE` is a protected permission. Some OEM Android distributions require additional developer options for privileged ADB operations; for example, Xiaomi/MIUI devices may require enabling `USB Debugging (Security Settings)`.
+- Disabling quiet mode can return `false` when Android requires profile credentials or refuses the request.
 
 To revoke the permission:
 
@@ -96,8 +96,8 @@ adb shell pm uninstall --user <USER_ID> io.github.vyachean.workprofiletoggle
 
 Requirements:
 
-- JDK 17
-- Android SDK with platform 36
+- JDK 17.
+- Android SDK with platform 36.
 
 Build and verify locally:
 
