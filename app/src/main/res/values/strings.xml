@@ -10,7 +10,10 @@
     <string name="last_result">Last result:\n%1$s</string>
     <string name="profiles_found">Profiles found: %1$d</string>
     <string name="profile_fallback_label">Profile %1$d (serial %2$d)</string>
+    <string name="profile_serial_diagnostic_label">Profile with serial diagnostic</string>
+    <string name="profile_serial_invalid">invalid serial -1</string>
     <string name="profile_info">%1$s\nHandle: %2$s\nSerial: %3$d\nQuiet mode: %4$s</string>
+    <string name="profile_info_with_serial_diagnostic">%1$s\nHandle: %2$s\nSerial: %3$s\nQuiet mode: %4$s</string>
     <string name="toggle_skipped">Toggle skipped: quiet-mode state is unavailable for %1$s.</string>
     <string name="operation_enable_quiet_mode">enable quiet mode</string>
     <string name="operation_disable_quiet_mode">disable quiet mode</string>
