@@ -4,4 +4,6 @@
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:colorAccent">@color/app_accent</item>
     </style>
+
+    <style name="NoDisplayTheme" parent="android:style/Theme.NoDisplay" />
 </resources>
