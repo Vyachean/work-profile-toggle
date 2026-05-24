@@ -6,4 +6,13 @@
     <string name="enable_quiet_mode">Turn on quiet mode</string>
     <string name="disable_quiet_mode">Turn off quiet mode</string>
     <string name="toggle_quiet_mode">Toggle quiet mode</string>
+    <string name="no_action_executed">No action executed yet.</string>
+    <string name="last_result">Last result:\n%1$s</string>
+    <string name="profiles_found">Profiles found: %1$d</string>
+    <string name="profile_info">Profile %1$d\nHandle: %2$s\nSerial: %3$s\nQuiet mode: %4$s</string>
+    <string name="toggle_skipped">Toggle skipped: quiet-mode state is unavailable for %1$s.</string>
+    <string name="operation_enable_quiet_mode">enable quiet mode</string>
+    <string name="operation_disable_quiet_mode">disable quiet mode</string>
+    <string name="operation_returned">%1$s for %2$s returned %3$s at %4$s.</string>
+    <string name="operation_failed">%1$s failed with %2$s: %3$s</string>
 </resources>
