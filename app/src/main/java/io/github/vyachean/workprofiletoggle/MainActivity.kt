@@ -120,7 +120,7 @@ class MainActivity : Activity() {
             )
         }
 
-        return labeledEntries + diagnosticEntries
+        return labeledEntries + diagnosticEntries.sortedBy { it.userHandle.toString() }
     }
 
     private fun profileView(profileEntry: ProfileEntry): LinearLayout {
