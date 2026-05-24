@@ -29,15 +29,16 @@ jobs:
 
       - name: Set up CI debug keystore
         run: |
-          mkdir -p "$HOME/.android"
-          tr -d '\r\n[:space:]' < .github/ci-debug.keystore.base64 | base64 --decode > "$HOME/.android/debug.keystore"
+          keystore_path="$RUNNER_TEMP/work-profile-toggle-debug.keystore"
+          tr -d '\r\n[:space:]' < .github/ci-debug.keystore.base64 | base64 --decode > "$keystore_path"
           keytool -list \
-            -keystore "$HOME/.android/debug.keystore" \
+            -keystore "$keystore_path" \
             -storepass android \
             -alias AndroidDebugKey >/dev/null
+          echo "CI_DEBUG_KEYSTORE_PATH=$keystore_path" >> "$GITHUB_ENV"
 
       - name: Check project
-        run: sh ./gradlew lint test assembleDebug
+        run: sh ./gradlew -PciDebugKeystorePath="$CI_DEBUG_KEYSTORE_PATH" lint test assembleDebug
 
       - name: Verify debug APK signing certificate
         run: |
@@ -50,7 +51,7 @@ jobs:
 
           certs="$($apksigner_path verify --print-certs app/build/outputs/apk/debug/app-debug.apk)"
           printf '%s\n' "$certs"
-          actual_sha256="$(printf '%s\n' "$certs" | awk -F': ' '/certificate SHA-256 digest/ {print $2; exit}')"
+          actual_sha256="$(printf '%s\n' "$certs" | sed -n 's/^V2 Signer: certificate SHA-256 digest: //p' | head -n 1)"
           if [ "$actual_sha256" != "$expected_sha256" ]; then
             echo "Unexpected debug APK signing certificate SHA-256: $actual_sha256" >&2
             echo "Expected: $expected_sha256" >&2
