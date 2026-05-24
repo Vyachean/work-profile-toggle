@@ -27,9 +27,10 @@ private const val STATE_LAST_RESULT = "last_result"
 class MainActivity : Activity() {
     private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.ROOT)
     private lateinit var userManager: UserManager
-    private lateinit var shortcutManager: ShortcutManager
+    private var shortcutManager: ShortcutManager? = null
     private lateinit var content: LinearLayout
     private var lastResult: String = ""
+    private var lastShortcutSignature: List<String>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -99,13 +100,13 @@ class MainActivity : Activity() {
 
         content.addView(textView(getString(R.string.last_result, lastResult)))
         content.addView(textView(getString(R.string.profiles_found, profileEntries.size)))
-        shortcutUpdateResult.getOrNull()?.let { shortcutsCount ->
+        shortcutUpdateResult.getOrNull()?.let { updateState ->
             content.addView(
                 textView(
                     getString(
                         R.string.shortcuts_updated,
-                        shortcutsCount,
-                        shortcutManager.maxShortcutCountPerActivity,
+                        updateState.shortcutsCount,
+                        updateState.maxShortcuts,
                     ),
                 ),
             )
@@ -185,26 +186,40 @@ class MainActivity : Activity() {
 
             addView(button(getString(R.string.enable_quiet_mode)) {
                 requestQuietMode(userHandle, QuietModeAction.Enable)
+                render()
             })
             addView(button(getString(R.string.disable_quiet_mode)) {
                 requestQuietMode(userHandle, QuietModeAction.Disable)
+                render()
             })
             addView(button(getString(R.string.toggle_quiet_mode)) {
                 requestQuietMode(userHandle, QuietModeAction.Toggle)
+                render()
             })
         }
     }
 
-    private fun updateShortcuts(profiles: List<ProfileEntry.Labeled>): Result<Int> {
+    private fun updateShortcuts(profiles: List<ProfileEntry.Labeled>): Result<ShortcutUpdateState?> {
         return runCatching {
-            val maxShortcuts = shortcutManager.maxShortcutCountPerActivity
+            val manager = shortcutManager ?: return@runCatching null
+            val maxShortcuts = manager.maxShortcutCountPerActivity
             val shortcutProfileCount = maxShortcuts / SHORTCUTS_PER_PROFILE
             val shortcuts = profiles
                 .take(shortcutProfileCount)
                 .flatMap { profileEntry -> quietModeShortcutInfos(profileEntry) }
+            val shortcutSignature = shortcuts.map { shortcut ->
+                "${shortcut.id}:${shortcut.shortLabel}"
+            }
 
-            shortcutManager.dynamicShortcuts = shortcuts
-            shortcuts.size
+            if (shortcutSignature != lastShortcutSignature) {
+                manager.dynamicShortcuts = shortcuts
+                lastShortcutSignature = shortcutSignature
+            }
+
+            ShortcutUpdateState(
+                shortcutsCount = shortcuts.size,
+                maxShortcuts = maxShortcuts,
+            )
         }
     }
 
@@ -243,6 +258,8 @@ class MainActivity : Activity() {
 
     private fun handleShortcutIntent(intent: Intent) {
         val action = QuietModeAction.fromIntentAction(intent.action) ?: return
+        intent.action = null
+
         val serialNumber = if (intent.hasExtra(EXTRA_PROFILE_SERIAL)) {
             intent.getLongExtra(EXTRA_PROFILE_SERIAL, INVALID_SERIAL_NUMBER)
         } else {
@@ -371,4 +388,9 @@ private sealed class ProfileEntry {
 private data class QuietModeState(
     val value: Boolean?,
     val message: String,
+)
+
+private data class ShortcutUpdateState(
+    val shortcutsCount: Int,
+    val maxShortcuts: Int,
 )
