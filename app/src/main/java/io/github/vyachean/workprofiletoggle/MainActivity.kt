@@ -16,6 +16,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
+private const val INVALID_SERIAL_NUMBER = -1L
 private const val STATE_LAST_RESULT = "last_result"
 
 class MainActivity : Activity() {
@@ -59,6 +60,7 @@ class MainActivity : Activity() {
     private fun render() {
         val profilesResult = runCatching { userManager.userProfiles }
         val profiles = profilesResult.getOrElse { emptyList() }
+        val profileEntries = createProfileEntries(profiles)
 
         content.removeAllViews()
 
@@ -76,37 +78,79 @@ class MainActivity : Activity() {
         }
 
         content.addView(textView(getString(R.string.last_result, lastResult)))
-        content.addView(textView(getString(R.string.profiles_found, profiles.size)))
+        content.addView(textView(getString(R.string.profiles_found, profileEntries.size)))
 
-        profiles.forEachIndexed { index, userHandle ->
-            content.addView(profileView(index, userHandle))
+        profileEntries.forEach { profileEntry ->
+            content.addView(profileView(profileEntry))
         }
     }
 
-    private fun profileView(index: Int, userHandle: UserHandle): LinearLayout {
-        val serialNumber = runCatching { userManager.getSerialNumberForUser(userHandle) }
-            .fold(
-                onSuccess = { it.toString() },
-                onFailure = { error -> formatFailure("getSerialNumberForUser", error) },
-            )
+    private fun createProfileEntries(profiles: List<UserHandle>): List<ProfileEntry> {
+        val handlesBySerialNumber = mutableMapOf<Long, UserHandle>()
+        val diagnosticEntries = mutableListOf<ProfileEntry.Diagnostic>()
 
+        profiles.forEach { userHandle ->
+            runCatching { userManager.getSerialNumberForUser(userHandle) }
+                .fold(
+                    onSuccess = { serialNumber ->
+                        if (serialNumber == INVALID_SERIAL_NUMBER) {
+                            diagnosticEntries += ProfileEntry.Diagnostic(
+                                userHandle = userHandle,
+                                serialDiagnostic = getString(R.string.profile_serial_invalid),
+                            )
+                        } else {
+                            handlesBySerialNumber.putIfAbsent(serialNumber, userHandle)
+                        }
+                    },
+                    onFailure = { error ->
+                        diagnosticEntries += ProfileEntry.Diagnostic(
+                            userHandle = userHandle,
+                            serialDiagnostic = formatFailure("getSerialNumberForUser", error),
+                        )
+                    },
+                )
+        }
+
+        val labeledEntries = ProfileLabels.fromSerialNumbers(handlesBySerialNumber.keys) { ordinal, serialNumber ->
+            getString(R.string.profile_fallback_label, ordinal, serialNumber)
+        }.map { profile ->
+            val serialNumber = profile.identifier.serialNumber
+            ProfileEntry.Labeled(
+                userHandle = requireNotNull(handlesBySerialNumber[serialNumber]) {
+                    "Missing UserHandle for profile serial $serialNumber"
+                },
+                profile = profile,
+            )
+        }
+
+        return labeledEntries + diagnosticEntries.sortedBy { it.userHandle.toString() }
+    }
+
+    private fun profileView(profileEntry: ProfileEntry): LinearLayout {
+        val userHandle = profileEntry.userHandle
         val quietMode = readQuietMode(userHandle)
+        val profileInfo = when (profileEntry) {
+            is ProfileEntry.Labeled -> getString(
+                R.string.profile_info,
+                profileEntry.profile.label,
+                userHandle.toString(),
+                profileEntry.profile.identifier.serialNumber,
+                quietMode.message,
+            )
+            is ProfileEntry.Diagnostic -> getString(
+                R.string.profile_info_with_serial_diagnostic,
+                getString(R.string.profile_serial_diagnostic_label),
+                userHandle.toString(),
+                profileEntry.serialDiagnostic,
+                quietMode.message,
+            )
+        }
 
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, 16.dp, 0, 16.dp)
 
-            addView(
-                textView(
-                    getString(
-                        R.string.profile_info,
-                        index + 1,
-                        userHandle.toString(),
-                        serialNumber,
-                        quietMode.message,
-                    ),
-                ),
-            )
+            addView(textView(profileInfo))
 
             addView(button(getString(R.string.enable_quiet_mode)) {
                 requestQuietMode(userHandle, enableQuietMode = true)
@@ -198,6 +242,20 @@ class MainActivity : Activity() {
 
     private val Int.dp: Int
         get() = (this * resources.displayMetrics.density).roundToInt()
+}
+
+private sealed class ProfileEntry {
+    abstract val userHandle: UserHandle
+
+    data class Labeled(
+        override val userHandle: UserHandle,
+        val profile: DiscoveredProfile,
+    ) : ProfileEntry()
+
+    data class Diagnostic(
+        override val userHandle: UserHandle,
+        val serialDiagnostic: String,
+    ) : ProfileEntry()
 }
 
 private data class QuietModeState(
