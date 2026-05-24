@@ -58,7 +58,9 @@ class MainActivity : Activity() {
             },
         )
 
-        handleShortcutIntent(intent)
+        if (savedInstanceState == null) {
+            handleShortcutIntent(intent)
+        }
         render()
     }
 
@@ -279,6 +281,9 @@ class MainActivity : Activity() {
     }
 
     private fun findUserHandle(serialNumber: Long): UserHandle? {
+        if (userHandlesBySerialNumber.isEmpty()) {
+            refreshUserHandleCache()
+        }
         userHandlesBySerialNumber[serialNumber]?.let { userHandle ->
             return userHandle
         }
@@ -289,6 +294,12 @@ class MainActivity : Activity() {
                 runCatching { userManager.getSerialNumberForUser(userHandle) }
                     .getOrNull() == serialNumber
             }
+    }
+
+    private fun refreshUserHandleCache() {
+        runCatching { userManager.userProfiles }
+            .getOrNull()
+            ?.let { profiles -> createProfileEntries(profiles) }
     }
 
     private fun readQuietMode(userHandle: UserHandle): QuietModeState {
