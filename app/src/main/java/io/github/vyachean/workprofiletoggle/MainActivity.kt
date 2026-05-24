@@ -16,6 +16,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
+private const val INVALID_SERIAL_NUMBER = -1L
 private const val STATE_LAST_RESULT = "last_result"
 
 class MainActivity : Activity() {
@@ -86,45 +87,67 @@ class MainActivity : Activity() {
 
     private fun createProfileEntries(profiles: List<UserHandle>): List<ProfileEntry> {
         val handlesBySerialNumber = mutableMapOf<Long, UserHandle>()
+        val diagnosticEntries = mutableListOf<ProfileEntry.Diagnostic>()
+
         profiles.forEach { userHandle ->
             runCatching { userManager.getSerialNumberForUser(userHandle) }
-                .getOrNull()
-                ?.takeIf { serialNumber -> serialNumber != -1L }
-                ?.let { serialNumber ->
-                    handlesBySerialNumber.putIfAbsent(serialNumber, userHandle)
-                }
+                .fold(
+                    onSuccess = { serialNumber ->
+                        if (serialNumber == INVALID_SERIAL_NUMBER) {
+                            diagnosticEntries += ProfileEntry.Diagnostic(
+                                userHandle = userHandle,
+                                serialDiagnostic = getString(R.string.profile_serial_invalid),
+                            )
+                        } else {
+                            handlesBySerialNumber.putIfAbsent(serialNumber, userHandle)
+                        }
+                    },
+                    onFailure = { error ->
+                        diagnosticEntries += ProfileEntry.Diagnostic(
+                            userHandle = userHandle,
+                            serialDiagnostic = formatFailure("getSerialNumberForUser", error),
+                        )
+                    },
+                )
         }
 
-        return ProfileLabels.fromSerialNumbers(handlesBySerialNumber.keys) { ordinal, serialNumber ->
+        val labeledEntries = ProfileLabels.fromSerialNumbers(handlesBySerialNumber.keys) { ordinal, serialNumber ->
             getString(R.string.profile_fallback_label, ordinal, serialNumber)
         }.map { profile ->
-            ProfileEntry(
+            ProfileEntry.Labeled(
                 userHandle = handlesBySerialNumber.getValue(profile.identifier.serialNumber),
                 profile = profile,
             )
         }
+
+        return labeledEntries + diagnosticEntries
     }
 
     private fun profileView(profileEntry: ProfileEntry): LinearLayout {
         val userHandle = profileEntry.userHandle
-        val profile = profileEntry.profile
         val quietMode = readQuietMode(userHandle)
+        val profileInfo = when (profileEntry) {
+            is ProfileEntry.Labeled -> getString(
+                R.string.profile_info,
+                profileEntry.profile.label,
+                userHandle.toString(),
+                profileEntry.profile.identifier.serialNumber,
+                quietMode.message,
+            )
+            is ProfileEntry.Diagnostic -> getString(
+                R.string.profile_info_with_serial_diagnostic,
+                getString(R.string.profile_serial_diagnostic_label),
+                userHandle.toString(),
+                profileEntry.serialDiagnostic,
+                quietMode.message,
+            )
+        }
 
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, 16.dp, 0, 16.dp)
 
-            addView(
-                textView(
-                    getString(
-                        R.string.profile_info,
-                        profile.label,
-                        userHandle.toString(),
-                        profile.identifier.serialNumber,
-                        quietMode.message,
-                    ),
-                ),
-            )
+            addView(textView(profileInfo))
 
             addView(button(getString(R.string.enable_quiet_mode)) {
                 requestQuietMode(userHandle, enableQuietMode = true)
@@ -218,10 +241,19 @@ class MainActivity : Activity() {
         get() = (this * resources.displayMetrics.density).roundToInt()
 }
 
-private data class ProfileEntry(
-    val userHandle: UserHandle,
-    val profile: DiscoveredProfile,
-)
+private sealed class ProfileEntry {
+    abstract val userHandle: UserHandle
+
+    data class Labeled(
+        override val userHandle: UserHandle,
+        val profile: DiscoveredProfile,
+    ) : ProfileEntry()
+
+    data class Diagnostic(
+        override val userHandle: UserHandle,
+        val serialDiagnostic: String,
+    ) : ProfileEntry()
+}
 
 private data class QuietModeState(
     val value: Boolean?,
