@@ -69,7 +69,7 @@ Expected successful setup behavior:
 Known failure modes:
 
 - `SecurityException: Can't modify quiet mode, caller is neither foreground default launcher nor has MANAGE_USERS/MODIFY_QUIET_MODE permission` means the permission is missing or was not accepted by the device;
-- `pm grant` can fail on some devices or ROMs because `MODIFY_QUIET_MODE` is a protected permission;
+- `pm grant` can fail on some devices or ROMs because `MODIFY_QUIET_MODE` is a protected permission. Some OEM Android distributions require additional developer options for privileged ADB operations; for example, Xiaomi/MIUI devices may require enabling `USB Debugging (Security Settings)`;
 - disabling quiet mode can return `false` when Android requires profile credentials or refuses the request.
 
 To revoke the permission:
@@ -84,10 +84,10 @@ To remove the debug build during testing:
 adb uninstall io.github.vyachean.workprofiletoggle
 ```
 
-If Android reports that the package is installed for a specific user, uninstall it for that user explicitly:
+If Android reports that the package is installed for a specific user, uninstall it for that user explicitly. Use the user ID from the Android error message:
 
 ```sh
-adb shell pm uninstall --user 0 io.github.vyachean.workprofiletoggle
+adb shell pm uninstall --user <USER_ID> io.github.vyachean.workprofiletoggle
 ```
 
 ## Development
