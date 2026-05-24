@@ -13,7 +13,6 @@ import android.widget.ScrollView
 import android.widget.TextView
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.LinkedHashMap
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -86,7 +85,7 @@ class MainActivity : Activity() {
     }
 
     private fun createProfileEntries(profiles: List<UserHandle>): List<ProfileEntry> {
-        val handlesBySerialNumber = LinkedHashMap<Long, UserHandle>()
+        val handlesBySerialNumber = mutableMapOf<Long, UserHandle>()
         profiles.forEach { userHandle ->
             runCatching { userManager.getSerialNumberForUser(userHandle) }
                 .getOrNull()
