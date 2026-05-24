@@ -38,7 +38,7 @@ jobs:
           echo "CI_DEBUG_KEYSTORE_PATH=$keystore_path" >> "$GITHUB_ENV"
 
       - name: Check project
-        run: sh ./gradlew -PciDebugKeystorePath="$CI_DEBUG_KEYSTORE_PATH" lint test assembleDebug
+        run: sh ./gradlew -PciDebugKeystorePath="$CI_DEBUG_KEYSTORE_PATH" lint test assembleDebug assembleRelease
 
       - name: Verify debug APK signing certificate
         run: |

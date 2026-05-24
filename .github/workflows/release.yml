@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode release keystore
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "RELEASE_KEYSTORE_BASE64 is required." >&2
+            exit 1
+          fi
+
+          keystore_path="$RUNNER_TEMP/work-profile-toggle-release.keystore"
+          normalized_keystore_base64="$(printf '%s' "$RELEASE_KEYSTORE_BASE64" | tr -d '\r\n[:space:]')"
+          printf '%s' "$normalized_keystore_base64" | base64 --decode > "$keystore_path"
+          echo "RELEASE_KEYSTORE_PATH=$keystore_path" >> "$GITHUB_ENV"
+
+      - name: Build release APK
+        env:
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$RELEASE_KEYSTORE_PATH" ]; then
+            echo "RELEASE_KEYSTORE_PATH is required." >&2
+            exit 1
+          fi
+          if [ -z "$RELEASE_KEYSTORE_PASSWORD" ]; then
+            echo "RELEASE_KEYSTORE_PASSWORD is required." >&2
+            exit 1
+          fi
+          if [ -z "$RELEASE_KEY_ALIAS" ]; then
+            echo "RELEASE_KEY_ALIAS is required." >&2
+            exit 1
+          fi
+          if [ -z "$RELEASE_KEY_PASSWORD" ]; then
+            echo "RELEASE_KEY_PASSWORD is required." >&2
+            exit 1
+          fi
+
+          sh ./gradlew \
+            -PreleaseKeystorePath="$RELEASE_KEYSTORE_PATH" \
+            -PreleaseKeystorePassword="$RELEASE_KEYSTORE_PASSWORD" \
+            -PreleaseKeyAlias="$RELEASE_KEY_ALIAS" \
+            -PreleaseKeyPassword="$RELEASE_KEY_PASSWORD" \
+            lint test assembleRelease
+
+      - name: Verify release APK
+        run: |
+          apksigner_path="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          if [ -z "$apksigner_path" ]; then
+            echo "apksigner was not found under $ANDROID_HOME/build-tools" >&2
+            exit 1
+          fi
+
+          "$apksigner_path" verify --print-certs app/build/outputs/apk/release/app-release.apk
+
+      - name: Rename release APK
+        run: |
+          mkdir -p release-artifacts
+          cp app/build/outputs/apk/release/app-release.apk "release-artifacts/work-profile-toggle-${GITHUB_REF_NAME}.apk"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            release-artifacts/*.apk \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes
