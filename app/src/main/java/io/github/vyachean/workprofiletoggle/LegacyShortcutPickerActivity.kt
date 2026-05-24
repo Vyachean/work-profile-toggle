@@ -95,10 +95,10 @@ class LegacyShortcutPickerActivity : Activity() {
     }
 
     private fun finishWithShortcut(action: QuietModeAction, profile: DiscoveredProfile) {
-        val shortcutIntent = Intent(this, MainActivity::class.java).apply {
+        val shortcutIntent = Intent(this, QuietModeActionActivity::class.java).apply {
             this.action = action.intentAction
             putExtra(EXTRA_PROFILE_SERIAL, profile.identifier.serialNumber)
-            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            flags = Intent.FLAG_ACTIVITY_NO_ANIMATION
         }
         val shortcutName = shortcutLongLabel(action, profile.label)
         val result = Intent().apply {
