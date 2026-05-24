@@ -3,7 +3,6 @@ package io.github.vyachean.workprofiletoggle
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.os.UserHandle
 import android.os.UserManager
