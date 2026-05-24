@@ -13,6 +13,18 @@ android {
         versionCode = 1
         versionName = "0.1.0"
     }
+
+    signingConfigs {
+        getByName("debug") {
+            val ciDebugKeystorePath = providers.gradleProperty("ciDebugKeystorePath")
+            if (ciDebugKeystorePath.isPresent) {
+                storeFile = file(ciDebugKeystorePath.get())
+                storePassword = "android"
+                keyAlias = "AndroidDebugKey"
+                keyPassword = "android"
+            }
+        }
+    }
 }
 
 dependencies {
