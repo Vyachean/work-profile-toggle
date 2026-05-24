@@ -30,7 +30,8 @@ class MainActivity : Activity() {
     private var shortcutManager: ShortcutManager? = null
     private lateinit var content: LinearLayout
     private var lastResult: String = ""
-    private var lastShortcutSignature: List<String>? = null
+    private var lastShortcutSignature: List<ShortcutDescriptor>? = null
+    private var userHandlesBySerialNumber: Map<Long, UserHandle> = emptyMap()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -142,6 +143,7 @@ class MainActivity : Activity() {
                     },
                 )
         }
+        userHandlesBySerialNumber = handlesBySerialNumber.toMap()
 
         val labeledEntries = ProfileLabels.fromSerialNumbers(handlesBySerialNumber.keys) { ordinal, serialNumber ->
             getString(R.string.profile_fallback_label, ordinal, serialNumber)
@@ -204,34 +206,35 @@ class MainActivity : Activity() {
             val manager = shortcutManager ?: return@runCatching null
             val maxShortcuts = manager.maxShortcutCountPerActivity
             val shortcutProfileCount = maxShortcuts / SHORTCUTS_PER_PROFILE
-            val shortcuts = profiles
+            val shortcutDescriptors = profiles
                 .take(shortcutProfileCount)
-                .flatMap { profileEntry -> quietModeShortcutInfos(profileEntry) }
-            val shortcutSignature = shortcuts.map { shortcut ->
-                "${shortcut.id}:${shortcut.shortLabel}"
-            }
+                .flatMap { profileEntry -> quietModeShortcutDescriptors(profileEntry) }
 
-            if (shortcutSignature != lastShortcutSignature) {
-                manager.dynamicShortcuts = shortcuts
-                lastShortcutSignature = shortcutSignature
+            if (shortcutDescriptors != lastShortcutSignature) {
+                manager.dynamicShortcuts = shortcutDescriptors.map { descriptor ->
+                    ShortcutInfo.Builder(this, descriptor.id)
+                        .setShortLabel(descriptor.label)
+                        .setIntent(shortcutIntent(descriptor.action, descriptor.serialNumber))
+                        .build()
+                }
+                lastShortcutSignature = shortcutDescriptors
             }
 
             ShortcutUpdateState(
-                shortcutsCount = shortcuts.size,
+                shortcutsCount = shortcutDescriptors.size,
                 maxShortcuts = maxShortcuts,
             )
         }
     }
 
-    private fun quietModeShortcutInfos(profileEntry: ProfileEntry.Labeled): List<ShortcutInfo> {
+    private fun quietModeShortcutDescriptors(profileEntry: ProfileEntry.Labeled): List<ShortcutDescriptor> {
         return QuietModeAction.entries.map { action ->
-            ShortcutInfo.Builder(
-                this,
-                shortcutId(action, profileEntry.profile.identifier.serialNumber),
+            ShortcutDescriptor(
+                id = shortcutId(action, profileEntry.profile.identifier.serialNumber),
+                action = action,
+                serialNumber = profileEntry.profile.identifier.serialNumber,
+                label = shortcutLabel(action, profileEntry.profile.label),
             )
-                .setShortLabel(shortcutLabel(action, profileEntry.profile.label))
-                .setIntent(shortcutIntent(action, profileEntry.profile.identifier.serialNumber))
-                .build()
         }
     }
 
@@ -276,6 +279,10 @@ class MainActivity : Activity() {
     }
 
     private fun findUserHandle(serialNumber: Long): UserHandle? {
+        userHandlesBySerialNumber[serialNumber]?.let { userHandle ->
+            return userHandle
+        }
+
         return runCatching { userManager.userProfiles }
             .getOrElse { emptyList() }
             .firstOrNull { userHandle ->
@@ -388,6 +395,13 @@ private sealed class ProfileEntry {
 private data class QuietModeState(
     val value: Boolean?,
     val message: String,
+)
+
+private data class ShortcutDescriptor(
+    val id: String,
+    val action: QuietModeAction,
+    val serialNumber: Long,
+    val label: String,
 )
 
 private data class ShortcutUpdateState(
