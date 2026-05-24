@@ -2,6 +2,9 @@
 <resources>
     <string name="app_name">Work Profile Toggle</string>
     <string name="poc_description">Temporary diagnostic screen for verifying Android profile APIs on a real device.</string>
+    <string name="adb_setup_title">ADB setup</string>
+    <string name="adb_setup_description">Grant this permission once after install or reinstall if quiet-mode actions fail with SecurityException:</string>
+    <string name="adb_setup_command">adb shell pm grant io.github.vyachean.workprofiletoggle android.permission.MODIFY_QUIET_MODE</string>
     <string name="refresh_profiles">Refresh profiles</string>
     <string name="enable_quiet_mode">Turn on quiet mode</string>
     <string name="disable_quiet_mode">Turn off quiet mode</string>
@@ -18,7 +21,8 @@
     <string name="shortcut_unknown_profile">Shortcut skipped: profile serial %1$d is unavailable.</string>
     <string name="no_action_executed">No action executed yet.</string>
     <string name="last_result">Last result:\n%1$s</string>
-    <string name="profiles_found">Profiles found: %1$d</string>
+    <string name="profiles_found">Switchable profiles found: %1$d</string>
+    <string name="no_switchable_profiles">No switchable profiles found. The owner profile is intentionally hidden because Android does not allow toggling quiet mode for it.</string>
     <string name="profile_fallback_label">Profile %1$d (serial %2$d)</string>
     <string name="profile_serial_diagnostic_label">Profile with serial diagnostic</string>
     <string name="profile_serial_invalid">invalid serial -1</string>
