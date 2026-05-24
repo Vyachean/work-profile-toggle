@@ -21,14 +21,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
       - name: Check project
-        run: |
-          if [ ! -x ./gradlew ]; then
-            echo "Gradle wrapper is not present yet. Skipping Android checks during repository bootstrap."
-            exit 0
-          fi
-
-          ./gradlew lint test assembleDebug
+        run: sh ./gradlew lint test assembleDebug
