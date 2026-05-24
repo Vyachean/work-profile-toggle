@@ -11,7 +11,6 @@
     <string name="shortcut_toggle_label">Toggle quiet mode: %1$s</string>
     <string name="shortcuts_updated">Shortcuts updated: %1$d of %2$d available slots used.</string>
     <string name="shortcut_missing_serial">Shortcut skipped: missing profile serial.</string>
-    <string name="shortcut_unknown_action">Shortcut skipped: unknown action %1$s.</string>
     <string name="shortcut_unknown_profile">Shortcut skipped: profile serial %1$d is unavailable.</string>
     <string name="no_action_executed">No action executed yet.</string>
     <string name="last_result">Last result:\n%1$s</string>
