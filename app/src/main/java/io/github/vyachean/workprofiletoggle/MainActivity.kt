@@ -10,18 +10,20 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.roundToInt
 
 class MainActivity : Activity() {
     private lateinit var userManager: UserManager
     private lateinit var content: LinearLayout
-    private var lastResult: String = "No action executed yet."
+    private var lastResult: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        lastResult = getString(R.string.no_action_executed)
         userManager = getSystemService(UserManager::class.java)
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -62,8 +64,8 @@ class MainActivity : Activity() {
             content.addView(textView(formatFailure("getUserProfiles", error)))
         }
 
-        content.addView(textView("Last result:\n$lastResult"))
-        content.addView(textView("Profiles found: ${profiles.size}"))
+        content.addView(textView(getString(R.string.last_result, lastResult)))
+        content.addView(textView(getString(R.string.profiles_found, profiles.size)))
 
         profiles.forEachIndexed { index, userHandle ->
             content.addView(profileView(index, userHandle))
@@ -85,10 +87,13 @@ class MainActivity : Activity() {
 
             addView(
                 textView(
-                    "Profile ${index + 1}\n" +
-                        "Handle: $userHandle\n" +
-                        "Serial: $serialNumber\n" +
-                        "Quiet mode: ${quietMode.message}",
+                    getString(
+                        R.string.profile_info,
+                        index + 1,
+                        userHandle.toString(),
+                        serialNumber,
+                        quietMode.message,
+                    ),
                 ),
             )
 
@@ -101,7 +106,7 @@ class MainActivity : Activity() {
             addView(button(getString(R.string.toggle_quiet_mode)) {
                 val currentQuietMode = readQuietMode(userHandle).value
                 if (currentQuietMode == null) {
-                    lastResult = "Toggle skipped: quiet-mode state is unavailable for $userHandle."
+                    lastResult = getString(R.string.toggle_skipped, userHandle.toString())
                     render()
                 } else {
                     requestQuietMode(userHandle, enableQuietMode = !currentQuietMode)
@@ -124,7 +129,13 @@ class MainActivity : Activity() {
     }
 
     private fun requestQuietMode(userHandle: UserHandle, enableQuietMode: Boolean) {
-        val action = if (enableQuietMode) "enable quiet mode" else "disable quiet mode"
+        val action = getString(
+            if (enableQuietMode) {
+                R.string.operation_enable_quiet_mode
+            } else {
+                R.string.operation_disable_quiet_mode
+            },
+        )
         lastResult = runCatching {
             val changed = if (!enableQuietMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 userManager.requestQuietModeEnabled(
@@ -136,7 +147,7 @@ class MainActivity : Activity() {
                 userManager.requestQuietModeEnabled(enableQuietMode, userHandle)
             }
 
-            "$action for $userHandle returned $changed at ${timestamp()}."
+            getString(R.string.operation_returned, action, userHandle.toString(), changed.toString(), timestamp())
         }.getOrElse { error ->
             formatFailure(action, error)
         }
@@ -146,7 +157,12 @@ class MainActivity : Activity() {
 
     private fun formatFailure(operation: String, error: Throwable): String {
         val detail = error.message?.takeIf { it.isNotBlank() } ?: error::class.java.name
-        return "$operation failed with ${error::class.java.simpleName}: $detail"
+        return getString(
+            R.string.operation_failed,
+            operation,
+            error::class.java.simpleName,
+            detail,
+        )
     }
 
     private fun textView(text: String, textSize: Float = 14f): TextView {
@@ -166,7 +182,7 @@ class MainActivity : Activity() {
     }
 
     private fun timestamp(): String {
-        return LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_TIME)
+        return SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
     }
 
     private val Int.dp: Int
