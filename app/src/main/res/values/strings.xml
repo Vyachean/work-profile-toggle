@@ -6,9 +6,13 @@
     <string name="enable_quiet_mode">Turn on quiet mode</string>
     <string name="disable_quiet_mode">Turn off quiet mode</string>
     <string name="toggle_quiet_mode">Toggle quiet mode</string>
-    <string name="shortcut_enable_label">Enable quiet mode: %1$s</string>
-    <string name="shortcut_disable_label">Disable quiet mode: %1$s</string>
-    <string name="shortcut_toggle_label">Toggle quiet mode: %1$s</string>
+    <string name="shortcut_enable_short_label">On: %1$s</string>
+    <string name="shortcut_disable_short_label">Off: %1$s</string>
+    <string name="shortcut_toggle_short_label">Toggle: %1$s</string>
+    <string name="shortcut_enable_long_label">Enable quiet mode: %1$s</string>
+    <string name="shortcut_disable_long_label">Disable quiet mode: %1$s</string>
+    <string name="shortcut_toggle_long_label">Toggle quiet mode: %1$s</string>
+    <string name="shortcut_profile_short_label">P%1$d</string>
     <string name="shortcuts_updated">Shortcuts updated: %1$d of %2$d available slots used.</string>
     <string name="shortcut_missing_serial">Shortcut skipped: missing profile serial.</string>
     <string name="shortcut_unknown_profile">Shortcut skipped: profile serial %1$d is unavailable.</string>
