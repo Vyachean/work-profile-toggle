@@ -1,15 +1,17 @@
 # Work Profile Toggle
 
-Minimal Android app for advanced users. It provides launcher shortcuts for Android profile quiet mode.
+Minimal Android app for advanced users. It provides shortcuts for Android profile quiet mode.
 
 ## Scope
 
 The app is intentionally small:
 
-- Create launcher shortcuts for available Android profiles.
+- List switchable Android profiles associated with the current user.
 - Enable quiet mode for a selected profile.
 - Disable quiet mode for a selected profile.
 - Toggle quiet mode for a selected profile.
+- Provide dynamic launcher shortcuts for supported launchers.
+- Provide a legacy Android shortcut picker for automation apps such as MacroDroid.
 
 ## Non-goals
 
@@ -35,7 +37,8 @@ Verified constraints:
 - Changing quiet mode from a regular APK requires additional access.
 - ADB-granted `android.permission.MODIFY_QUIET_MODE` was verified to allow `UserManager.requestQuietModeEnabled(...)` on a real device.
 - Disabling quiet mode may require user credentials and can return `false`.
-- Profile display names may not be available to ordinary apps; shortcuts may need stable technical labels when profile names cannot be resolved.
+- Profile display names may not be available to ordinary apps, so shortcuts use stable technical labels.
+- The owner profile is hidden because Android does not allow toggling quiet mode for it.
 - Devices and OEM ROMs may behave differently.
 
 ## Package name
@@ -44,11 +47,36 @@ Verified constraints:
 io.github.vyachean.workprofiletoggle
 ```
 
+## Install a development APK
+
+Download the `work-profile-toggle-debug-apk` artifact from the latest successful GitHub Actions run on `main`, then extract `app-debug.apk`.
+
+Install for the first time:
+
+```sh
+adb install app-debug.apk
+```
+
+Update an existing development install:
+
+```sh
+adb install -r app-debug.apk
+```
+
+If Android reports `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, the currently installed APK was signed with a different key. Remove it once, then install the current debug APK again:
+
+```sh
+adb uninstall io.github.vyachean.workprofiletoggle
+adb install app-debug.apk
+```
+
+After installing or reinstalling, grant the required permission again.
+
 ## ADB permission setup
 
 The app is intended for advanced users. Quiet-mode write access requires the protected Android permission `android.permission.MODIFY_QUIET_MODE`.
 
-After installing the APK, grant the permission from a computer with ADB:
+Grant the permission from a computer with ADB:
 
 ```sh
 adb shell pm grant io.github.vyachean.workprofiletoggle android.permission.MODIFY_QUIET_MODE
@@ -64,7 +92,7 @@ The output should show `granted=true` for `android.permission.MODIFY_QUIET_MODE`
 
 Expected successful setup behavior:
 
-- The app can list associated user/profile handles.
+- The app can list associated profile handles.
 - The app can read quiet-mode state.
 - Quiet-mode actions return `true` when Android accepts the requested state change.
 
@@ -80,17 +108,39 @@ To revoke the permission:
 adb shell pm revoke io.github.vyachean.workprofiletoggle android.permission.MODIFY_QUIET_MODE
 ```
 
-To remove the debug build during testing:
+## Launcher shortcuts
 
-```sh
-adb uninstall io.github.vyachean.workprofiletoggle
+Supported launchers can show the app's dynamic shortcuts through the app icon context menu. The app creates quiet-mode actions for switchable profiles only:
+
+- Enable quiet mode.
+- Disable quiet mode.
+- Toggle quiet mode.
+
+The owner profile is intentionally skipped.
+
+## MacroDroid and automation apps
+
+Some automation apps do not show Android dynamic launcher shortcuts. For compatibility, the app also exposes a legacy `ACTION_CREATE_SHORTCUT` picker.
+
+In MacroDroid, add an action that launches an Android shortcut, choose Work Profile Toggle, then select the required profile/action pair.
+
+Picker-created shortcuts run through a no-display action activity. They are intended to switch quiet mode without bringing Work Profile Toggle to the foreground.
+
+If a shortcut was created before this no-display action path existed, recreate it in MacroDroid.
+
+## Debug APK signing
+
+GitHub Actions debug APKs are signed with a committed debug-only CI keystore so development artifacts can update each other with `adb install -r`.
+
+Expected debug APK certificate SHA-256:
+
+```text
+5f49f7e574cac855329af8151a480f4757615e5b28afae1372e7991a5215cb77
 ```
 
-If Android reports that the package is installed for a specific user, uninstall it for that user explicitly. Use the user ID from the Android error message:
+CI verifies this fingerprint and fails if the debug APK signing certificate changes.
 
-```sh
-adb shell pm uninstall --user <USER_ID> io.github.vyachean.workprofiletoggle
-```
+This key is only for development APKs. It must not be used for release builds.
 
 ## Development
 
@@ -114,7 +164,9 @@ chmod +x ./gradlew
 
 ## Development status
 
-The project currently contains a diagnostic Android application proving profile discovery and quiet-mode control through an ADB-granted permission. Final launcher shortcuts are not implemented yet.
+The project currently contains a minimal Android application proving profile discovery, quiet-mode control through an ADB-granted permission, dynamic launcher shortcuts, MacroDroid-compatible legacy shortcuts, and stable CI debug APK updates.
+
+Release APK signing is not implemented yet.
 
 ## License
 
