@@ -52,4 +52,4 @@ No APK is available yet. The repository is currently being bootstrapped.
 
 ## License
 
-Apache License 2.0.
+MIT License.
