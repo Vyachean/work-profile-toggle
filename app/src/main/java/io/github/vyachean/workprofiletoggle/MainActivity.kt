@@ -16,6 +16,8 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
+private const val STATE_LAST_RESULT = "last_result"
+
 class MainActivity : Activity() {
     private lateinit var userManager: UserManager
     private lateinit var content: LinearLayout
@@ -24,7 +26,8 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        lastResult = getString(R.string.no_action_executed)
+        lastResult = savedInstanceState?.getString(STATE_LAST_RESULT)
+            ?: getString(R.string.no_action_executed)
         userManager = getSystemService(Context.USER_SERVICE) as UserManager
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -33,6 +36,7 @@ class MainActivity : Activity() {
 
         setContentView(
             ScrollView(this).apply {
+                id = R.id.profile_scroll
                 addView(
                     content,
                     ViewGroup.LayoutParams(
@@ -44,6 +48,11 @@ class MainActivity : Activity() {
         )
 
         render()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString(STATE_LAST_RESULT, lastResult)
+        super.onSaveInstanceState(outState)
     }
 
     private fun render() {
