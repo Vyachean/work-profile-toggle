@@ -3,6 +3,7 @@ package io.github.vyachean.workprofiletoggle
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.graphics.drawable.Icon
@@ -22,6 +23,7 @@ import kotlin.math.roundToInt
 
 private const val SHORTCUTS_PER_PROFILE = 3
 private const val STATE_LAST_RESULT = "last_result"
+private const val MODIFY_QUIET_MODE_PERMISSION = "android.permission.MODIFY_QUIET_MODE"
 
 class MainActivity : Activity() {
     private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.ROOT)
@@ -80,29 +82,98 @@ class MainActivity : Activity() {
         val profiles = profilesResult.getOrElse { emptyList() }
         val profileEntries = createProfileEntries(profiles)
         val labeledEntries = profileEntries.filterIsInstance<ProfileEntry.Labeled>()
+        val primaryProfile = labeledEntries.firstOrNull()
+        val primaryQuietMode = primaryProfile?.let { readQuietMode(it.userHandle) }
+        val permissionGranted = hasQuietModePermission()
         val shortcutUpdateResult = updateShortcuts(labeledEntries)
 
         content.removeAllViews()
 
+        content.addView(textView(getString(R.string.home_title), textSize = 22f))
+        renderPrimaryStatus(primaryProfile, primaryQuietMode, permissionGranted, profilesResult.isSuccess)
+        renderSetup(primaryProfile != null, permissionGranted, profilesResult.exceptionOrNull())
+        renderSchedulePreview()
+        renderAdvanced(profileEntries, shortcutUpdateResult)
+    }
+
+    private fun renderPrimaryStatus(
+        primaryProfile: ProfileEntry.Labeled?,
+        quietMode: QuietModeState?,
+        permissionGranted: Boolean,
+        profilesAvailable: Boolean,
+    ) {
+        when {
+            !profilesAvailable || primaryProfile == null -> {
+                content.addView(textView(getString(R.string.no_work_profile_found_title), textSize = 18f))
+                content.addView(textView(getString(R.string.no_work_profile_found_description)))
+                content.addView(button(getString(R.string.check_again)) { render() })
+            }
+            !permissionGranted -> {
+                content.addView(textView(getString(R.string.setup_required), textSize = 18f))
+                content.addView(textView(getString(R.string.setup_permission_message)))
+                content.addView(button(getString(R.string.show_setup_instructions)) { render() })
+                content.addView(button(getString(R.string.check_again)) { render() })
+            }
+            quietMode?.value == true -> {
+                content.addView(textView(getString(R.string.work_profile_paused), textSize = 18f))
+                content.addView(button(getString(R.string.resume_work_profile)) {
+                    requestQuietMode(primaryProfile.userHandle, QuietModeAction.Disable)
+                    render()
+                })
+            }
+            quietMode?.value == false -> {
+                content.addView(textView(getString(R.string.work_profile_active), textSize = 18f))
+                content.addView(button(getString(R.string.pause_work_profile)) {
+                    requestQuietMode(primaryProfile.userHandle, QuietModeAction.Enable)
+                    render()
+                })
+            }
+            else -> {
+                content.addView(textView(getString(R.string.work_profile_unknown), textSize = 18f))
+                content.addView(button(getString(R.string.check_again)) { render() })
+            }
+        }
+    }
+
+    private fun renderSetup(
+        hasProfile: Boolean,
+        permissionGranted: Boolean,
+        profilesError: Throwable?,
+    ) {
+        content.addView(sectionTitle(getString(R.string.setup_title)))
+        val ready = hasProfile && permissionGranted && profilesError == null
+        content.addView(textView(if (ready) getString(R.string.setup_ready) else getString(R.string.setup_required)))
+        content.addView(textView(if (hasProfile) getString(R.string.setup_profile_found) else getString(R.string.setup_profile_missing)))
         content.addView(
             textView(
-                text = getString(R.string.app_name),
-                textSize = 20f,
+                if (permissionGranted) {
+                    getString(R.string.setup_permission_granted)
+                } else {
+                    getString(R.string.setup_permission_missing)
+                },
             ),
         )
-        content.addView(textView(getString(R.string.poc_description)))
-        content.addView(textView(getString(R.string.adb_setup_title), textSize = 16f))
-        content.addView(textView(getString(R.string.adb_setup_description)))
-        content.addView(textView(getString(R.string.adb_setup_command)))
-        content.addView(button(getString(R.string.refresh_profiles)) { render() })
-
-        profilesResult.exceptionOrNull()?.let { error ->
+        profilesError?.let { error ->
             content.addView(textView(formatFailure("getUserProfiles", error)))
         }
-        shortcutUpdateResult.exceptionOrNull()?.let { error ->
-            content.addView(textView(formatFailure("updateShortcuts", error)))
+        if (!permissionGranted) {
+            content.addView(sectionTitle(getString(R.string.adb_setup_title)))
+            content.addView(textView(getString(R.string.adb_setup_description)))
+            content.addView(textView(getString(R.string.adb_setup_command)))
         }
+    }
 
+    private fun renderSchedulePreview() {
+        content.addView(sectionTitle(getString(R.string.schedule_title)))
+        content.addView(textView(getString(R.string.schedule_not_configured)))
+        content.addView(textView(getString(R.string.schedule_future_note)))
+    }
+
+    private fun renderAdvanced(
+        profileEntries: List<ProfileEntry>,
+        shortcutUpdateResult: Result<ShortcutUpdateState?>,
+    ) {
+        content.addView(sectionTitle(getString(R.string.advanced_title)))
         content.addView(textView(getString(R.string.last_result, lastResult)))
         content.addView(textView(getString(R.string.profiles_found, profileEntries.size)))
         shortcutUpdateResult.getOrNull()?.let { updateState ->
@@ -115,6 +186,9 @@ class MainActivity : Activity() {
                     ),
                 ),
             )
+        }
+        shortcutUpdateResult.exceptionOrNull()?.let { error ->
+            content.addView(textView(formatFailure("updateShortcuts", error)))
         }
 
         if (profileEntries.isEmpty()) {
@@ -376,6 +450,10 @@ class MainActivity : Activity() {
         return getString(stringId)
     }
 
+    private fun hasQuietModePermission(): Boolean {
+        return checkSelfPermission(MODIFY_QUIET_MODE_PERMISSION) == PackageManager.PERMISSION_GRANTED
+    }
+
     private fun formatFailure(operation: String, error: Throwable): String {
         val detail = error.message?.takeIf { it.isNotBlank() } ?: error::class.java.name
         return getString(
@@ -384,6 +462,10 @@ class MainActivity : Activity() {
             error::class.java.simpleName,
             detail,
         )
+    }
+
+    private fun sectionTitle(text: String): TextView {
+        return textView(text, textSize = 16f)
     }
 
     private fun textView(text: String, textSize: Float = 14f): TextView {
