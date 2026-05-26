@@ -1,6 +1,8 @@
 package io.github.vyachean.workprofiletoggle
 
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -16,6 +18,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -158,7 +161,8 @@ class MainActivity : Activity() {
         if (!permissionGranted) {
             content.addView(sectionTitle(getString(R.string.adb_setup_title)))
             content.addView(textView(getString(R.string.adb_setup_description)))
-            content.addView(textView(getString(R.string.adb_setup_command)))
+            content.addView(textView(setupText()))
+            content.addView(button(getString(R.string.copy_setup_text)) { copySetupText() })
         }
     }
 
@@ -451,6 +455,23 @@ class MainActivity : Activity() {
 
     private fun hasQuietModePermission(): Boolean {
         return checkSelfPermission(MODIFY_QUIET_MODE_PERMISSION) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun setupText(): String {
+        return listOf(
+            "adb",
+            "shell",
+            "pm",
+            "grant",
+            packageName,
+            MODIFY_QUIET_MODE_PERMISSION,
+        ).joinToString(" ")
+    }
+
+    private fun copySetupText() {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText(getString(R.string.setup_title), setupText()))
+        Toast.makeText(this, getString(R.string.setup_text_copied), Toast.LENGTH_SHORT).show()
     }
 
     private fun formatFailure(operation: String, error: Throwable): String {
