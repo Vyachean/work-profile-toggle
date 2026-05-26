@@ -25,8 +25,9 @@
     <string name="advanced_title">Advanced</string>
     <string name="diagnostics_title">Diagnostics</string>
     <string name="adb_setup_title">ADB setup</string>
-    <string name="adb_setup_description">Connect your phone to a trusted computer and grant the protected quiet-mode permission to this app.</string>
-    <string name="adb_setup_command">See the project setup documentation for the exact ADB permission command.</string>
+    <string name="adb_setup_description">Connect your phone to a trusted computer and use the setup text below.</string>
+    <string name="copy_setup_text">Copy setup text</string>
+    <string name="setup_text_copied">Copied.</string>
     <string name="refresh_profiles">Refresh status</string>
     <string name="enable_quiet_mode">Pause work profile</string>
     <string name="disable_quiet_mode">Resume work profile</string>
