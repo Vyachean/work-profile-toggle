@@ -10,7 +10,6 @@ import android.content.pm.PackageManager
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.graphics.drawable.Icon
-import android.os.Build
 import android.os.Bundle
 import android.os.UserHandle
 import android.os.UserManager
@@ -36,6 +35,7 @@ class MainActivity : Activity() {
     private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.ROOT)
     private lateinit var preferences: SharedPreferences
     private lateinit var userManager: UserManager
+    private lateinit var quietModeController: QuietModeController
     private var shortcutManager: ShortcutManager? = null
     private lateinit var content: LinearLayout
     private var lastResult: String = ""
@@ -50,6 +50,7 @@ class MainActivity : Activity() {
             ?: preferences.getString(PREF_LAST_RESULT, null)
             ?: getString(R.string.no_action_executed)
         userManager = getSystemService(Context.USER_SERVICE) as UserManager
+        quietModeController = QuietModeController(userManager)
         shortcutManager = getSystemService(ShortcutManager::class.java)
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -513,7 +514,7 @@ class MainActivity : Activity() {
     }
 
     private fun readQuietMode(userHandle: UserHandle): QuietModeState {
-        return runCatching { userManager.isQuietModeEnabled(userHandle) }
+        return quietModeController.isQuietModeEnabled(userHandle)
             .fold(
                 onSuccess = { QuietModeState(value = it, message = it.toString()) },
                 onFailure = { error ->
@@ -526,35 +527,27 @@ class MainActivity : Activity() {
     }
 
     private fun requestQuietMode(userHandle: UserHandle, action: QuietModeAction) {
-        val targetQuietMode = when (action) {
-            QuietModeAction.Enable -> true
-            QuietModeAction.Disable -> false
-            QuietModeAction.Toggle -> {
-                val currentQuietMode = readQuietMode(userHandle).value
-                if (currentQuietMode == null) {
-                    setLastResult(getString(R.string.toggle_skipped, userHandle.toString()))
-                    return
-                }
-                !currentQuietMode
-            }
+        if (action == QuietModeAction.Toggle && readQuietMode(userHandle).value == null) {
+            setLastResult(getString(R.string.toggle_skipped, userHandle.toString()))
+            return
         }
 
         setLastResult(
-            runCatching {
-                val changed = if (!targetQuietMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    userManager.requestQuietModeEnabled(
-                        false,
-                        userHandle,
-                        UserManager.QUIET_MODE_DISABLE_ONLY_IF_CREDENTIAL_NOT_REQUIRED,
-                    )
-                } else {
-                    userManager.requestQuietModeEnabled(targetQuietMode, userHandle)
-                }
-
-                getString(R.string.operation_returned, operationLabel(action), userHandle.toString(), changed.toString(), timestamp())
-            }.getOrElse { error ->
-                formatFailure(operationLabel(action), error)
-            },
+            quietModeController.requestQuietMode(userHandle, action)
+                .fold(
+                    onSuccess = { result ->
+                        getString(
+                            R.string.operation_returned,
+                            operationLabel(action),
+                            userHandle.toString(),
+                            result.changed.toString(),
+                            timestamp(),
+                        )
+                    },
+                    onFailure = { error ->
+                        formatFailure(operationLabel(action), error)
+                    },
+                ),
         )
     }
 
