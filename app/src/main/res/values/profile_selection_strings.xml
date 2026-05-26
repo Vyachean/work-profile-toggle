@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="choose_work_profile">Choose work profile</string>
+    <string name="select_profile_to_control">Select the work profile this app should control.</string>
+    <string name="selected_profile_unavailable">Selected work profile is unavailable. Choose another profile or check again.</string>
+    <string name="selected_profile_format">Selected profile: %1$s</string>
+    <string name="selected_profile_none">Selected profile: Not selected</string>
+    <string name="selected_profile_label">Selected: %1$s</string>
+    <string name="change_work_profile">Change work profile</string>
+    <string name="use_work_profile">Use %1$s</string>
+    <string name="profile_selected_toast">%1$s selected.</string>
+</resources>
