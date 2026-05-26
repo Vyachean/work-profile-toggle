@@ -30,6 +30,7 @@ private const val STATE_LAST_RESULT = "last_result"
 private const val MODIFY_QUIET_MODE_PERMISSION = "android.permission.MODIFY_QUIET_MODE"
 private const val PREFERENCES_NAME = "work_profile_toggle"
 private const val PREF_SELECTED_PROFILE_SERIAL = "selected_profile_serial"
+private const val PREF_LAST_RESULT = "last_result"
 
 class MainActivity : Activity() {
     private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.ROOT)
@@ -44,9 +45,10 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        lastResult = savedInstanceState?.getString(STATE_LAST_RESULT)
-            ?: getString(R.string.no_action_executed)
         preferences = getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+        lastResult = savedInstanceState?.getString(STATE_LAST_RESULT)
+            ?: preferences.getString(PREF_LAST_RESULT, null)
+            ?: getString(R.string.no_action_executed)
         userManager = getSystemService(Context.USER_SERVICE) as UserManager
         shortcutManager = getSystemService(ShortcutManager::class.java)
         content = LinearLayout(this).apply {
@@ -483,12 +485,12 @@ class MainActivity : Activity() {
         val serialNumber = if (intent.hasExtra(EXTRA_PROFILE_SERIAL)) {
             intent.getLongExtra(EXTRA_PROFILE_SERIAL, INVALID_SERIAL_NUMBER)
         } else {
-            lastResult = getString(R.string.shortcut_missing_serial)
+            setLastResult(getString(R.string.shortcut_missing_serial))
             return
         }
         val userHandle = findUserHandle(serialNumber)
         if (userHandle == null) {
-            lastResult = getString(R.string.shortcut_unknown_profile, serialNumber)
+            setLastResult(getString(R.string.shortcut_unknown_profile, serialNumber))
             return
         }
 
@@ -530,28 +532,30 @@ class MainActivity : Activity() {
             QuietModeAction.Toggle -> {
                 val currentQuietMode = readQuietMode(userHandle).value
                 if (currentQuietMode == null) {
-                    lastResult = getString(R.string.toggle_skipped, userHandle.toString())
+                    setLastResult(getString(R.string.toggle_skipped, userHandle.toString()))
                     return
                 }
                 !currentQuietMode
             }
         }
 
-        lastResult = runCatching {
-            val changed = if (!targetQuietMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                userManager.requestQuietModeEnabled(
-                    false,
-                    userHandle,
-                    UserManager.QUIET_MODE_DISABLE_ONLY_IF_CREDENTIAL_NOT_REQUIRED,
-                )
-            } else {
-                userManager.requestQuietModeEnabled(targetQuietMode, userHandle)
-            }
+        setLastResult(
+            runCatching {
+                val changed = if (!targetQuietMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    userManager.requestQuietModeEnabled(
+                        false,
+                        userHandle,
+                        UserManager.QUIET_MODE_DISABLE_ONLY_IF_CREDENTIAL_NOT_REQUIRED,
+                    )
+                } else {
+                    userManager.requestQuietModeEnabled(targetQuietMode, userHandle)
+                }
 
-            getString(R.string.operation_returned, operationLabel(action), userHandle.toString(), changed.toString(), timestamp())
-        }.getOrElse { error ->
-            formatFailure(operationLabel(action), error)
-        }
+                getString(R.string.operation_returned, operationLabel(action), userHandle.toString(), changed.toString(), timestamp())
+            }.getOrElse { error ->
+                formatFailure(operationLabel(action), error)
+            },
+        )
     }
 
     private fun operationLabel(action: QuietModeAction): String {
@@ -582,6 +586,13 @@ class MainActivity : Activity() {
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText(getString(R.string.setup_title), setupText()))
         Toast.makeText(this, getString(R.string.setup_text_copied), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun setLastResult(result: String) {
+        lastResult = result
+        preferences.edit()
+            .putString(PREF_LAST_RESULT, result)
+            .apply()
     }
 
     private fun formatFailure(operation: String, error: Throwable): String {
