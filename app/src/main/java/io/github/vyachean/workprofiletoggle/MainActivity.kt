@@ -119,13 +119,13 @@ class MainActivity : Activity() {
                 content.addView(button(getString(R.string.check_again)) { render() })
             }
             primaryProfile == null -> {
-                content.addView(textView("Choose work profile", textSize = 18f))
+                content.addView(textView(getString(R.string.choose_work_profile), textSize = 18f))
                 content.addView(
                     textView(
                         if (profileSelection.missingSelectedProfile) {
-                            "Selected work profile is unavailable. Choose another profile or check again."
+                            getString(R.string.selected_profile_unavailable)
                         } else {
-                            "Select the work profile this app should control."
+                            getString(R.string.select_profile_to_control)
                         },
                     ),
                 )
@@ -173,7 +173,13 @@ class MainActivity : Activity() {
         content.addView(sectionTitle(getString(R.string.setup_title)))
         content.addView(textView(if (ready) getString(R.string.setup_ready) else getString(R.string.setup_required)))
         content.addView(textView(if (hasProfile) getString(R.string.setup_profile_found) else getString(R.string.setup_profile_missing)))
-        content.addView(textView(profileSelection.selected?.let { "Selected profile: ${it.profile.label}" } ?: "Selected profile: Not selected"))
+        content.addView(
+            textView(
+                profileSelection.selected?.let {
+                    getString(R.string.selected_profile_format, it.profile.label)
+                } ?: getString(R.string.selected_profile_none),
+            ),
+        )
         content.addView(
             textView(
                 if (permissionGranted) {
@@ -232,9 +238,9 @@ class MainActivity : Activity() {
 
     private fun renderSelectedProfile(profileSelection: ProfileSelection) {
         val selected = profileSelection.selected ?: return
-        content.addView(textView("Selected: ${selected.profile.label}"))
+        content.addView(textView(getString(R.string.selected_profile_label, selected.profile.label)))
         if (profileSelection.availableProfiles.size > 1) {
-            content.addView(button("Change work profile") {
+            content.addView(button(getString(R.string.change_work_profile)) {
                 clearSelectedProfile()
                 render()
             })
@@ -243,9 +249,13 @@ class MainActivity : Activity() {
 
     private fun renderProfileChoices(profiles: List<ProfileEntry.Labeled>) {
         profiles.forEach { profileEntry ->
-            content.addView(button("Use ${profileEntry.profile.label}") {
+            content.addView(button(getString(R.string.use_work_profile, profileEntry.profile.label)) {
                 saveSelectedProfile(profileEntry)
-                Toast.makeText(this, "${profileEntry.profile.label} selected.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    getString(R.string.profile_selected_toast, profileEntry.profile.label),
+                    Toast.LENGTH_SHORT,
+                ).show()
                 render()
             })
         }
