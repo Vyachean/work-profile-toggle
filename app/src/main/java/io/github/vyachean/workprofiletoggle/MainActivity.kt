@@ -111,7 +111,6 @@ class MainActivity : Activity() {
             !permissionGranted -> {
                 content.addView(textView(getString(R.string.setup_required), textSize = 18f))
                 content.addView(textView(getString(R.string.setup_permission_message)))
-                content.addView(button(getString(R.string.show_setup_instructions)) { render() })
                 content.addView(button(getString(R.string.check_again)) { render() })
             }
             quietMode?.value == true -> {
