@@ -16,6 +16,12 @@ The app currently supports manual work-profile control after ADB setup:
 - CI debug APK artifacts;
 - release APK workflow infrastructure.
 
+## Product direction
+
+The main product direction is to provide a Digital Wellbeing-style work-profile schedule on devices where the built-in Google/OEM schedule feature is missing or unavailable.
+
+Manual pause/resume remains important, but it is the setup and fallback path for the larger schedule-focused product.
+
 ## Stage 1 — Documentation and product clarity
 
 Goal: make the repository understandable without reading issue or chat history.
@@ -83,22 +89,26 @@ Avoid:
 
 Status: planned.
 
-## Stage 5 — Schedule runtime
+## Stage 5 — Work-profile schedule runtime
 
-Goal: make saved schedule settings actually execute pause/resume actions.
+Goal: implement the core schedule behavior: work profile active during configured work hours and paused outside configured work hours.
+
+This should fill the product gap on devices where the built-in Digital Wellbeing/OEM work-profile schedule is absent.
 
 Open decisions:
 
 - Which Android scheduling mechanism should be used.
 - How to handle Doze, OEM background restrictions, reboot, timezone changes, and missed schedule events.
 - How to communicate reliability limits to the user.
-- Whether schedule execution should require foreground notification or other visible user affordances.
+- Whether schedule support should require a foreground notification or another visible user affordance.
+- How manual pause/resume should interact with the next scheduled boundary.
 
 Required before implementation:
 
 - A documented runtime design.
 - Tests for schedule calculation and edge cases.
-- Clear UX for disabled or unreliable schedule execution.
+- Clear UX for disabled or unreliable schedule support.
+- Clear diagnostics for missed or blocked schedule changes.
 
 Status: planned.
 
@@ -122,4 +132,5 @@ Status: planned.
 - Decide between Compose Material 3 and Material Components Views.
 - Add stronger automated coverage for schedule editor validation.
 - Improve diagnostics wording and copyable error details.
+- Document the schedule runtime design before implementing it.
 - Keep issue #25 aligned with this roadmap.
