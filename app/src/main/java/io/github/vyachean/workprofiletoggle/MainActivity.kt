@@ -28,7 +28,6 @@ private const val SHORTCUTS_PER_PROFILE = 3
 private const val STATE_LAST_RESULT = "last_result"
 private const val MODIFY_QUIET_MODE_PERMISSION = "android.permission.MODIFY_QUIET_MODE"
 private const val PREFERENCES_NAME = "work_profile_toggle"
-private const val PREF_SELECTED_PROFILE_SERIAL = "selected_profile_serial"
 private const val PREF_LAST_RESULT = "last_result"
 
 class MainActivity : Activity() {
@@ -36,11 +35,11 @@ class MainActivity : Activity() {
     private lateinit var preferences: SharedPreferences
     private lateinit var userManager: UserManager
     private lateinit var quietModeController: QuietModeController
+    private lateinit var workProfileRepository: WorkProfileRepository
     private var shortcutManager: ShortcutManager? = null
     private lateinit var content: LinearLayout
     private var lastResult: String = ""
     private var lastShortcutSignature: List<ShortcutDescriptor>? = null
-    private var userHandlesBySerialNumber: Map<Long, UserHandle> = emptyMap()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,6 +50,15 @@ class MainActivity : Activity() {
             ?: getString(R.string.no_action_executed)
         userManager = getSystemService(Context.USER_SERVICE) as UserManager
         quietModeController = QuietModeController(userManager)
+        workProfileRepository = WorkProfileRepository(
+            userManager = userManager,
+            preferences = preferences,
+            profileLabel = { ordinal, serialNumber ->
+                getString(R.string.profile_fallback_label, ordinal, serialNumber)
+            },
+            invalidSerialDiagnostic = getString(R.string.profile_serial_invalid),
+            formatFailure = ::formatFailure,
+        )
         shortcutManager = getSystemService(ShortcutManager::class.java)
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -89,11 +97,10 @@ class MainActivity : Activity() {
     }
 
     private fun render() {
-        val profilesResult = runCatching { userManager.userProfiles }
-        val profiles = profilesResult.getOrElse { emptyList() }
-        val profileEntries = createProfileEntries(profiles)
-        val labeledEntries = profileEntries.filterIsInstance<ProfileEntry.Labeled>()
-        val profileSelection = resolveProfileSelection(labeledEntries)
+        val profileDiscovery = workProfileRepository.discoverProfiles()
+        val profileEntries = profileDiscovery.profileEntries
+        val labeledEntries = profileDiscovery.labeledEntries
+        val profileSelection = workProfileRepository.resolveProfileSelection(labeledEntries)
         val primaryProfile = profileSelection.selected
         val primaryQuietMode = primaryProfile?.let { readQuietMode(it.userHandle) }
         val permissionGranted = hasQuietModePermission()
@@ -102,8 +109,8 @@ class MainActivity : Activity() {
         content.removeAllViews()
 
         content.addView(textView(getString(R.string.home_title), textSize = 22f))
-        renderPrimaryStatus(profileSelection, primaryQuietMode, permissionGranted, profilesResult.isSuccess)
-        renderSetup(profileSelection, permissionGranted, profilesResult.exceptionOrNull())
+        renderPrimaryStatus(profileSelection, primaryQuietMode, permissionGranted, profileDiscovery.profilesAvailable)
+        renderSetup(profileSelection, permissionGranted, profileDiscovery.error)
         renderSchedulePreview()
         renderAdvanced(profileEntries, shortcutUpdateResult)
     }
@@ -244,7 +251,7 @@ class MainActivity : Activity() {
         content.addView(textView(getString(R.string.selected_profile_label, selected.profile.label)))
         if (profileSelection.availableProfiles.size > 1) {
             content.addView(button(getString(R.string.change_work_profile)) {
-                clearSelectedProfile()
+                workProfileRepository.clearSelectedProfile()
                 render()
             })
         }
@@ -253,7 +260,7 @@ class MainActivity : Activity() {
     private fun renderProfileChoices(profiles: List<ProfileEntry.Labeled>) {
         profiles.forEach { profileEntry ->
             content.addView(button(getString(R.string.use_work_profile, profileEntry.profile.label)) {
-                saveSelectedProfile(profileEntry)
+                workProfileRepository.saveSelectedProfile(profileEntry)
                 Toast.makeText(
                     this,
                     getString(R.string.profile_selected_toast, profileEntry.profile.label),
@@ -262,101 +269,6 @@ class MainActivity : Activity() {
                 render()
             })
         }
-    }
-
-    private fun createProfileEntries(profiles: List<UserHandle>): List<ProfileEntry> {
-        val handlesBySerialNumber = mutableMapOf<Long, UserHandle>()
-        val diagnosticEntries = mutableListOf<ProfileEntry.Diagnostic>()
-
-        profiles.forEach { userHandle ->
-            runCatching { userManager.getSerialNumberForUser(userHandle) }
-                .fold(
-                    onSuccess = { serialNumber ->
-                        when (serialNumber) {
-                            INVALID_SERIAL_NUMBER -> {
-                                diagnosticEntries += ProfileEntry.Diagnostic(
-                                    userHandle = userHandle,
-                                    serialDiagnostic = getString(R.string.profile_serial_invalid),
-                                )
-                            }
-                            OWNER_PROFILE_SERIAL_NUMBER -> Unit
-                            else -> handlesBySerialNumber.putIfAbsent(serialNumber, userHandle)
-                        }
-                    },
-                    onFailure = { error ->
-                        diagnosticEntries += ProfileEntry.Diagnostic(
-                            userHandle = userHandle,
-                            serialDiagnostic = formatFailure("getSerialNumberForUser", error),
-                        )
-                    },
-                )
-        }
-        userHandlesBySerialNumber = handlesBySerialNumber.toMap()
-
-        val labeledEntries = ProfileLabels.fromSerialNumbers(handlesBySerialNumber.keys) { ordinal, serialNumber ->
-            getString(R.string.profile_fallback_label, ordinal, serialNumber)
-        }.map { profile ->
-            val serialNumber = profile.identifier.serialNumber
-            ProfileEntry.Labeled(
-                userHandle = requireNotNull(handlesBySerialNumber[serialNumber]) {
-                    "Missing UserHandle for profile serial $serialNumber"
-                },
-                profile = profile,
-            )
-        }
-
-        return labeledEntries + diagnosticEntries.sortedBy { it.userHandle.toString() }
-    }
-
-    private fun resolveProfileSelection(profiles: List<ProfileEntry.Labeled>): ProfileSelection {
-        val selectedSerialNumber = selectedProfileSerialNumber()
-        val selectedProfile = selectedSerialNumber?.let { serialNumber ->
-            profiles.firstOrNull { profileEntry -> profileEntry.profile.identifier.serialNumber == serialNumber }
-        }
-
-        if (selectedProfile != null) {
-            return ProfileSelection(
-                selected = selectedProfile,
-                availableProfiles = profiles,
-                missingSelectedProfile = false,
-            )
-        }
-
-        if (selectedSerialNumber == null && profiles.size == 1) {
-            val onlyProfile = profiles.single()
-            saveSelectedProfile(onlyProfile)
-            return ProfileSelection(
-                selected = onlyProfile,
-                availableProfiles = profiles,
-                missingSelectedProfile = false,
-            )
-        }
-
-        return ProfileSelection(
-            selected = null,
-            availableProfiles = profiles,
-            missingSelectedProfile = selectedSerialNumber != null,
-        )
-    }
-
-    private fun selectedProfileSerialNumber(): Long? {
-        return if (preferences.contains(PREF_SELECTED_PROFILE_SERIAL)) {
-            preferences.getLong(PREF_SELECTED_PROFILE_SERIAL, INVALID_SERIAL_NUMBER)
-        } else {
-            null
-        }
-    }
-
-    private fun saveSelectedProfile(profileEntry: ProfileEntry.Labeled) {
-        preferences.edit()
-            .putLong(PREF_SELECTED_PROFILE_SERIAL, profileEntry.profile.identifier.serialNumber)
-            .apply()
-    }
-
-    private fun clearSelectedProfile() {
-        preferences.edit()
-            .remove(PREF_SELECTED_PROFILE_SERIAL)
-            .apply()
     }
 
     private fun profileView(profileEntry: ProfileEntry): LinearLayout {
@@ -489,28 +401,13 @@ class MainActivity : Activity() {
             setLastResult(getString(R.string.shortcut_missing_serial))
             return
         }
-        val userHandle = findUserHandle(serialNumber)
+        val userHandle = workProfileRepository.findUserHandle(serialNumber)
         if (userHandle == null) {
             setLastResult(getString(R.string.shortcut_unknown_profile, serialNumber))
             return
         }
 
         requestQuietMode(userHandle, action)
-    }
-
-    private fun findUserHandle(serialNumber: Long): UserHandle? {
-        userHandlesBySerialNumber[serialNumber]?.let { userHandle ->
-            return userHandle
-        }
-
-        refreshUserHandleCache()
-        return userHandlesBySerialNumber[serialNumber]
-    }
-
-    private fun refreshUserHandleCache() {
-        runCatching { userManager.userProfiles }
-            .getOrNull()
-            ?.let { profiles -> createProfileEntries(profiles) }
     }
 
     private fun readQuietMode(userHandle: UserHandle): QuietModeState {
@@ -625,26 +522,6 @@ class MainActivity : Activity() {
     private val Int.dp: Int
         get() = (this * resources.displayMetrics.density).roundToInt()
 }
-
-private sealed class ProfileEntry {
-    abstract val userHandle: UserHandle
-
-    data class Labeled(
-        override val userHandle: UserHandle,
-        val profile: DiscoveredProfile,
-    ) : ProfileEntry()
-
-    data class Diagnostic(
-        override val userHandle: UserHandle,
-        val serialDiagnostic: String,
-    ) : ProfileEntry()
-}
-
-private data class ProfileSelection(
-    val selected: ProfileEntry.Labeled?,
-    val availableProfiles: List<ProfileEntry.Labeled>,
-    val missingSelectedProfile: Boolean,
-)
 
 private data class QuietModeState(
     val value: Boolean?,
