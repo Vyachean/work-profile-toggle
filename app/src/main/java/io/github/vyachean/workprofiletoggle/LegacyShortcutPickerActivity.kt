@@ -50,11 +50,17 @@ class LegacyShortcutPickerActivity : Activity() {
     }
 
     private fun render() {
-        val profiles = workProfileRepository.discoverProfiles().labeledEntries
+        val discovery = workProfileRepository.discoverProfiles()
+        val profiles = discovery.labeledEntries
 
         content.removeAllViews()
         content.addView(textView(getString(R.string.legacy_shortcut_picker_title), textSize = 20f))
         content.addView(textView(getString(R.string.legacy_shortcut_picker_description)))
+
+        discovery.error?.let { error ->
+            content.addView(textView(formatFailure("discoverProfiles", error)))
+            return
+        }
 
         if (profiles.isEmpty()) {
             content.addView(textView(getString(R.string.legacy_shortcut_picker_empty)))
