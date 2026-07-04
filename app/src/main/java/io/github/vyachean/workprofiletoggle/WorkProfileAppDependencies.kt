@@ -19,7 +19,7 @@ internal class WorkProfileAppDependencies(
     )
 
     val scheduleStore: WorkProfileScheduleStore = WorkProfileScheduleStore(
-        preferences = preferences,
+        keyValueStore = SharedPreferencesKeyValueStore(preferences),
     )
 
     val userManager: UserManager =
