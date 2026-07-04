@@ -8,7 +8,6 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.pm.ShortcutManager
-import android.os.Build
 import android.os.Bundle
 import android.os.UserHandle
 import android.os.UserManager
@@ -34,7 +33,7 @@ class MainActivity : Activity() {
     private lateinit var userManager: UserManager
     private lateinit var quietModeController: QuietModeController
     private lateinit var workProfileRepository: WorkProfileRepository
-    private var shortcutController: ShortcutController? = null
+    private lateinit var shortcutController: ShortcutController
     private lateinit var content: LinearLayout
     private var lastResult: String = ""
 
@@ -56,14 +55,10 @@ class MainActivity : Activity() {
             invalidSerialDiagnostic = getString(R.string.profile_serial_invalid),
             formatFailure = ::formatFailure,
         )
-        shortcutController = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
-            ShortcutController(
-                context = applicationContext,
-                shortcutManager = getSystemService(ShortcutManager::class.java),
-            )
-        } else {
-            null
-        }
+        shortcutController = ShortcutController(
+            context = applicationContext,
+            shortcutManager = getSystemService(ShortcutManager::class.java),
+        )
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(16.dp, 16.dp, 16.dp, 16.dp)
@@ -108,8 +103,7 @@ class MainActivity : Activity() {
         val primaryProfile = profileSelection.selected
         val primaryQuietMode = primaryProfile?.let { readQuietMode(it.userHandle) }
         val permissionGranted = hasQuietModePermission()
-        val shortcutUpdateResult = shortcutController?.updateShortcuts(labeledEntries)
-            ?: Result.success(null)
+        val shortcutUpdateResult = shortcutController.updateShortcuts(labeledEntries)
 
         content.removeAllViews()
 
