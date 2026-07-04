@@ -28,12 +28,17 @@ internal class ScheduleRuntimeResultStore(
         val actionResult = keyValueStore.getString(PREF_SCHEDULE_RUNTIME_ACTION_RESULT)
             ?.let { value -> parseEnum<ScheduleRuntimeActionResult>(value) }
             ?: return null
+        val expectedState = parseOptionalEnum<WorkProfileScheduleExpectedState>(
+            PREF_SCHEDULE_RUNTIME_EXPECTED_STATE,
+        ) ?: return null
+        val failureCategory = parseOptionalEnum<ScheduleRuntimeFailureCategory>(
+            PREF_SCHEDULE_RUNTIME_FAILURE_CATEGORY,
+        ) ?: return null
+        val nextBoundary = loadNextBoundary() ?: return null
 
         return ScheduleRuntimeResult(
             triggerTime = triggerTime,
-            expectedState = keyValueStore.getString(PREF_SCHEDULE_RUNTIME_EXPECTED_STATE)
-                ?.let { value -> parseEnum<WorkProfileScheduleExpectedState>(value) }
-                ?: return nullIfRequired(PREF_SCHEDULE_RUNTIME_EXPECTED_STATE),
+            expectedState = expectedState.value,
             selectedProfileStatus = profileStatus,
             requestedAction = requestedAction,
             actionResult = actionResult,
@@ -41,9 +46,8 @@ internal class ScheduleRuntimeResultStore(
                 PREF_SCHEDULE_RUNTIME_FINAL_STATE_CONFIRMED,
                 false,
             ),
-            nextBoundary = loadNextBoundary(),
-            failureCategory = keyValueStore.getString(PREF_SCHEDULE_RUNTIME_FAILURE_CATEGORY)
-                ?.let { value -> parseEnum<ScheduleRuntimeFailureCategory>(value) },
+            nextBoundary = nextBoundary.value,
+            failureCategory = failureCategory.value,
         )
     }
 
@@ -75,19 +79,29 @@ internal class ScheduleRuntimeResultStore(
         }
     }
 
-    private fun loadNextBoundary(): WorkProfileScheduleBoundary? {
-        val boundaryAt = keyValueStore.getString(PREF_SCHEDULE_RUNTIME_NEXT_BOUNDARY_AT)
-            ?.let { value -> parseZonedDateTime(value) }
-        val boundaryState = keyValueStore.getString(PREF_SCHEDULE_RUNTIME_NEXT_BOUNDARY_STATE)
-            ?.let { value -> parseEnum<WorkProfileScheduleExpectedState>(value) }
+    private fun loadNextBoundary(): OptionalValue<WorkProfileScheduleBoundary>? {
+        val boundaryAtValue = keyValueStore.getString(PREF_SCHEDULE_RUNTIME_NEXT_BOUNDARY_AT)
+        val boundaryStateValue = keyValueStore.getString(PREF_SCHEDULE_RUNTIME_NEXT_BOUNDARY_STATE)
         return when {
-            boundaryAt == null && boundaryState == null -> null
-            boundaryAt != null && boundaryState != null -> WorkProfileScheduleBoundary(
-                at = boundaryAt,
-                expectedState = boundaryState,
-            )
-            else -> null
+            boundaryAtValue == null && boundaryStateValue == null -> OptionalValue(null)
+            boundaryAtValue == null || boundaryStateValue == null -> null
+            else -> {
+                val boundaryAt = parseZonedDateTime(boundaryAtValue) ?: return null
+                val boundaryState = parseEnum<WorkProfileScheduleExpectedState>(boundaryStateValue)
+                    ?: return null
+                OptionalValue(
+                    WorkProfileScheduleBoundary(
+                        at = boundaryAt,
+                        expectedState = boundaryState,
+                    ),
+                )
+            }
         }
+    }
+
+    private inline fun <reified T : Enum<T>> parseOptionalEnum(key: String): OptionalValue<T>? {
+        val value = keyValueStore.getString(key) ?: return OptionalValue(null)
+        return OptionalValue(parseEnum<T>(value) ?: return null)
     }
 
     private fun parseZonedDateTime(value: String): ZonedDateTime? {
@@ -98,7 +112,5 @@ internal class ScheduleRuntimeResultStore(
         return enumValues<T>().firstOrNull { enumValue -> enumValue.name == value }
     }
 
-    private fun nullIfRequired(key: String): WorkProfileScheduleExpectedState? {
-        return if (keyValueStore.getString(key) == null) null else return null
-    }
+    private data class OptionalValue<T>(val value: T?)
 }
