@@ -1,0 +1,128 @@
+name: Screenshots
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/screenshots.yml'
+      - 'app/**'
+      - 'README.md'
+      - 'docs/screenshots/**'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/screenshots.yml'
+      - 'app/**'
+      - 'README.md'
+      - 'docs/screenshots/**'
+
+permissions:
+  contents: read
+
+jobs:
+  android-screenshots:
+    name: Android screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up CI debug keystore
+        run: |
+          keystore_path="$RUNNER_TEMP/work-profile-toggle-debug.keystore"
+          tr -d '\r\n[:space:]' < .github/ci-debug.keystore.base64 | base64 --decode > "$keystore_path"
+          keytool -list \
+            -keystore "$keystore_path" \
+            -storepass android \
+            -alias AndroidDebugKey >/dev/null
+          echo "CI_DEBUG_KEYSTORE_PATH=$keystore_path" >> "$GITHUB_ENV"
+
+      - name: Build debug APK
+        run: sh ./gradlew -PciDebugKeystorePath="$CI_DEBUG_KEYSTORE_PATH" assembleDebug
+
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install emulator image
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "emulator" \
+            "platforms;android-35" \
+            "system-images;android-35;google_apis;x86_64"
+
+      - name: Create emulator
+        run: |
+          avdmanager create avd \
+            --force \
+            --name work-profile-toggle-screenshots \
+            --package "system-images;android-35;google_apis;x86_64" \
+            --device "pixel_6" <<<'no'
+
+      - name: Start emulator
+        run: |
+          "$ANDROID_HOME/emulator/emulator" \
+            -avd work-profile-toggle-screenshots \
+            -no-window \
+            -gpu swiftshader_indirect \
+            -noaudio \
+            -no-boot-anim \
+            -no-snapshot \
+            -camera-back none \
+            -camera-front none &
+
+          adb wait-for-device
+          timeout 240 bash -c 'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = "1" ]; do sleep 2; done'
+          adb shell input keyevent 224 || true
+          adb shell input keyevent 82 || true
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          adb shell wm size 1080x2400
+          adb shell wm density 420
+
+      - name: Capture screenshots
+        run: |
+          package_name="io.github.vyachean.workprofiletoggle"
+          screenshots_dir="build/screenshots"
+          mkdir -p "$screenshots_dir"
+
+          adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+          adb shell am force-stop "$package_name" || true
+          adb shell am start -W -n "$package_name/.MainActivity"
+          sleep 3
+          adb exec-out screencap -p > "$screenshots_dir/home.png"
+
+          adb shell input swipe 540 1900 540 800 500
+          sleep 1
+          adb exec-out screencap -p > "$screenshots_dir/home-scrolled.png"
+
+          adb shell am start -W -a android.intent.action.CREATE_SHORTCUT -n "$package_name/.LegacyShortcutPickerActivity"
+          sleep 2
+          adb exec-out screencap -p > "$screenshots_dir/legacy-shortcut-picker.png"
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: work-profile-toggle-screenshots
+          path: build/screenshots/*.png
+          if-no-files-found: error
