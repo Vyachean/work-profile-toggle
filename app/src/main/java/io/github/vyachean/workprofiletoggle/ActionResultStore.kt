@@ -6,12 +6,12 @@ private const val PREF_LAST_RESULT = "last_result"
 
 internal class ActionResultStore(
     private val preferences: SharedPreferences,
-    private val defaultResult: () -> String,
+    private val defaultResult: String,
 ) {
     fun restore(savedResult: String?): String {
         return savedResult
             ?: preferences.getString(PREF_LAST_RESULT, null)
-            ?: defaultResult()
+            ?: defaultResult
     }
 
     fun save(result: String) {
