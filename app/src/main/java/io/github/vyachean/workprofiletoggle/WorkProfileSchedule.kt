@@ -28,7 +28,8 @@ internal data class ScheduleTime(
 
             val hour = parts[0].toIntOrNull() ?: return null
             val minute = parts[1].toIntOrNull() ?: return null
-            return runCatching { ScheduleTime(hour, minute) }.getOrNull()
+            if (hour !in 0..23 || minute !in 0..59) return null
+            return ScheduleTime(hour, minute)
         }
     }
 }
@@ -45,12 +46,11 @@ internal enum class ScheduleDay {
 
     companion object {
         val defaultSet: Set<ScheduleDay> = values().toSet()
+        private val lookup: Map<String, ScheduleDay> = values().associateBy { day -> day.name }
 
         fun fromStorageValues(values: Set<String>?): Set<ScheduleDay> {
             if (values == null) return defaultSet
-            return values.mapNotNull { value ->
-                runCatching { valueOf(value) }.getOrNull()
-            }.toSet()
+            return values.mapNotNull { value -> lookup[value] }.toSet()
         }
     }
 }
