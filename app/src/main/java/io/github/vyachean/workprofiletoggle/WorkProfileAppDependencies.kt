@@ -15,7 +15,7 @@ internal class WorkProfileAppDependencies(
 
     val actionResultStore: ActionResultStore = ActionResultStore(
         preferences = preferences,
-        defaultResult = { appContext.getString(R.string.no_action_executed) },
+        defaultResult = appContext.getString(R.string.no_action_executed),
     )
 
     val userManager: UserManager =
