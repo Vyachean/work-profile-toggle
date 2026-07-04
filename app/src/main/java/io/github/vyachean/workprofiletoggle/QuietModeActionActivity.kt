@@ -2,68 +2,43 @@ package io.github.vyachean.workprofiletoggle
 
 import android.app.Activity
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
-import android.os.UserHandle
 import android.os.UserManager
 
 class QuietModeActionActivity : Activity() {
-    private lateinit var userManager: UserManager
+    private lateinit var shortcutActionDispatcher: ShortcutActionDispatcher
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        userManager = getSystemService(Context.USER_SERVICE) as UserManager
-        handleShortcutIntent()
+        val userManager = getSystemService(Context.USER_SERVICE) as UserManager
+        val workProfileRepository = WorkProfileRepository(
+            userManager = userManager,
+            preferences = getSharedPreferences(WORK_PROFILE_PREFERENCES_NAME, Context.MODE_PRIVATE),
+            profileLabel = { ordinal, serialNumber ->
+                getString(R.string.profile_fallback_label, ordinal, serialNumber)
+            },
+            invalidSerialDiagnostic = getString(R.string.profile_serial_invalid),
+            formatFailure = ::formatFailure,
+        )
+        val quietModeController = QuietModeController(userManager)
+        shortcutActionDispatcher = ShortcutActionDispatcher(
+            workProfileRepository = workProfileRepository,
+            quietModeController = quietModeController,
+        )
+
+        shortcutActionDispatcher.dispatch(intent)
         finish()
         overridePendingTransition(0, 0)
     }
 
-    private fun handleShortcutIntent() {
-        val action = QuietModeAction.fromIntentAction(intent.action) ?: return
-        intent.action = null
-
-        val serialNumber = if (intent.hasExtra(EXTRA_PROFILE_SERIAL)) {
-            intent.getLongExtra(EXTRA_PROFILE_SERIAL, INVALID_SERIAL_NUMBER)
-        } else {
-            return
-        }
-        val userHandle = findUserHandle(serialNumber) ?: return
-
-        requestQuietMode(userHandle, action)
-    }
-
-    private fun findUserHandle(serialNumber: Long): UserHandle? {
-        return runCatching { userManager.userProfiles }
-            .getOrElse { emptyList() }
-            .firstOrNull { userHandle ->
-                runCatching { userManager.getSerialNumberForUser(userHandle) }
-                    .getOrNull() == serialNumber
-            }
-    }
-
-    private fun requestQuietMode(userHandle: UserHandle, action: QuietModeAction) {
-        val targetQuietMode = when (action) {
-            QuietModeAction.Enable -> true
-            QuietModeAction.Disable -> false
-            QuietModeAction.Toggle -> {
-                val currentQuietMode = runCatching { userManager.isQuietModeEnabled(userHandle) }
-                    .getOrNull()
-                    ?: return
-                !currentQuietMode
-            }
-        }
-
-        runCatching {
-            if (!targetQuietMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                userManager.requestQuietModeEnabled(
-                    false,
-                    userHandle,
-                    UserManager.QUIET_MODE_DISABLE_ONLY_IF_CREDENTIAL_NOT_REQUIRED,
-                )
-            } else {
-                userManager.requestQuietModeEnabled(targetQuietMode, userHandle)
-            }
-        }
+    private fun formatFailure(operation: String, error: Throwable): String {
+        val detail = error.message?.takeIf { it.isNotBlank() } ?: error::class.java.name
+        return getString(
+            R.string.operation_failed,
+            operation,
+            error::class.java.simpleName,
+            detail,
+        )
     }
 }
