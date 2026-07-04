@@ -5,11 +5,7 @@ internal data class WorkProfileSchedule(
     val pauseAt: ScheduleTime? = null,
     val resumeAt: ScheduleTime? = null,
     val activeDays: Set<ScheduleDay> = ScheduleDay.defaultSet,
-) {
-    companion object {
-        val Disabled = WorkProfileSchedule()
-    }
-}
+)
 
 internal data class ScheduleTime(
     val hour: Int,
@@ -21,7 +17,7 @@ internal data class ScheduleTime(
     }
 
     fun toStorageValue(): String {
-        return "%02d:%02d".format(hour, minute)
+        return "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
     }
 
     companion object {
@@ -38,13 +34,13 @@ internal data class ScheduleTime(
 }
 
 internal enum class ScheduleDay {
-    Monday,
-    Tuesday,
-    Wednesday,
-    Thursday,
-    Friday,
-    Saturday,
-    Sunday,
+    MONDAY,
+    TUESDAY,
+    WEDNESDAY,
+    THURSDAY,
+    FRIDAY,
+    SATURDAY,
+    SUNDAY,
     ;
 
     companion object {
