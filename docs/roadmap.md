@@ -95,17 +95,22 @@ Goal: implement the core schedule behavior: work profile active during configure
 
 This should fill the product gap on devices where the built-in Digital Wellbeing/OEM work-profile schedule is absent.
 
+Design baseline:
+
+- Use the [schedule runtime design](schedule-runtime.md) as the implementation contract.
+- Prefer state reconciliation over fire-and-forget toggles.
+- Calculate next boundaries from local schedule settings each time the runtime runs.
+- Persist structured schedule results for diagnostics.
+
 Open decisions:
 
-- Which Android scheduling mechanism should be used.
-- How to handle Doze, OEM background restrictions, reboot, timezone changes, and missed schedule events.
+- Whether the first runtime should use exact or inexact alarms.
 - How to communicate reliability limits to the user.
 - Whether schedule support should require a foreground notification or another visible user affordance.
 - How manual pause/resume should interact with the next scheduled boundary.
 
 Required before implementation:
 
-- A documented runtime design.
 - Tests for schedule calculation and edge cases.
 - Clear UX for disabled or unreliable schedule support.
 - Clear diagnostics for missed or blocked schedule changes.
@@ -132,5 +137,5 @@ Status: planned.
 - Decide between Compose Material 3 and Material Components Views.
 - Add stronger automated coverage for schedule editor validation.
 - Improve diagnostics wording and copyable error details.
-- Document the schedule runtime design before implementing it.
+- Implement schedule runtime from the documented design.
 - Keep issue #25 aligned with this roadmap.
