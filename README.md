@@ -27,15 +27,16 @@ This app is not a Shelter, Island, or work-profile manager replacement. It must 
 
 ## Screenshots
 
-CI can generate review screenshots with the `Screenshots` GitHub Actions workflow. The workflow builds the debug APK, installs it on an Android emulator, captures the current app screens, and uploads a `work-profile-toggle-screenshots` artifact.
+Stable README screenshots should be committed under `docs/screenshots/` and linked from this section.
 
-The generated artifact is intentionally not committed automatically. Screenshots from CI are temporary review output; stable README images should be reviewed first, then committed under `docs/screenshots/` and linked here.
+Automatic screenshot generation is planned, but it should be implemented as deterministic screenshot tests, not as ad-hoc emulator screen captures. The app UI currently depends on Android work-profile system services that are not available in a normal GitHub Actions emulator, so automated screenshots need fake/demo UI states or a dedicated screenshot test harness first.
 
-Current generated captures:
+Recommended implementation path:
 
-- Home screen.
-- Home screen after scrolling to the schedule section.
-- Legacy shortcut picker.
+- Extract deterministic UI state for the Home and Schedule screens.
+- Add fake screenshot states for setup required, no work profile, active, paused, and configured schedule.
+- Generate screenshots through a JVM screenshot tool such as Roborazzi/Robolectric, or through instrumented tests backed by Gradle Managed Devices.
+- Review generated PNG files before committing selected stable images to `docs/screenshots/`.
 
 ## Platform assumptions
 
@@ -54,7 +55,6 @@ Verified constraints:
 - Profile display names may not be available to ordinary apps, so shortcuts use stable technical labels.
 - The owner profile is hidden because Android does not allow toggling quiet mode for it.
 - Devices and OEM ROMs may behave differently.
-- The GitHub Actions emulator used for screenshots does not provide a real work profile, so CI screenshots focus on setup, empty-state, and saved-schedule UI states until a deterministic demo mode exists.
 
 ## Package name
 
@@ -223,11 +223,9 @@ chmod +x ./gradlew
 ./gradlew lint test assembleDebug
 ```
 
-Generate CI screenshots manually from GitHub Actions by running the `Screenshots` workflow. The workflow uploads `work-profile-toggle-screenshots` as an artifact.
-
 ## Development status
 
-The project currently contains an Android application proving profile discovery, quiet-mode control through an ADB-granted permission, dynamic launcher shortcuts, MacroDroid-compatible legacy shortcuts, saved schedule settings, stable CI debug APK updates, CI screenshot artifacts, and release APK publishing infrastructure.
+The project currently contains an Android application proving profile discovery, quiet-mode control through an ADB-granted permission, dynamic launcher shortcuts, MacroDroid-compatible legacy shortcuts, saved schedule settings, stable CI debug APK updates, and release APK publishing infrastructure.
 
 The first signed release still requires configuring release signing secrets and pushing a version tag.
 
