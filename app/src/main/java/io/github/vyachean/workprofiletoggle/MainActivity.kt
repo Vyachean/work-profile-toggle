@@ -33,6 +33,7 @@ class MainActivity : Activity() {
     private lateinit var quietModeController: QuietModeController
     private lateinit var workProfileRepository: WorkProfileRepository
     private lateinit var shortcutController: ShortcutController
+    private lateinit var shortcutActionDispatcher: ShortcutActionDispatcher
     private lateinit var content: LinearLayout
     private var lastResult: String = ""
 
@@ -57,6 +58,10 @@ class MainActivity : Activity() {
         shortcutController = ShortcutController(
             context = applicationContext,
             shortcutManager = getSystemService(ShortcutManager::class.java),
+        )
+        shortcutActionDispatcher = ShortcutActionDispatcher(
+            workProfileRepository = workProfileRepository,
+            quietModeController = quietModeController,
         )
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -311,22 +316,28 @@ class MainActivity : Activity() {
     }
 
     private fun handleShortcutIntent(intent: Intent) {
-        val action = QuietModeAction.fromIntentAction(intent.action) ?: return
-        intent.action = null
-
-        val serialNumber = if (intent.hasExtra(EXTRA_PROFILE_SERIAL)) {
-            intent.getLongExtra(EXTRA_PROFILE_SERIAL, INVALID_SERIAL_NUMBER)
-        } else {
-            setLastResult(getString(R.string.shortcut_missing_serial))
-            return
+        when (val result = shortcutActionDispatcher.dispatch(intent)) {
+            ShortcutDispatchResult.Ignored -> Unit
+            ShortcutDispatchResult.MissingProfileSerial -> setLastResult(getString(R.string.shortcut_missing_serial))
+            is ShortcutDispatchResult.UnknownProfile -> setLastResult(
+                getString(R.string.shortcut_unknown_profile, result.serialNumber),
+            )
+            is ShortcutDispatchResult.ToggleStateUnavailable -> setLastResult(
+                getString(R.string.toggle_skipped, result.userHandle.toString()),
+            )
+            is ShortcutDispatchResult.Completed -> setLastResult(
+                getString(
+                    R.string.operation_returned,
+                    operationLabel(result.requestedAction),
+                    result.userHandle.toString(),
+                    result.changed.toString(),
+                    timestamp(),
+                ),
+            )
+            is ShortcutDispatchResult.Failed -> setLastResult(
+                formatFailure(operationLabel(result.requestedAction), result.error),
+            )
         }
-        val userHandle = workProfileRepository.findUserHandle(serialNumber)
-        if (userHandle == null) {
-            setLastResult(getString(R.string.shortcut_unknown_profile, serialNumber))
-            return
-        }
-
-        requestQuietMode(userHandle, action)
     }
 
     private fun readQuietMode(userHandle: UserHandle): QuietModeState {
