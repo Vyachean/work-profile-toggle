@@ -314,9 +314,6 @@ class MainActivity : Activity() {
             is WorkProfileActionResult.UnknownProfile -> setLastResult(
                 getString(R.string.shortcut_unknown_profile, result.serialNumber),
             )
-            is WorkProfileActionResult.ToggleStateUnavailable -> setLastResult(
-                getString(R.string.toggle_skipped, result.userHandle.toString()),
-            )
             is WorkProfileActionResult.Completed -> setLastResult(
                 getString(
                     R.string.operation_returned,
