@@ -13,13 +13,15 @@ internal class WorkProfileAppDependencies(
     val preferences: SharedPreferences =
         appContext.getSharedPreferences(WORK_PROFILE_PREFERENCES_NAME, Context.MODE_PRIVATE)
 
+    private val keyValueStore: KeyValueStore = SharedPreferencesKeyValueStore(preferences)
+
     val actionResultStore: ActionResultStore = ActionResultStore(
-        preferences = preferences,
+        keyValueStore = keyValueStore,
         defaultResult = appContext.getString(R.string.no_action_executed),
     )
 
     val scheduleStore: WorkProfileScheduleStore = WorkProfileScheduleStore(
-        keyValueStore = SharedPreferencesKeyValueStore(preferences),
+        keyValueStore = keyValueStore,
     )
 
     val userManager: UserManager =
