@@ -26,6 +26,7 @@ class MainActivity : Activity() {
     private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.ROOT)
     private lateinit var dependencies: WorkProfileAppDependencies
     private lateinit var actionResultStore: ActionResultStore
+    private lateinit var scheduleStore: WorkProfileScheduleStore
     private lateinit var quietModeController: QuietModeController
     private lateinit var workProfileRepository: WorkProfileRepository
     private lateinit var shortcutController: ShortcutController
@@ -38,6 +39,7 @@ class MainActivity : Activity() {
 
         dependencies = WorkProfileAppDependencies(this)
         actionResultStore = dependencies.actionResultStore
+        scheduleStore = dependencies.scheduleStore
         lastResult = actionResultStore.restore(savedInstanceState?.getString(STATE_LAST_RESULT))
         quietModeController = dependencies.quietModeController
         workProfileRepository = dependencies.workProfileRepository
@@ -87,6 +89,7 @@ class MainActivity : Activity() {
         val primaryProfile = profileSelection.selected
         val primaryQuietMode = primaryProfile?.let { readQuietMode(it.userHandle) }
         val permissionGranted = hasQuietModePermission()
+        val schedule = scheduleStore.load()
         val shortcutUpdateResult = shortcutController.updateShortcuts(labeledEntries)
 
         content.removeAllViews()
@@ -94,7 +97,7 @@ class MainActivity : Activity() {
         content.addView(textView(getString(R.string.home_title), textSize = 22f))
         renderPrimaryStatus(profileSelection, primaryQuietMode, permissionGranted, profileDiscovery.profilesAvailable)
         renderSetup(profileSelection, permissionGranted, profileDiscovery.error)
-        renderSchedulePreview()
+        renderSchedulePreview(schedule)
         renderAdvanced(profileEntries, shortcutUpdateResult)
     }
 
@@ -193,9 +196,24 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun renderSchedulePreview() {
+    private fun renderSchedulePreview(schedule: WorkProfileSchedule) {
         content.addView(sectionTitle(getString(R.string.schedule_title)))
-        content.addView(textView(getString(R.string.schedule_not_configured)))
+        if (schedule == WorkProfileSchedule()) {
+            content.addView(textView(getString(R.string.schedule_not_configured)))
+        } else {
+            content.addView(
+                textView(
+                    if (schedule.enabled) {
+                        getString(R.string.schedule_saved_enabled)
+                    } else {
+                        getString(R.string.schedule_saved_disabled)
+                    },
+                ),
+            )
+            content.addView(textView(getString(R.string.schedule_pause_at, formatScheduleTime(schedule.pauseAt))))
+            content.addView(textView(getString(R.string.schedule_resume_at, formatScheduleTime(schedule.resumeAt))))
+            content.addView(textView(getString(R.string.schedule_active_days, formatScheduleDays(schedule.activeDays))))
+        }
         content.addView(textView(getString(R.string.schedule_future_note)))
     }
 
@@ -345,6 +363,32 @@ class MainActivity : Activity() {
             QuietModeAction.Toggle -> R.string.operation_toggle_quiet_mode
         }
         return getString(stringId)
+    }
+
+    private fun formatScheduleTime(scheduleTime: ScheduleTime?): String {
+        return scheduleTime?.toStorageValue() ?: getString(R.string.schedule_time_not_set)
+    }
+
+    private fun formatScheduleDays(days: Set<ScheduleDay>): String {
+        return when {
+            days.isEmpty() -> getString(R.string.schedule_no_days)
+            days == ScheduleDay.defaultSet -> getString(R.string.schedule_all_days)
+            else -> ScheduleDay.values()
+                .filter { day -> day in days }
+                .joinToString(", ") { day -> getString(scheduleDayLabel(day)) }
+        }
+    }
+
+    private fun scheduleDayLabel(day: ScheduleDay): Int {
+        return when (day) {
+            ScheduleDay.MONDAY -> R.string.schedule_day_monday
+            ScheduleDay.TUESDAY -> R.string.schedule_day_tuesday
+            ScheduleDay.WEDNESDAY -> R.string.schedule_day_wednesday
+            ScheduleDay.THURSDAY -> R.string.schedule_day_thursday
+            ScheduleDay.FRIDAY -> R.string.schedule_day_friday
+            ScheduleDay.SATURDAY -> R.string.schedule_day_saturday
+            ScheduleDay.SUNDAY -> R.string.schedule_day_sunday
+        }
     }
 
     private fun hasQuietModePermission(): Boolean {
