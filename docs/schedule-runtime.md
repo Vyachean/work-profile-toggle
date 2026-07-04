@@ -66,7 +66,11 @@ Rules:
 - If start or end time is missing, the schedule is incomplete and should not run.
 - If start time is before end time, the active window is same-day.
 - If start time is after end time, the active window crosses midnight.
+- For an overnight active window, a selected work day is the day when the active window starts.
+  - Example: `MONDAY`, `22:00` -> `06:00` means active from Monday 22:00 until Tuesday 06:00.
+  - Sunday 22:00 until Monday 06:00 is controlled by `SUNDAY`, not `MONDAY`.
 - If start time equals end time, treat the schedule as invalid unless a later product decision explicitly defines this as always-active or always-paused.
+- An invalid schedule must not produce a next boundary and must not schedule an alarm. This prevents immediate rescheduling loops when the next boundary would otherwise be calculated as `now`.
 - Daylight saving and timezone changes must be handled by recalculating boundaries from local time, not by repeating a fixed duration.
 
 ## Trigger mechanism
@@ -77,7 +81,10 @@ Candidate approach:
 
 - Use `AlarmManager` for the next boundary.
 - Use a `BroadcastReceiver` as the alarm entry point.
-- Perform only short work in the receiver.
+- Perform only short orchestration in the receiver.
+- Do not run blocking quiet-mode reads or requests on the receiver main thread.
+- Use `BroadcastReceiver.goAsync()` and move reconciliation to a background executor/coroutine, then always call `PendingResult.finish()`.
+- If reconciliation grows beyond short bounded work, delegate from the alarm receiver to a more appropriate background mechanism instead of expanding receiver work.
 - Delegate state changes through the existing action dispatcher/controller path.
 - Reschedule the next boundary after every run.
 
@@ -86,7 +93,7 @@ Open decision:
 - Start with inexact alarms if product tolerance allows delayed boundaries.
 - Use exact alarms only if the product requires near-exact work start/end behavior and the required Android special access is acceptable.
 
-Android documentation notes that inexact alarms respect battery-saving restrictions such as Doze, while exact alarms are intended for precise moments and may require the Android 12+ "Alarms & reminders" special access. If exact alarms are used, the app must check whether exact alarm access is granted and guide the user to settings when needed.
+Android documentation notes that inexact alarms respect battery-saving restrictions such as Doze and can be delayed. Exact alarms are intended for precise moments and may require the Android 12+ "Alarms & reminders" special access. If exact alarms are used, the app must check whether exact alarm access is granted before scheduling and guide the user to settings when needed.
 
 ## Rescheduling events
 
@@ -98,7 +105,9 @@ The runtime should reschedule from persisted settings after:
 - time change;
 - schedule settings change;
 - selected work profile change;
-- exact alarm access grant or revoke, if exact alarms are used.
+- exact alarm access grant, if exact alarms are used.
+
+Exact alarm access loss must be handled by checking current access state when the app opens and when the runtime reconciles or schedules work. Do not rely on a revoke broadcast for this path.
 
 The app should record a diagnostic result if rescheduling is blocked because setup is incomplete.
 
@@ -164,8 +173,10 @@ Add tests before runtime implementation is considered complete:
 
 - same-day active window calculation;
 - overnight active window calculation;
+- overnight active-day semantics, where the selected day is the window start day;
 - inactive days;
 - start equals end invalid case;
+- invalid schedules do not produce a next boundary or schedule an alarm;
 - next boundary after start;
 - next boundary after end;
 - timezone change recalculation;
@@ -174,6 +185,7 @@ Add tests before runtime implementation is considered complete:
 - selected profile missing;
 - action success;
 - action failure;
+- exact alarm access missing, if exact alarms are used;
 - next boundary rescheduling after every run.
 
 Use fake clocks and fake dispatchers for unit tests. Do not rely on real wall-clock time in tests.
@@ -184,7 +196,7 @@ Use fake clocks and fake dispatchers for unit tests. Do not rely on real wall-cl
 2. Add tests for expected state and next boundary calculation.
 3. Add a persisted schedule runtime result model.
 4. Add a scheduler abstraction around Android alarm APIs.
-5. Add a receiver entry point that performs reconciliation.
+5. Add a receiver entry point that performs bounded asynchronous reconciliation.
 6. Add setup checks and user-facing runtime status.
 7. Add diagnostics for missed or blocked schedule changes.
 8. Only then enable the schedule toggle as real runtime behavior.
