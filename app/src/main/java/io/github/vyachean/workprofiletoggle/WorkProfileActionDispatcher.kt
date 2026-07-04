@@ -3,27 +3,36 @@ package io.github.vyachean.workprofiletoggle
 import android.content.Intent
 import android.os.UserHandle
 
-internal class ShortcutActionDispatcher(
+internal class WorkProfileActionDispatcher(
     private val workProfileRepository: WorkProfileRepository,
     private val quietModeController: QuietModeController,
 ) {
-    fun dispatch(intent: Intent): ShortcutDispatchResult {
+    fun dispatchShortcut(intent: Intent): WorkProfileActionResult {
         val requestedAction = QuietModeAction.fromIntentAction(intent.action)
-            ?: return ShortcutDispatchResult.Ignored
+            ?: return WorkProfileActionResult.Ignored
         intent.action = null
 
         val serialNumber = if (intent.hasExtra(EXTRA_PROFILE_SERIAL)) {
             intent.getLongExtra(EXTRA_PROFILE_SERIAL, INVALID_SERIAL_NUMBER)
         } else {
-            return ShortcutDispatchResult.MissingProfileSerial
+            return WorkProfileActionResult.MissingProfileSerial
         }
 
         val userHandle = workProfileRepository.findUserHandle(serialNumber)
-            ?: return ShortcutDispatchResult.UnknownProfile(serialNumber)
+            ?: return WorkProfileActionResult.UnknownProfile(serialNumber)
 
+        return dispatch(userHandle, requestedAction)
+    }
+
+    fun dispatch(userHandle: UserHandle, requestedAction: QuietModeAction): WorkProfileActionResult {
         val executionAction = if (requestedAction == QuietModeAction.Toggle) {
-            val quietModeEnabled = quietModeController.isQuietModeEnabled(userHandle).getOrNull()
-                ?: return ShortcutDispatchResult.ToggleStateUnavailable(userHandle)
+            val quietModeEnabled = quietModeController.isQuietModeEnabled(userHandle)
+                .getOrElse { error ->
+                    return WorkProfileActionResult.Failed(
+                        requestedAction = requestedAction,
+                        error = error,
+                    )
+                }
             if (quietModeEnabled) QuietModeAction.Disable else QuietModeAction.Enable
         } else {
             requestedAction
@@ -32,14 +41,14 @@ internal class ShortcutActionDispatcher(
         return quietModeController.requestQuietMode(userHandle, executionAction)
             .fold(
                 onSuccess = { result ->
-                    ShortcutDispatchResult.Completed(
+                    WorkProfileActionResult.Completed(
                         requestedAction = requestedAction,
                         userHandle = userHandle,
                         changed = result.changed,
                     )
                 },
                 onFailure = { error ->
-                    ShortcutDispatchResult.Failed(
+                    WorkProfileActionResult.Failed(
                         requestedAction = requestedAction,
                         error = error,
                     )
@@ -48,26 +57,22 @@ internal class ShortcutActionDispatcher(
     }
 }
 
-internal sealed class ShortcutDispatchResult {
-    object Ignored : ShortcutDispatchResult()
-    object MissingProfileSerial : ShortcutDispatchResult()
+internal sealed class WorkProfileActionResult {
+    object Ignored : WorkProfileActionResult()
+    object MissingProfileSerial : WorkProfileActionResult()
 
     data class UnknownProfile(
         val serialNumber: Long,
-    ) : ShortcutDispatchResult()
-
-    data class ToggleStateUnavailable(
-        val userHandle: UserHandle,
-    ) : ShortcutDispatchResult()
+    ) : WorkProfileActionResult()
 
     data class Completed(
         val requestedAction: QuietModeAction,
         val userHandle: UserHandle,
         val changed: Boolean,
-    ) : ShortcutDispatchResult()
+    ) : WorkProfileActionResult()
 
     data class Failed(
         val requestedAction: QuietModeAction,
         val error: Throwable,
-    ) : ShortcutDispatchResult()
+    ) : WorkProfileActionResult()
 }
