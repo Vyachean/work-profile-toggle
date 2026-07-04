@@ -31,7 +31,7 @@ class MainActivity : Activity() {
     private lateinit var quietModeController: QuietModeController
     private lateinit var workProfileRepository: WorkProfileRepository
     private lateinit var shortcutController: ShortcutController
-    private lateinit var shortcutActionDispatcher: ShortcutActionDispatcher
+    private lateinit var actionDispatcher: WorkProfileActionDispatcher
     private lateinit var content: LinearLayout
     private var lastResult: String = ""
 
@@ -46,7 +46,7 @@ class MainActivity : Activity() {
         quietModeController = dependencies.quietModeController
         workProfileRepository = dependencies.workProfileRepository
         shortcutController = dependencies.shortcutController
-        shortcutActionDispatcher = dependencies.shortcutActionDispatcher
+        actionDispatcher = dependencies.actionDispatcher
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(16.dp, 16.dp, 16.dp, 16.dp)
@@ -139,7 +139,7 @@ class MainActivity : Activity() {
                 content.addView(textView(getString(R.string.work_profile_paused), textSize = 18f))
                 renderSelectedProfile(profileSelection)
                 content.addView(button(getString(R.string.resume_work_profile)) {
-                    requestQuietMode(primaryProfile.userHandle, QuietModeAction.Disable)
+                    dispatchAction(primaryProfile.userHandle, QuietModeAction.Disable)
                     render()
                 })
             }
@@ -147,7 +147,7 @@ class MainActivity : Activity() {
                 content.addView(textView(getString(R.string.work_profile_active), textSize = 18f))
                 renderSelectedProfile(profileSelection)
                 content.addView(button(getString(R.string.pause_work_profile)) {
-                    requestQuietMode(primaryProfile.userHandle, QuietModeAction.Enable)
+                    dispatchAction(primaryProfile.userHandle, QuietModeAction.Enable)
                     render()
                 })
             }
@@ -285,31 +285,39 @@ class MainActivity : Activity() {
             addView(textView(profileInfo))
 
             addView(button(getString(R.string.enable_quiet_mode)) {
-                requestQuietMode(userHandle, QuietModeAction.Enable)
+                dispatchAction(userHandle, QuietModeAction.Enable)
                 render()
             })
             addView(button(getString(R.string.disable_quiet_mode)) {
-                requestQuietMode(userHandle, QuietModeAction.Disable)
+                dispatchAction(userHandle, QuietModeAction.Disable)
                 render()
             })
             addView(button(getString(R.string.toggle_quiet_mode)) {
-                requestQuietMode(userHandle, QuietModeAction.Toggle)
+                dispatchAction(userHandle, QuietModeAction.Toggle)
                 render()
             })
         }
     }
 
     private fun handleShortcutIntent(intent: Intent) {
-        when (val result = shortcutActionDispatcher.dispatch(intent)) {
-            ShortcutDispatchResult.Ignored -> Unit
-            ShortcutDispatchResult.MissingProfileSerial -> setLastResult(getString(R.string.shortcut_missing_serial))
-            is ShortcutDispatchResult.UnknownProfile -> setLastResult(
+        handleActionResult(actionDispatcher.dispatchShortcut(intent))
+    }
+
+    private fun dispatchAction(userHandle: UserHandle, action: QuietModeAction) {
+        handleActionResult(actionDispatcher.dispatch(userHandle, action))
+    }
+
+    private fun handleActionResult(result: WorkProfileActionResult) {
+        when (result) {
+            WorkProfileActionResult.Ignored -> Unit
+            WorkProfileActionResult.MissingProfileSerial -> setLastResult(getString(R.string.shortcut_missing_serial))
+            is WorkProfileActionResult.UnknownProfile -> setLastResult(
                 getString(R.string.shortcut_unknown_profile, result.serialNumber),
             )
-            is ShortcutDispatchResult.ToggleStateUnavailable -> setLastResult(
+            is WorkProfileActionResult.ToggleStateUnavailable -> setLastResult(
                 getString(R.string.toggle_skipped, result.userHandle.toString()),
             )
-            is ShortcutDispatchResult.Completed -> setLastResult(
+            is WorkProfileActionResult.Completed -> setLastResult(
                 getString(
                     R.string.operation_returned,
                     operationLabel(result.requestedAction),
@@ -318,7 +326,7 @@ class MainActivity : Activity() {
                     timestamp(),
                 ),
             )
-            is ShortcutDispatchResult.Failed -> setLastResult(
+            is WorkProfileActionResult.Failed -> setLastResult(
                 formatFailure(operationLabel(result.requestedAction), result.error),
             )
         }
@@ -335,31 +343,6 @@ class MainActivity : Activity() {
                     )
                 },
             )
-    }
-
-    private fun requestQuietMode(userHandle: UserHandle, action: QuietModeAction) {
-        if (action == QuietModeAction.Toggle && readQuietMode(userHandle).value == null) {
-            setLastResult(getString(R.string.toggle_skipped, userHandle.toString()))
-            return
-        }
-
-        setLastResult(
-            quietModeController.requestQuietMode(userHandle, action)
-                .fold(
-                    onSuccess = { result ->
-                        getString(
-                            R.string.operation_returned,
-                            operationLabel(action),
-                            userHandle.toString(),
-                            result.changed.toString(),
-                            timestamp(),
-                        )
-                    },
-                    onFailure = { error ->
-                        formatFailure(operationLabel(action), error)
-                    },
-                ),
-        )
     }
 
     private fun operationLabel(action: QuietModeAction): String {
