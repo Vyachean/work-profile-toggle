@@ -7,9 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
-import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.os.UserHandle
 import android.os.UserManager
@@ -24,7 +22,6 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
-private const val SHORTCUTS_PER_PROFILE = 3
 private const val STATE_LAST_RESULT = "last_result"
 private const val MODIFY_QUIET_MODE_PERMISSION = "android.permission.MODIFY_QUIET_MODE"
 private const val PREFERENCES_NAME = "work_profile_toggle"
@@ -36,10 +33,9 @@ class MainActivity : Activity() {
     private lateinit var userManager: UserManager
     private lateinit var quietModeController: QuietModeController
     private lateinit var workProfileRepository: WorkProfileRepository
-    private var shortcutManager: ShortcutManager? = null
+    private lateinit var shortcutController: ShortcutController
     private lateinit var content: LinearLayout
     private var lastResult: String = ""
-    private var lastShortcutSignature: List<ShortcutDescriptor>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,7 +55,10 @@ class MainActivity : Activity() {
             invalidSerialDiagnostic = getString(R.string.profile_serial_invalid),
             formatFailure = ::formatFailure,
         )
-        shortcutManager = getSystemService(ShortcutManager::class.java)
+        shortcutController = ShortcutController(
+            context = this,
+            shortcutManager = getSystemService(ShortcutManager::class.java),
+        )
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(16.dp, 16.dp, 16.dp, 16.dp)
@@ -104,7 +103,7 @@ class MainActivity : Activity() {
         val primaryProfile = profileSelection.selected
         val primaryQuietMode = primaryProfile?.let { readQuietMode(it.userHandle) }
         val permissionGranted = hasQuietModePermission()
-        val shortcutUpdateResult = updateShortcuts(labeledEntries)
+        val shortcutUpdateResult = shortcutController.updateShortcuts(labeledEntries)
 
         content.removeAllViews()
 
@@ -312,85 +311,6 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun updateShortcuts(profiles: List<ProfileEntry.Labeled>): Result<ShortcutUpdateState?> {
-        return runCatching {
-            val manager = shortcutManager ?: return@runCatching null
-            val maxShortcuts = manager.maxShortcutCountPerActivity
-            val shortcutProfileCount = maxShortcuts / SHORTCUTS_PER_PROFILE
-            val shortcutDescriptors = profiles
-                .take(shortcutProfileCount)
-                .flatMapIndexed { index, profileEntry ->
-                    quietModeShortcutDescriptors(profileEntry, shortcutProfileLabel(index))
-                }
-
-            if (shortcutDescriptors != lastShortcutSignature) {
-                manager.dynamicShortcuts = shortcutDescriptors.map { descriptor ->
-                    ShortcutInfo.Builder(this, descriptor.id)
-                        .setShortLabel(descriptor.shortLabel)
-                        .setLongLabel(descriptor.longLabel)
-                        .setIcon(Icon.createWithResource(this, R.drawable.ic_shortcut_quiet_mode))
-                        .setIntent(shortcutIntent(descriptor.action, descriptor.serialNumber))
-                        .build()
-                }
-                lastShortcutSignature = shortcutDescriptors
-            }
-
-            ShortcutUpdateState(
-                shortcutsCount = shortcutDescriptors.size,
-                maxShortcuts = maxShortcuts,
-            )
-        }
-    }
-
-    private fun quietModeShortcutDescriptors(
-        profileEntry: ProfileEntry.Labeled,
-        shortcutProfileLabel: String,
-    ): List<ShortcutDescriptor> {
-        return QuietModeAction.entries.map { action ->
-            ShortcutDescriptor(
-                id = shortcutId(action, profileEntry.profile.identifier.serialNumber),
-                action = action,
-                serialNumber = profileEntry.profile.identifier.serialNumber,
-                shortLabel = shortcutShortLabel(action, shortcutProfileLabel),
-                longLabel = shortcutLongLabel(action, profileEntry.profile.label),
-            )
-        }
-    }
-
-    private fun shortcutProfileLabel(index: Int): String {
-        return getString(R.string.shortcut_profile_short_label, index + 1)
-    }
-
-    private fun shortcutId(action: QuietModeAction, serialNumber: Long): String {
-        return "${action.name.lowercase(Locale.ROOT)}-$serialNumber"
-    }
-
-    private fun shortcutIntent(action: QuietModeAction, serialNumber: Long): Intent {
-        return Intent(this, QuietModeActionActivity::class.java).apply {
-            this.action = action.intentAction
-            putExtra(EXTRA_PROFILE_SERIAL, serialNumber)
-            flags = Intent.FLAG_ACTIVITY_NO_ANIMATION
-        }
-    }
-
-    private fun shortcutShortLabel(action: QuietModeAction, profileLabel: String): String {
-        val stringId = when (action) {
-            QuietModeAction.Enable -> R.string.shortcut_enable_short_label
-            QuietModeAction.Disable -> R.string.shortcut_disable_short_label
-            QuietModeAction.Toggle -> R.string.shortcut_toggle_short_label
-        }
-        return getString(stringId, profileLabel)
-    }
-
-    private fun shortcutLongLabel(action: QuietModeAction, profileLabel: String): String {
-        val stringId = when (action) {
-            QuietModeAction.Enable -> R.string.shortcut_enable_long_label
-            QuietModeAction.Disable -> R.string.shortcut_disable_long_label
-            QuietModeAction.Toggle -> R.string.shortcut_toggle_long_label
-        }
-        return getString(stringId, profileLabel)
-    }
-
     private fun handleShortcutIntent(intent: Intent) {
         val action = QuietModeAction.fromIntentAction(intent.action) ?: return
         intent.action = null
@@ -526,17 +446,4 @@ class MainActivity : Activity() {
 private data class QuietModeState(
     val value: Boolean?,
     val message: String,
-)
-
-private data class ShortcutDescriptor(
-    val id: String,
-    val action: QuietModeAction,
-    val serialNumber: Long,
-    val shortLabel: String,
-    val longLabel: String,
-)
-
-private data class ShortcutUpdateState(
-    val shortcutsCount: Int,
-    val maxShortcuts: Int,
 )
