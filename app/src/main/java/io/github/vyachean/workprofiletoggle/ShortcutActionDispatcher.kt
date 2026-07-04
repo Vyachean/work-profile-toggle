@@ -8,7 +8,7 @@ internal class ShortcutActionDispatcher(
     private val quietModeController: QuietModeController,
 ) {
     fun dispatch(intent: Intent): ShortcutDispatchResult {
-        val action = QuietModeAction.fromIntentAction(intent.action)
+        val requestedAction = QuietModeAction.fromIntentAction(intent.action)
             ?: return ShortcutDispatchResult.Ignored
         intent.action = null
 
@@ -21,22 +21,26 @@ internal class ShortcutActionDispatcher(
         val userHandle = workProfileRepository.findUserHandle(serialNumber)
             ?: return ShortcutDispatchResult.UnknownProfile(serialNumber)
 
-        if (action == QuietModeAction.Toggle && quietModeController.isQuietModeEnabled(userHandle).getOrNull() == null) {
-            return ShortcutDispatchResult.ToggleStateUnavailable(userHandle)
+        val executionAction = if (requestedAction == QuietModeAction.Toggle) {
+            val quietModeEnabled = quietModeController.isQuietModeEnabled(userHandle).getOrNull()
+                ?: return ShortcutDispatchResult.ToggleStateUnavailable(userHandle)
+            if (quietModeEnabled) QuietModeAction.Disable else QuietModeAction.Enable
+        } else {
+            requestedAction
         }
 
-        return quietModeController.requestQuietMode(userHandle, action)
+        return quietModeController.requestQuietMode(userHandle, executionAction)
             .fold(
                 onSuccess = { result ->
                     ShortcutDispatchResult.Completed(
-                        action = action,
+                        requestedAction = requestedAction,
                         userHandle = userHandle,
                         changed = result.changed,
                     )
                 },
                 onFailure = { error ->
                     ShortcutDispatchResult.Failed(
-                        action = action,
+                        requestedAction = requestedAction,
                         error = error,
                     )
                 },
@@ -57,13 +61,13 @@ internal sealed class ShortcutDispatchResult {
     ) : ShortcutDispatchResult()
 
     data class Completed(
-        val action: QuietModeAction,
+        val requestedAction: QuietModeAction,
         val userHandle: UserHandle,
         val changed: Boolean,
     ) : ShortcutDispatchResult()
 
     data class Failed(
-        val action: QuietModeAction,
+        val requestedAction: QuietModeAction,
         val error: Throwable,
     ) : ShortcutDispatchResult()
 }
