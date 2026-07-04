@@ -20,8 +20,8 @@ class InMemoryKeyValueStoreTest {
         val store = InMemoryKeyValueStore()
         store.edit { putStringSet("days", setOf("MONDAY")) }
 
-        val returnedSet = store.getStringSet("days") as MutableSet<String>
-        returnedSet.add("TUESDAY")
+        val returnedSet = store.getStringSet("days")
+        (returnedSet as? MutableSet<String>)?.add("TUESDAY")
 
         assertEquals(setOf("MONDAY"), store.getStringSet("days"))
     }
