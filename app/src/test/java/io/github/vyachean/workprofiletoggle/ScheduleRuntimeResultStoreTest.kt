@@ -51,6 +51,40 @@ class ScheduleRuntimeResultStoreTest {
     }
 
     @Test
+    fun clearsOptionalFieldsWhenSavingBlockedRuntimeResultAfterSuccessfulResult() {
+        val store = ScheduleRuntimeResultStore(InMemoryKeyValueStore())
+        store.save(
+            ScheduleRuntimeResult(
+                triggerTime = time(day = 5, hour = 9),
+                expectedState = WorkProfileScheduleExpectedState.ACTIVE,
+                selectedProfileStatus = ScheduleRuntimeProfileStatus.SELECTED,
+                requestedAction = ScheduleRuntimeRequestedAction.ACTIVATE_WORK_PROFILE,
+                actionResult = ScheduleRuntimeActionResult.SUCCEEDED,
+                finalStateConfirmed = true,
+                nextBoundary = WorkProfileScheduleBoundary(
+                    at = time(day = 5, hour = 17),
+                    expectedState = WorkProfileScheduleExpectedState.PAUSED,
+                ),
+                failureCategory = null,
+            ),
+        )
+        val blockedResult = ScheduleRuntimeResult(
+            triggerTime = time(day = 6, hour = 8),
+            expectedState = null,
+            selectedProfileStatus = ScheduleRuntimeProfileStatus.MISSING,
+            requestedAction = ScheduleRuntimeRequestedAction.NONE,
+            actionResult = ScheduleRuntimeActionResult.BLOCKED,
+            finalStateConfirmed = false,
+            nextBoundary = null,
+            failureCategory = ScheduleRuntimeFailureCategory.SELECTED_PROFILE_MISSING,
+        )
+
+        store.save(blockedResult)
+
+        assertEquals(blockedResult, store.load())
+    }
+
+    @Test
     fun returnsNullWhenNoRuntimeResultIsSaved() {
         val store = ScheduleRuntimeResultStore(InMemoryKeyValueStore())
 
