@@ -6,8 +6,6 @@ import android.os.Bundle
 import android.os.UserManager
 
 class QuietModeActionActivity : Activity() {
-    private lateinit var shortcutActionDispatcher: ShortcutActionDispatcher
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -22,7 +20,7 @@ class QuietModeActionActivity : Activity() {
             formatFailure = ::formatFailure,
         )
         val quietModeController = QuietModeController(userManager)
-        shortcutActionDispatcher = ShortcutActionDispatcher(
+        val shortcutActionDispatcher = ShortcutActionDispatcher(
             workProfileRepository = workProfileRepository,
             quietModeController = quietModeController,
         )
