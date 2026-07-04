@@ -24,7 +24,6 @@ import kotlin.math.roundToInt
 
 private const val STATE_LAST_RESULT = "last_result"
 private const val MODIFY_QUIET_MODE_PERMISSION = "android.permission.MODIFY_QUIET_MODE"
-private const val PREFERENCES_NAME = "work_profile_toggle"
 private const val PREF_LAST_RESULT = "last_result"
 
 class MainActivity : Activity() {
@@ -40,7 +39,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        preferences = getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+        preferences = getSharedPreferences(WORK_PROFILE_PREFERENCES_NAME, Context.MODE_PRIVATE)
         lastResult = savedInstanceState?.getString(STATE_LAST_RESULT)
             ?: preferences.getString(PREF_LAST_RESULT, null)
             ?: getString(R.string.no_action_executed)
