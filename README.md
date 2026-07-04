@@ -1,6 +1,6 @@
 # Work Profile Toggle
 
-Android app for controlling an existing work profile. It can pause and resume a work profile after the required ADB-granted permission is available. It also exposes launcher shortcuts for advanced automation flows and stores schedule settings for planned background scheduling support.
+Android app for controlling an existing work profile. It can pause and resume a work profile after the required ADB-granted permission is available. The main product goal is to provide a Digital Wellbeing-style work-profile schedule for devices where the built-in Google/OEM schedule feature is missing or unavailable.
 
 ## Scope
 
@@ -12,7 +12,7 @@ The app is intentionally focused:
 - Toggle the selected work profile state.
 - Provide dynamic launcher shortcuts for supported launchers.
 - Provide a legacy Android shortcut picker for automation apps such as MacroDroid.
-- Store schedule settings for future automatic pause/resume support.
+- Store schedule settings for future work-profile schedule support.
 
 ## Non-goals
 
@@ -22,7 +22,7 @@ This app is not a Shelter, Island, or work-profile manager replacement. It must 
 - Install, clone, freeze, or manage apps inside a profile.
 - Replace Android enterprise/work-profile provisioning tools.
 - Duplicate Tasker, MacroDroid, or launcher functionality.
-- Execute background schedule changes until the scheduling runtime is explicitly implemented and tested.
+- Become a generic task scheduler or automation engine.
 - Add broad device-management policies unrelated to work-profile pause/resume.
 
 ## Project documentation
