@@ -13,6 +13,11 @@ internal class WorkProfileAppDependencies(
     val preferences: SharedPreferences =
         appContext.getSharedPreferences(WORK_PROFILE_PREFERENCES_NAME, Context.MODE_PRIVATE)
 
+    val actionResultStore: ActionResultStore = ActionResultStore(
+        preferences = preferences,
+        defaultResult = appContext.getString(R.string.no_action_executed),
+    )
+
     val userManager: UserManager =
         appContext.getSystemService(Context.USER_SERVICE) as UserManager
 

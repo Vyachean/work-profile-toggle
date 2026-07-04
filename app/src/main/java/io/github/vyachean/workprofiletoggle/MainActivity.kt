@@ -5,7 +5,6 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.UserHandle
@@ -22,12 +21,11 @@ import kotlin.math.roundToInt
 
 private const val STATE_LAST_RESULT = "last_result"
 private const val MODIFY_QUIET_MODE_PERMISSION = "android.permission.MODIFY_QUIET_MODE"
-private const val PREF_LAST_RESULT = "last_result"
 
 class MainActivity : Activity() {
     private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.ROOT)
     private lateinit var dependencies: WorkProfileAppDependencies
-    private lateinit var preferences: SharedPreferences
+    private lateinit var actionResultStore: ActionResultStore
     private lateinit var quietModeController: QuietModeController
     private lateinit var workProfileRepository: WorkProfileRepository
     private lateinit var shortcutController: ShortcutController
@@ -39,10 +37,8 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         dependencies = WorkProfileAppDependencies(this)
-        preferences = dependencies.preferences
-        lastResult = savedInstanceState?.getString(STATE_LAST_RESULT)
-            ?: preferences.getString(PREF_LAST_RESULT, null)
-            ?: getString(R.string.no_action_executed)
+        actionResultStore = dependencies.actionResultStore
+        lastResult = actionResultStore.restore(savedInstanceState?.getString(STATE_LAST_RESULT))
         quietModeController = dependencies.quietModeController
         workProfileRepository = dependencies.workProfileRepository
         shortcutController = dependencies.shortcutController
@@ -374,9 +370,7 @@ class MainActivity : Activity() {
 
     private fun setLastResult(result: String) {
         lastResult = result
-        preferences.edit()
-            .putString(PREF_LAST_RESULT, result)
-            .apply()
+        actionResultStore.save(result)
     }
 
     private fun formatFailure(operation: String, error: Throwable): String {
