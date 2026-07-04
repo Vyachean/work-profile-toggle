@@ -14,6 +14,7 @@ internal data class ScheduleRuntimeResult(
 )
 
 internal enum class ScheduleRuntimeProfileStatus {
+    NOT_CHECKED,
     SELECTED,
     MISSING,
     UNAVAILABLE,
