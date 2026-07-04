@@ -72,30 +72,48 @@ jobs:
           emulator-boot-timeout: 600
           disable-animations: true
           script: |
+            set -u
+            status=0
             package_name="io.github.vyachean.workprofiletoggle"
             screenshots_dir="build/screenshots"
-            mkdir -p "$screenshots_dir"
+            diagnostics_dir="build/screenshot-diagnostics"
+            mkdir -p "$screenshots_dir" "$diagnostics_dir"
 
-            adb shell wm size 1080x2400
-            adb shell wm density 420
-            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb devices -l | tee "$diagnostics_dir/devices.txt" || true
+            adb shell getprop > "$diagnostics_dir/getprop.txt" || true
 
-            adb shell am force-stop "$package_name" || true
-            adb shell am start -W -n "$package_name/.MainActivity"
-            sleep 3
-            adb exec-out screencap -p > "$screenshots_dir/home.png"
+            adb install -r app/build/outputs/apk/debug/app-debug.apk || status=1
 
-            adb shell input swipe 540 1900 540 800 500
-            sleep 1
-            adb exec-out screencap -p > "$screenshots_dir/home-scrolled.png"
+            if [ "$status" -eq 0 ]; then
+              adb shell am force-stop "$package_name" || true
+              adb shell monkey -p "$package_name" 1 || status=1
+              sleep 5
+              adb exec-out screencap -p > "$screenshots_dir/home.png" || status=1
+            fi
 
-            adb shell am start -W -a android.intent.action.CREATE_SHORTCUT -n "$package_name/.LegacyShortcutPickerActivity"
-            sleep 2
-            adb exec-out screencap -p > "$screenshots_dir/legacy-shortcut-picker.png"
+            if [ "$status" -eq 0 ]; then
+              adb shell input swipe 540 1900 540 800 500 || true
+              sleep 1
+              adb exec-out screencap -p > "$screenshots_dir/home-scrolled.png" || status=1
+            fi
+
+            if adb shell am start -W -a android.intent.action.CREATE_SHORTCUT -n "$package_name/.LegacyShortcutPickerActivity"; then
+              sleep 2
+              adb exec-out screencap -p > "$screenshots_dir/legacy-shortcut-picker.png" || true
+            fi
+
+            adb shell dumpsys window > "$diagnostics_dir/window.txt" || true
+            adb shell dumpsys activity activities > "$diagnostics_dir/activities.txt" || true
+            adb logcat -d > "$diagnostics_dir/logcat.txt" || true
+
+            exit "$status"
 
       - name: Upload screenshots
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: work-profile-toggle-screenshots
-          path: build/screenshots/*.png
-          if-no-files-found: error
+          path: |
+            build/screenshots/*.png
+            build/screenshot-diagnostics/*.txt
+          if-no-files-found: warn
