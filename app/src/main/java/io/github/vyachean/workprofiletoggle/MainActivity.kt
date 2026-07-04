@@ -328,14 +328,14 @@ class MainActivity : Activity() {
             is ShortcutDispatchResult.Completed -> setLastResult(
                 getString(
                     R.string.operation_returned,
-                    operationLabel(result.action),
+                    operationLabel(result.requestedAction),
                     result.userHandle.toString(),
                     result.changed.toString(),
                     timestamp(),
                 ),
             )
             is ShortcutDispatchResult.Failed -> setLastResult(
-                formatFailure(operationLabel(result.action), result.error),
+                formatFailure(operationLabel(result.requestedAction), result.error),
             )
         }
     }
