@@ -6,13 +6,15 @@ import android.content.pm.ShortcutManager
 import android.os.UserManager
 
 internal class WorkProfileAppDependencies(
-    private val context: Context,
+    context: Context,
 ) {
+    private val appContext: Context = context.applicationContext
+
     val preferences: SharedPreferences =
-        context.getSharedPreferences(WORK_PROFILE_PREFERENCES_NAME, Context.MODE_PRIVATE)
+        appContext.getSharedPreferences(WORK_PROFILE_PREFERENCES_NAME, Context.MODE_PRIVATE)
 
     val userManager: UserManager =
-        context.getSystemService(Context.USER_SERVICE) as UserManager
+        appContext.getSystemService(Context.USER_SERVICE) as UserManager
 
     val quietModeController: QuietModeController =
         QuietModeController(userManager)
@@ -21,9 +23,9 @@ internal class WorkProfileAppDependencies(
         userManager = userManager,
         preferences = preferences,
         profileLabel = { ordinal, serialNumber ->
-            context.getString(R.string.profile_fallback_label, ordinal, serialNumber)
+            appContext.getString(R.string.profile_fallback_label, ordinal, serialNumber)
         },
-        invalidSerialDiagnostic = context.getString(R.string.profile_serial_invalid),
+        invalidSerialDiagnostic = appContext.getString(R.string.profile_serial_invalid),
         formatFailure = ::formatFailure,
     )
 
@@ -32,16 +34,16 @@ internal class WorkProfileAppDependencies(
         quietModeController = quietModeController,
     )
 
-    fun createShortcutController(): ShortcutController {
-        return ShortcutController(
-            context = context.applicationContext,
-            shortcutManager = context.getSystemService(ShortcutManager::class.java),
+    val shortcutController: ShortcutController by lazy {
+        ShortcutController(
+            context = appContext,
+            shortcutManager = appContext.getSystemService(ShortcutManager::class.java),
         )
     }
 
     fun formatFailure(operation: String, error: Throwable): String {
         val detail = error.message?.takeIf { it.isNotBlank() } ?: error::class.java.name
-        return context.getString(
+        return appContext.getString(
             R.string.operation_failed,
             operation,
             error::class.java.simpleName,
