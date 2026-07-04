@@ -41,6 +41,7 @@
     <string name="schedule_choose_active_days">Choose active days</string>
     <string name="schedule_enable">Enable saved schedule</string>
     <string name="schedule_disable">Disable saved schedule</string>
+    <string name="schedule_enable_requirements">Set pause time, resume time, and at least one active day to enable the saved schedule.</string>
     <string name="schedule_clear">Clear schedule</string>
     <string name="schedule_save">Save</string>
     <string name="schedule_saved">Schedule saved.</string>
