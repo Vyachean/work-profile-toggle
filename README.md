@@ -1,17 +1,18 @@
 # Work Profile Toggle
 
-Minimal Android app for advanced users. It provides shortcuts for Android profile quiet mode.
+Android app for controlling an existing work profile. It can pause and resume a work profile after the required ADB-granted permission is available, exposes launcher shortcuts for advanced automation flows, and stores schedule settings for planned background scheduling support.
 
 ## Scope
 
-The app is intentionally small:
+The app is intentionally focused:
 
-- List switchable Android profiles associated with the current user.
-- Enable quiet mode for a selected profile.
-- Disable quiet mode for a selected profile.
-- Toggle quiet mode for a selected profile.
+- List switchable Android work profiles associated with the current user.
+- Pause a selected work profile.
+- Resume a selected work profile.
+- Toggle the selected work profile state.
 - Provide dynamic launcher shortcuts for supported launchers.
 - Provide a legacy Android shortcut picker for automation apps such as MacroDroid.
+- Store schedule settings for future automatic pause/resume support.
 
 ## Non-goals
 
@@ -19,9 +20,22 @@ This app is not a Shelter, Island, or work-profile manager replacement. It must 
 
 - Create, provision, or delete profiles.
 - Install, clone, freeze, or manage apps inside a profile.
-- Provide schedules, automations, or background policies.
+- Replace Android enterprise/work-profile provisioning tools.
 - Duplicate Tasker, MacroDroid, or launcher functionality.
-- Add a complex settings UI unless a platform limitation makes it unavoidable.
+- Execute background schedule changes until the scheduling runtime is explicitly implemented and tested.
+- Add broad device-management policies unrelated to work-profile pause/resume.
+
+## Screenshots
+
+CI can generate review screenshots with the `Screenshots` GitHub Actions workflow. The workflow builds the debug APK, installs it on an Android emulator, captures the current app screens, and uploads a `work-profile-toggle-screenshots` artifact.
+
+The generated artifact is intentionally not committed automatically. Screenshots from CI are temporary review output; stable README images should be reviewed first, then committed under `docs/screenshots/` and linked here.
+
+Current generated captures:
+
+- Home screen.
+- Home screen after scrolling to the schedule section.
+- Legacy shortcut picker.
 
 ## Platform assumptions
 
@@ -40,6 +54,7 @@ Verified constraints:
 - Profile display names may not be available to ordinary apps, so shortcuts use stable technical labels.
 - The owner profile is hidden because Android does not allow toggling quiet mode for it.
 - Devices and OEM ROMs may behave differently.
+- The GitHub Actions emulator used for screenshots does not provide a real work profile, so CI screenshots focus on setup, empty-state, and saved-schedule UI states until a deterministic demo mode exists.
 
 ## Package name
 
@@ -112,9 +127,9 @@ adb shell pm revoke io.github.vyachean.workprofiletoggle android.permission.MODI
 
 Supported launchers can show the app's dynamic shortcuts through the app icon context menu. The app creates quiet-mode actions for switchable profiles only:
 
-- Enable quiet mode.
-- Disable quiet mode.
-- Toggle quiet mode.
+- Pause work profile.
+- Resume work profile.
+- Toggle work profile.
 
 The owner profile is intentionally skipped.
 
@@ -208,9 +223,11 @@ chmod +x ./gradlew
 ./gradlew lint test assembleDebug
 ```
 
+Generate CI screenshots manually from GitHub Actions by running the `Screenshots` workflow. The workflow uploads `work-profile-toggle-screenshots` as an artifact.
+
 ## Development status
 
-The project currently contains a minimal Android application proving profile discovery, quiet-mode control through an ADB-granted permission, dynamic launcher shortcuts, MacroDroid-compatible legacy shortcuts, stable CI debug APK updates, and release APK publishing infrastructure.
+The project currently contains an Android application proving profile discovery, quiet-mode control through an ADB-granted permission, dynamic launcher shortcuts, MacroDroid-compatible legacy shortcuts, saved schedule settings, stable CI debug APK updates, CI screenshot artifacts, and release APK publishing infrastructure.
 
 The first signed release still requires configuring release signing secrets and pushing a version tag.
 
