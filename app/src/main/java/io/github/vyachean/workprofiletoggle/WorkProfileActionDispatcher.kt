@@ -26,8 +26,13 @@ internal class WorkProfileActionDispatcher(
 
     fun dispatch(userHandle: UserHandle, requestedAction: QuietModeAction): WorkProfileActionResult {
         val executionAction = if (requestedAction == QuietModeAction.Toggle) {
-            val quietModeEnabled = quietModeController.isQuietModeEnabled(userHandle).getOrNull()
-                ?: return WorkProfileActionResult.ToggleStateUnavailable(userHandle)
+            val quietModeEnabled = quietModeController.isQuietModeEnabled(userHandle)
+                .getOrElse { error ->
+                    return WorkProfileActionResult.Failed(
+                        requestedAction = requestedAction,
+                        error = error,
+                    )
+                }
             if (quietModeEnabled) QuietModeAction.Disable else QuietModeAction.Enable
         } else {
             requestedAction
@@ -58,10 +63,6 @@ internal sealed class WorkProfileActionResult {
 
     data class UnknownProfile(
         val serialNumber: Long,
-    ) : WorkProfileActionResult()
-
-    data class ToggleStateUnavailable(
-        val userHandle: UserHandle,
     ) : WorkProfileActionResult()
 
     data class Completed(
