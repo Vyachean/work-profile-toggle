@@ -25,18 +25,18 @@ This app is not a Shelter, Island, or work-profile manager replacement. It must 
 - Execute background schedule changes until the scheduling runtime is explicitly implemented and tested.
 - Add broad device-management policies unrelated to work-profile pause/resume.
 
+## Project documentation
+
+- [Product model](docs/product.md)
+- [Roadmap](docs/roadmap.md)
+- [Screenshots plan](docs/screenshots.md)
+- [Documentation maintenance](docs/maintenance.md)
+
 ## Screenshots
 
 Stable README screenshots should be committed under `docs/screenshots/` and linked from this section.
 
-Automatic screenshot generation is planned, but it should be implemented as deterministic screenshot tests, not as ad-hoc emulator screen captures. The app UI currently depends on Android work-profile system services that are not available in a normal GitHub Actions emulator, so automated screenshots need fake/demo UI states or a dedicated screenshot test harness first.
-
-Recommended implementation path:
-
-- Extract deterministic UI state for the Home and Schedule screens.
-- Add fake screenshot states for setup required, no work profile, active, paused, and configured schedule.
-- Generate screenshots through a JVM screenshot tool such as Roborazzi/Robolectric, or through instrumented tests backed by Gradle Managed Devices.
-- Review generated PNG files before committing selected stable images to `docs/screenshots/`.
+Automatic screenshot generation is planned, but it should be implemented as deterministic screenshot tests, not as ad-hoc emulator screen captures. See [Screenshots plan](docs/screenshots.md).
 
 ## Platform assumptions
 
