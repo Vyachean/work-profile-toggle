@@ -13,7 +13,7 @@ internal class InMemoryKeyValueStore : KeyValueStore {
 
     @Suppress("UNCHECKED_CAST")
     override fun getStringSet(key: String): Set<String>? {
-        return values[key] as? Set<String>
+        return (values[key] as? Set<String>)?.toSet()
     }
 
     override fun edit(update: KeyValueStoreEditor.() -> Unit) {
@@ -38,7 +38,7 @@ internal class InMemoryKeyValueStore : KeyValueStore {
         }
 
         override fun putStringSet(key: String, values: Set<String>) {
-            pendingValues[key] = values
+            pendingValues[key] = values.toSet()
             removedKeys.remove(key)
         }
 
