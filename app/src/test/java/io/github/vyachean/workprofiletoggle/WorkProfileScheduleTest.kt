@@ -61,14 +61,14 @@ class ScheduleDayTest {
 class WorkProfileScheduleStoreTest {
     @Test
     fun loadsDefaultScheduleWhenStoreIsEmpty() {
-        val store = WorkProfileScheduleStore(FakeKeyValueStore())
+        val store = WorkProfileScheduleStore(InMemoryKeyValueStore())
 
         assertEquals(WorkProfileSchedule(), store.load())
     }
 
     @Test
     fun savesAndLoadsSchedule() {
-        val store = WorkProfileScheduleStore(FakeKeyValueStore())
+        val store = WorkProfileScheduleStore(InMemoryKeyValueStore())
         val schedule = WorkProfileSchedule(
             enabled = true,
             pauseAt = ScheduleTime(hour = 18, minute = 15),
@@ -83,7 +83,7 @@ class WorkProfileScheduleStoreTest {
 
     @Test
     fun clearsSavedSchedule() {
-        val store = WorkProfileScheduleStore(FakeKeyValueStore())
+        val store = WorkProfileScheduleStore(InMemoryKeyValueStore())
         store.save(
             WorkProfileSchedule(
                 enabled = true,
@@ -100,7 +100,7 @@ class WorkProfileScheduleStoreTest {
 
     @Test
     fun ignoresCorruptedPersistedValues() {
-        val keyValueStore = FakeKeyValueStore()
+        val keyValueStore = InMemoryKeyValueStore()
         keyValueStore.edit {
             putBoolean("schedule_enabled", true)
             putString("schedule_pause_at", "24:00")
@@ -115,65 +115,5 @@ class WorkProfileScheduleStoreTest {
         assertNull(schedule.pauseAt)
         assertNull(schedule.resumeAt)
         assertEquals(setOf(ScheduleDay.MONDAY), schedule.activeDays)
-    }
-}
-
-private class FakeKeyValueStore : KeyValueStore {
-    private val values = mutableMapOf<String, Any?>()
-
-    override fun getBoolean(key: String, defaultValue: Boolean): Boolean {
-        return values[key] as? Boolean ?: defaultValue
-    }
-
-    override fun getString(key: String): String? {
-        return values[key] as? String
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun getStringSet(key: String): Set<String>? {
-        return values[key] as? Set<String>
-    }
-
-    override fun edit(update: KeyValueStoreEditor.() -> Unit) {
-        FakeKeyValueStoreEditor().apply {
-            update()
-            applyChanges()
-        }
-    }
-
-    private inner class FakeKeyValueStoreEditor : KeyValueStoreEditor {
-        private val pendingValues = mutableMapOf<String, Any?>()
-        private val removedKeys = mutableSetOf<String>()
-
-        override fun putBoolean(key: String, value: Boolean) {
-            pendingValues[key] = value
-            removedKeys.remove(key)
-        }
-
-        override fun putString(key: String, value: String?) {
-            pendingValues[key] = value
-            removedKeys.remove(key)
-        }
-
-        override fun putStringSet(key: String, values: Set<String>) {
-            pendingValues[key] = values
-            removedKeys.remove(key)
-        }
-
-        override fun remove(key: String) {
-            removedKeys.add(key)
-            pendingValues.remove(key)
-        }
-
-        fun applyChanges() {
-            removedKeys.forEach { key -> values.remove(key) }
-            pendingValues.forEach { (key, value) ->
-                if (value == null) {
-                    values.remove(key)
-                } else {
-                    values[key] = value
-                }
-            }
-        }
     }
 }
