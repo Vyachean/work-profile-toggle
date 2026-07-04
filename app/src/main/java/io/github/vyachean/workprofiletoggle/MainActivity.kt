@@ -7,10 +7,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.content.pm.ShortcutManager
 import android.os.Bundle
 import android.os.UserHandle
-import android.os.UserManager
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
@@ -28,8 +26,8 @@ private const val PREF_LAST_RESULT = "last_result"
 
 class MainActivity : Activity() {
     private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.ROOT)
+    private lateinit var dependencies: WorkProfileAppDependencies
     private lateinit var preferences: SharedPreferences
-    private lateinit var userManager: UserManager
     private lateinit var quietModeController: QuietModeController
     private lateinit var workProfileRepository: WorkProfileRepository
     private lateinit var shortcutController: ShortcutController
@@ -40,29 +38,15 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        preferences = getSharedPreferences(WORK_PROFILE_PREFERENCES_NAME, Context.MODE_PRIVATE)
+        dependencies = WorkProfileAppDependencies(this)
+        preferences = dependencies.preferences
         lastResult = savedInstanceState?.getString(STATE_LAST_RESULT)
             ?: preferences.getString(PREF_LAST_RESULT, null)
             ?: getString(R.string.no_action_executed)
-        userManager = getSystemService(Context.USER_SERVICE) as UserManager
-        quietModeController = QuietModeController(userManager)
-        workProfileRepository = WorkProfileRepository(
-            userManager = userManager,
-            preferences = preferences,
-            profileLabel = { ordinal, serialNumber ->
-                getString(R.string.profile_fallback_label, ordinal, serialNumber)
-            },
-            invalidSerialDiagnostic = getString(R.string.profile_serial_invalid),
-            formatFailure = ::formatFailure,
-        )
-        shortcutController = ShortcutController(
-            context = applicationContext,
-            shortcutManager = getSystemService(ShortcutManager::class.java),
-        )
-        shortcutActionDispatcher = ShortcutActionDispatcher(
-            workProfileRepository = workProfileRepository,
-            quietModeController = quietModeController,
-        )
+        quietModeController = dependencies.quietModeController
+        workProfileRepository = dependencies.workProfileRepository
+        shortcutController = dependencies.createShortcutController()
+        shortcutActionDispatcher = dependencies.shortcutActionDispatcher
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(16.dp, 16.dp, 16.dp, 16.dp)
@@ -416,13 +400,7 @@ class MainActivity : Activity() {
     }
 
     private fun formatFailure(operation: String, error: Throwable): String {
-        val detail = error.message?.takeIf { it.isNotBlank() } ?: error::class.java.name
-        return getString(
-            R.string.operation_failed,
-            operation,
-            error::class.java.simpleName,
-            detail,
-        )
+        return dependencies.formatFailure(operation, error)
     }
 
     private fun sectionTitle(text: String): TextView {
