@@ -1,6 +1,6 @@
 # Work Profile Toggle
 
-Android app for controlling an existing work profile. It can pause and resume a work profile after the required ADB-granted permission is available, exposes launcher shortcuts for advanced automation flows, and stores schedule settings for planned background scheduling support.
+Android app for controlling an existing work profile. It can pause and resume a work profile after the required ADB-granted permission is available. It also exposes launcher shortcuts for advanced automation flows and stores schedule settings for planned background scheduling support.
 
 ## Scope
 
