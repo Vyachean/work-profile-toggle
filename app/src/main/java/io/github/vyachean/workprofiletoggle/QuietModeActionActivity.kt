@@ -8,7 +8,7 @@ class QuietModeActionActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         val dependencies = WorkProfileAppDependencies(this)
-        dependencies.shortcutActionDispatcher.dispatch(intent)
+        dependencies.actionDispatcher.dispatchShortcut(intent)
         finish()
         overridePendingTransition(0, 0)
     }
