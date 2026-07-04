@@ -7,9 +7,7 @@ import android.content.pm.ShortcutManager
 import android.graphics.drawable.Icon
 import java.util.Locale
 
-private const val SHORTCUTS_PER_PROFILE = 3
-
-class ShortcutController(
+internal class ShortcutController(
     private val context: Context,
     private val shortcutManager: ShortcutManager?,
 ) {
@@ -19,7 +17,7 @@ class ShortcutController(
         return runCatching {
             val manager = shortcutManager ?: return@runCatching null
             val maxShortcuts = manager.maxShortcutCountPerActivity
-            val shortcutProfileCount = maxShortcuts / SHORTCUTS_PER_PROFILE
+            val shortcutProfileCount = maxShortcuts / QuietModeAction.entries.size
             val shortcutDescriptors = profiles
                 .take(shortcutProfileCount)
                 .flatMapIndexed { index, profileEntry ->
@@ -95,7 +93,7 @@ class ShortcutController(
     }
 }
 
-data class ShortcutUpdateState(
+internal data class ShortcutUpdateState(
     val shortcutsCount: Int,
     val maxShortcuts: Int,
 )
