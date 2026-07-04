@@ -243,17 +243,21 @@ class MainActivity : Activity() {
             showScheduleDaysPicker(schedule)
         })
         if (schedule != WorkProfileSchedule()) {
-            content.addView(
-                button(
-                    if (schedule.enabled) {
-                        getString(R.string.schedule_disable)
-                    } else {
-                        getString(R.string.schedule_enable)
+            if (isScheduleComplete(schedule)) {
+                content.addView(
+                    button(
+                        if (schedule.enabled) {
+                            getString(R.string.schedule_disable)
+                        } else {
+                            getString(R.string.schedule_enable)
+                        },
+                    ) {
+                        saveSchedule(schedule.copy(enabled = !schedule.enabled))
                     },
-                ) {
-                    saveSchedule(schedule.copy(enabled = !schedule.enabled))
-                },
-            )
+                )
+            } else {
+                content.addView(textView(getString(R.string.schedule_enable_requirements)))
+            }
             content.addView(button(getString(R.string.schedule_clear)) {
                 scheduleStore.clear()
                 Toast.makeText(this, getString(R.string.schedule_cleared), Toast.LENGTH_SHORT).show()
@@ -282,7 +286,7 @@ class MainActivity : Activity() {
     }
 
     private fun showScheduleDaysPicker(schedule: WorkProfileSchedule) {
-        val orderedDays = ScheduleDay.defaultSet.sorted()
+        val orderedDays = ScheduleDay.values().toList()
         val selectedDays = schedule.activeDays.toMutableSet()
         val labels = orderedDays.map { day -> getString(scheduleDayLabel(day)) }.toTypedArray()
         val checkedItems = orderedDays.map { day -> day in selectedDays }.toBooleanArray()
@@ -305,9 +309,21 @@ class MainActivity : Activity() {
     }
 
     private fun saveSchedule(schedule: WorkProfileSchedule) {
-        scheduleStore.save(schedule)
+        scheduleStore.save(normalizeSchedule(schedule))
         Toast.makeText(this, getString(R.string.schedule_saved), Toast.LENGTH_SHORT).show()
         render()
+    }
+
+    private fun normalizeSchedule(schedule: WorkProfileSchedule): WorkProfileSchedule {
+        return if (isScheduleComplete(schedule)) {
+            schedule
+        } else {
+            schedule.copy(enabled = false)
+        }
+    }
+
+    private fun isScheduleComplete(schedule: WorkProfileSchedule): Boolean {
+        return schedule.pauseAt != null && schedule.resumeAt != null && schedule.activeDays.isNotEmpty()
     }
 
     private fun renderAdvanced(
