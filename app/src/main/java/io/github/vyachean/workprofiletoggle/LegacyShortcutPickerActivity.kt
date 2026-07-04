@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.os.UserHandle
 import android.os.UserManager
 import android.view.ViewGroup
 import android.widget.Button
@@ -14,13 +13,22 @@ import android.widget.TextView
 import kotlin.math.roundToInt
 
 class LegacyShortcutPickerActivity : Activity() {
-    private lateinit var userManager: UserManager
+    private lateinit var workProfileRepository: WorkProfileRepository
     private lateinit var content: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        userManager = getSystemService(Context.USER_SERVICE) as UserManager
+        val userManager = getSystemService(Context.USER_SERVICE) as UserManager
+        workProfileRepository = WorkProfileRepository(
+            userManager = userManager,
+            preferences = getSharedPreferences(WORK_PROFILE_PREFERENCES_NAME, Context.MODE_PRIVATE),
+            profileLabel = { ordinal, serialNumber ->
+                getString(R.string.profile_fallback_label, ordinal, serialNumber)
+            },
+            invalidSerialDiagnostic = getString(R.string.profile_serial_invalid),
+            formatFailure = ::formatFailure,
+        )
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(16.dp, 16.dp, 16.dp, 16.dp)
@@ -42,7 +50,7 @@ class LegacyShortcutPickerActivity : Activity() {
     }
 
     private fun render() {
-        val profiles = discoverSwitchableProfiles()
+        val profiles = workProfileRepository.discoverProfiles().labeledEntries
 
         content.removeAllViews()
         content.addView(textView(getString(R.string.legacy_shortcut_picker_title), textSize = 20f))
@@ -53,28 +61,8 @@ class LegacyShortcutPickerActivity : Activity() {
             return
         }
 
-        profiles.forEach { profile ->
-            content.addView(profileView(profile))
-        }
-    }
-
-    private fun discoverSwitchableProfiles(): List<DiscoveredProfile> {
-        val serialNumbers = runCatching { userManager.userProfiles }
-            .getOrElse { emptyList() }
-            .mapNotNull { userHandle -> userHandle.switchableSerialNumberOrNull() }
-
-        return ProfileLabels.fromSerialNumbers(serialNumbers) { ordinal, serialNumber ->
-            getString(R.string.profile_fallback_label, ordinal, serialNumber)
-        }
-    }
-
-    private fun UserHandle.switchableSerialNumberOrNull(): Long? {
-        val serialNumber = runCatching { userManager.getSerialNumberForUser(this) }
-            .getOrNull()
-            ?: return null
-
-        return serialNumber.takeUnless { serial ->
-            serial == INVALID_SERIAL_NUMBER || serial == OWNER_PROFILE_SERIAL_NUMBER
+        profiles.forEach { profileEntry ->
+            content.addView(profileView(profileEntry.profile))
         }
     }
 
@@ -124,6 +112,16 @@ class LegacyShortcutPickerActivity : Activity() {
             QuietModeAction.Toggle -> R.string.shortcut_toggle_long_label
         }
         return getString(stringId, profileLabel)
+    }
+
+    private fun formatFailure(operation: String, error: Throwable): String {
+        val detail = error.message?.takeIf { it.isNotBlank() } ?: error::class.java.name
+        return getString(
+            R.string.operation_failed,
+            operation,
+            error::class.java.simpleName,
+            detail,
+        )
     }
 
     private fun textView(text: String, textSize: Float = 14f): TextView {
