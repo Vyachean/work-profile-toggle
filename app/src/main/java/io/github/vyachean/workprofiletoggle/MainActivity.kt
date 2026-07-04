@@ -1,6 +1,8 @@
 package io.github.vyachean.workprofiletoggle
 
 import android.app.Activity
+import android.app.AlertDialog
+import android.app.TimePickerDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -216,7 +218,96 @@ class MainActivity : Activity() {
             content.addView(textView(getString(R.string.schedule_resume_at, formatScheduleTime(schedule.resumeAt))))
             content.addView(textView(getString(R.string.schedule_active_days, formatScheduleDays(schedule.activeDays))))
         }
+        renderScheduleControls(schedule)
         content.addView(textView(getString(R.string.schedule_future_note)))
+    }
+
+    private fun renderScheduleControls(schedule: WorkProfileSchedule) {
+        content.addView(button(getString(R.string.schedule_set_pause_time)) {
+            showScheduleTimePicker(
+                title = getString(R.string.schedule_set_pause_time),
+                initialTime = schedule.pauseAt ?: ScheduleTime(hour = 18, minute = 0),
+            ) { selectedTime ->
+                saveSchedule(schedule.copy(pauseAt = selectedTime))
+            }
+        })
+        content.addView(button(getString(R.string.schedule_set_resume_time)) {
+            showScheduleTimePicker(
+                title = getString(R.string.schedule_set_resume_time),
+                initialTime = schedule.resumeAt ?: ScheduleTime(hour = 9, minute = 0),
+            ) { selectedTime ->
+                saveSchedule(schedule.copy(resumeAt = selectedTime))
+            }
+        })
+        content.addView(button(getString(R.string.schedule_choose_active_days)) {
+            showScheduleDaysPicker(schedule)
+        })
+        if (schedule != WorkProfileSchedule()) {
+            content.addView(
+                button(
+                    if (schedule.enabled) {
+                        getString(R.string.schedule_disable)
+                    } else {
+                        getString(R.string.schedule_enable)
+                    },
+                ) {
+                    saveSchedule(schedule.copy(enabled = !schedule.enabled))
+                },
+            )
+            content.addView(button(getString(R.string.schedule_clear)) {
+                scheduleStore.clear()
+                Toast.makeText(this, getString(R.string.schedule_cleared), Toast.LENGTH_SHORT).show()
+                render()
+            })
+        }
+    }
+
+    private fun showScheduleTimePicker(
+        title: String,
+        initialTime: ScheduleTime,
+        onTimeSelected: (ScheduleTime) -> Unit,
+    ) {
+        TimePickerDialog(
+            this,
+            { _, hourOfDay, minute ->
+                onTimeSelected(ScheduleTime(hour = hourOfDay, minute = minute))
+            },
+            initialTime.hour,
+            initialTime.minute,
+            DateFormat.is24HourFormat(this),
+        ).apply {
+            setTitle(title)
+            show()
+        }
+    }
+
+    private fun showScheduleDaysPicker(schedule: WorkProfileSchedule) {
+        val orderedDays = ScheduleDay.defaultSet.sorted()
+        val selectedDays = schedule.activeDays.toMutableSet()
+        val labels = orderedDays.map { day -> getString(scheduleDayLabel(day)) }.toTypedArray()
+        val checkedItems = orderedDays.map { day -> day in selectedDays }.toBooleanArray()
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.schedule_choose_active_days))
+            .setMultiChoiceItems(labels, checkedItems) { _, index, isChecked ->
+                val day = orderedDays[index]
+                if (isChecked) {
+                    selectedDays.add(day)
+                } else {
+                    selectedDays.remove(day)
+                }
+            }
+            .setPositiveButton(getString(R.string.schedule_save)) { _, _ ->
+                saveSchedule(schedule.copy(activeDays = selectedDays.toSet()))
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun saveSchedule(schedule: WorkProfileSchedule) {
+        scheduleStore.save(schedule)
+        Toast.makeText(this, getString(R.string.schedule_saved), Toast.LENGTH_SHORT).show()
+        render()
     }
 
     private fun renderAdvanced(
