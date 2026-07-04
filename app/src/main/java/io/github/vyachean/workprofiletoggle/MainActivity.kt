@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.UserHandle
+import android.text.format.DateFormat
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
@@ -15,6 +16,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -366,15 +368,21 @@ class MainActivity : Activity() {
     }
 
     private fun formatScheduleTime(scheduleTime: ScheduleTime?): String {
-        return scheduleTime?.toStorageValue() ?: getString(R.string.schedule_time_not_set)
+        if (scheduleTime == null) return getString(R.string.schedule_time_not_set)
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, scheduleTime.hour)
+            set(Calendar.MINUTE, scheduleTime.minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        return DateFormat.getTimeFormat(this).format(calendar.time)
     }
 
     private fun formatScheduleDays(days: Set<ScheduleDay>): String {
         return when {
             days.isEmpty() -> getString(R.string.schedule_no_days)
             days == ScheduleDay.defaultSet -> getString(R.string.schedule_all_days)
-            else -> ScheduleDay.values()
-                .filter { day -> day in days }
+            else -> days.sorted()
                 .joinToString(", ") { day -> getString(scheduleDayLabel(day)) }
         }
     }
