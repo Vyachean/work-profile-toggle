@@ -45,8 +45,8 @@ internal class ShortcutActionDispatcher(
 }
 
 internal sealed class ShortcutDispatchResult {
-    data object Ignored : ShortcutDispatchResult()
-    data object MissingProfileSerial : ShortcutDispatchResult()
+    object Ignored : ShortcutDispatchResult()
+    object MissingProfileSerial : ShortcutDispatchResult()
 
     data class UnknownProfile(
         val serialNumber: Long,
