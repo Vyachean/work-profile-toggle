@@ -61,64 +61,37 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Install emulator image
-        run: |
-          sdkmanager --install \
-            "platform-tools" \
-            "emulator" \
-            "platforms;android-35" \
-            "system-images;android-35;google_apis;x86_64"
-
-      - name: Create emulator
-        run: |
-          avdmanager create avd \
-            --force \
-            --name work-profile-toggle-screenshots \
-            --package "system-images;android-35;google_apis;x86_64" \
-            --device "pixel_6" <<<'no'
-
-      - name: Start emulator
-        run: |
-          "$ANDROID_HOME/emulator/emulator" \
-            -avd work-profile-toggle-screenshots \
-            -no-window \
-            -gpu swiftshader_indirect \
-            -noaudio \
-            -no-boot-anim \
-            -no-snapshot \
-            -camera-back none \
-            -camera-front none &
-
-          adb wait-for-device
-          timeout 240 bash -c 'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = "1" ]; do sleep 2; done'
-          adb shell input keyevent 224 || true
-          adb shell input keyevent 82 || true
-          adb shell settings put global window_animation_scale 0
-          adb shell settings put global transition_animation_scale 0
-          adb shell settings put global animator_duration_scale 0
-          adb shell wm size 1080x2400
-          adb shell wm density 420
-
       - name: Capture screenshots
-        run: |
-          package_name="io.github.vyachean.workprofiletoggle"
-          screenshots_dir="build/screenshots"
-          mkdir -p "$screenshots_dir"
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          emulator-boot-timeout: 600
+          disable-animations: true
+          script: |
+            package_name="io.github.vyachean.workprofiletoggle"
+            screenshots_dir="build/screenshots"
+            mkdir -p "$screenshots_dir"
 
-          adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb shell wm size 1080x2400
+            adb shell wm density 420
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
 
-          adb shell am force-stop "$package_name" || true
-          adb shell am start -W -n "$package_name/.MainActivity"
-          sleep 3
-          adb exec-out screencap -p > "$screenshots_dir/home.png"
+            adb shell am force-stop "$package_name" || true
+            adb shell am start -W -n "$package_name/.MainActivity"
+            sleep 3
+            adb exec-out screencap -p > "$screenshots_dir/home.png"
 
-          adb shell input swipe 540 1900 540 800 500
-          sleep 1
-          adb exec-out screencap -p > "$screenshots_dir/home-scrolled.png"
+            adb shell input swipe 540 1900 540 800 500
+            sleep 1
+            adb exec-out screencap -p > "$screenshots_dir/home-scrolled.png"
 
-          adb shell am start -W -a android.intent.action.CREATE_SHORTCUT -n "$package_name/.LegacyShortcutPickerActivity"
-          sleep 2
-          adb exec-out screencap -p > "$screenshots_dir/legacy-shortcut-picker.png"
+            adb shell am start -W -a android.intent.action.CREATE_SHORTCUT -n "$package_name/.LegacyShortcutPickerActivity"
+            sleep 2
+            adb exec-out screencap -p > "$screenshots_dir/legacy-shortcut-picker.png"
 
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
