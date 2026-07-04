@@ -36,6 +36,15 @@
     <string name="schedule_day_friday">Friday</string>
     <string name="schedule_day_saturday">Saturday</string>
     <string name="schedule_day_sunday">Sunday</string>
+    <string name="schedule_set_pause_time">Set pause time</string>
+    <string name="schedule_set_resume_time">Set resume time</string>
+    <string name="schedule_choose_active_days">Choose active days</string>
+    <string name="schedule_enable">Enable saved schedule</string>
+    <string name="schedule_disable">Disable saved schedule</string>
+    <string name="schedule_clear">Clear schedule</string>
+    <string name="schedule_save">Save</string>
+    <string name="schedule_saved">Schedule saved.</string>
+    <string name="schedule_cleared">Schedule cleared.</string>
     <string name="schedule_future_note">Automatic scheduling is not active yet.</string>
     <string name="advanced_title">Advanced</string>
     <string name="diagnostics_title">Diagnostics</string>
