@@ -109,7 +109,7 @@ internal class ScheduleRuntimeResultStore(
     }
 
     private inline fun <reified T : Enum<T>> parseEnum(value: String): T? {
-        return enumValues<T>().firstOrNull { enumValue -> enumValue.name == value }
+        return runCatching { enumValueOf<T>(value) }.getOrNull()
     }
 
     private data class OptionalValue<T>(val value: T?)
