@@ -45,7 +45,7 @@ class MainActivity : Activity() {
             ?: getString(R.string.no_action_executed)
         quietModeController = dependencies.quietModeController
         workProfileRepository = dependencies.workProfileRepository
-        shortcutController = dependencies.createShortcutController()
+        shortcutController = dependencies.shortcutController
         shortcutActionDispatcher = dependencies.shortcutActionDispatcher
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
