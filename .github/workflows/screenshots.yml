@@ -73,10 +73,10 @@ jobs:
       - name: Capture screenshots
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 30
           target: default
           arch: x86_64
-          profile: pixel_6
+          profile: pixel_2
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           emulator-boot-timeout: 600
           disable-animations: true
