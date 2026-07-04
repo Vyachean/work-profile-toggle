@@ -29,7 +29,7 @@ internal class WorkProfileAppDependencies(
         formatFailure = ::formatFailure,
     )
 
-    val shortcutActionDispatcher: ShortcutActionDispatcher = ShortcutActionDispatcher(
+    val actionDispatcher: WorkProfileActionDispatcher = WorkProfileActionDispatcher(
         workProfileRepository = workProfileRepository,
         quietModeController = quietModeController,
     )
