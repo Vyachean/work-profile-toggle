@@ -17,7 +17,9 @@ class WorkProfileRepository(
 
     fun discoverProfiles(): ProfileDiscovery {
         val profilesResult = runCatching { userManager.userProfiles }
-        val profileEntries = createProfileEntries(profilesResult.getOrElse { emptyList() })
+        val profileEntries = profilesResult.getOrNull()
+            ?.let { profiles -> createProfileEntries(profiles) }
+            ?: emptyList()
 
         return ProfileDiscovery(
             profileEntries = profileEntries,
