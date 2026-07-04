@@ -12,16 +12,16 @@ class QuietModeController(
     }
 
     fun requestQuietMode(userHandle: UserHandle, action: QuietModeAction): Result<QuietModeOperationResult> {
-        val targetQuietMode = when (action) {
-            QuietModeAction.Enable -> true
-            QuietModeAction.Disable -> false
-            QuietModeAction.Toggle -> {
-                val currentQuietMode = userManager.isQuietModeEnabled(userHandle)
-                !currentQuietMode
-            }
-        }
-
         return runCatching {
+            val targetQuietMode = when (action) {
+                QuietModeAction.Enable -> true
+                QuietModeAction.Disable -> false
+                QuietModeAction.Toggle -> {
+                    val currentQuietMode = userManager.isQuietModeEnabled(userHandle)
+                    !currentQuietMode
+                }
+            }
+
             val changed = if (!targetQuietMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 userManager.requestQuietModeEnabled(
                     false,
