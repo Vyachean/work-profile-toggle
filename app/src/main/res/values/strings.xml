@@ -50,6 +50,9 @@
     <string name="shortcut_enable_short_label">Pause: %1$s</string>
     <string name="shortcut_disable_short_label">Resume: %1$s</string>
     <string name="shortcut_toggle_short_label">Toggle: %1$s</string>
+    <string name="shortcut_enable_long_label">Pause work profile: %1$s</string>
+    <string name="shortcut_disable_long_label">Resume work profile: %1$s</string>
+    <string name="shortcut_toggle_long_label">Toggle work profile: %1$s</string>
     <string name="shortcut_profile_short_label">P%1$d</string>
     <string name="legacy_shortcut_picker_title">Choose shortcut action</string>
     <string name="legacy_shortcut_picker_description">Select the profile and action to expose as a legacy Android shortcut for automation apps.</string>
