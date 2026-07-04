@@ -6,6 +6,7 @@ This directory contains project documentation that should stay current with prod
 
 - [Product model](product.md) — what the app is, what it is not, user-facing terms, and core flows.
 - [Roadmap](roadmap.md) — planned development stages and known follow-up work.
+- [Schedule runtime design](schedule-runtime.md) — planned schedule execution model and constraints.
 - [Screenshots](screenshots.md) — intended approach for stable README screenshots and screenshot automation.
 - [Documentation maintenance](maintenance.md) — rules for keeping docs accurate while the product changes.
 
