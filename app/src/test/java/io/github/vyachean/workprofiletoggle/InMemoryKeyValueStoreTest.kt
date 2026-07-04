@@ -1,6 +1,7 @@
 package io.github.vyachean.workprofiletoggle
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotSame
 import org.junit.Test
 
 class InMemoryKeyValueStoreTest {
@@ -18,11 +19,13 @@ class InMemoryKeyValueStoreTest {
     @Test
     fun copiesStringSetWhenReading() {
         val store = InMemoryKeyValueStore()
-        store.edit { putStringSet("days", setOf("MONDAY")) }
+        store.edit { putStringSet("days", setOf("MONDAY", "TUESDAY")) }
 
-        val returnedSet = store.getStringSet("days")
-        (returnedSet as? MutableSet<String>)?.add("TUESDAY")
+        val firstRead = store.getStringSet("days")
+        val secondRead = store.getStringSet("days")
 
-        assertEquals(setOf("MONDAY"), store.getStringSet("days"))
+        assertEquals(setOf("MONDAY", "TUESDAY"), firstRead)
+        assertEquals(setOf("MONDAY", "TUESDAY"), secondRead)
+        assertNotSame(firstRead, secondRead)
     }
 }
