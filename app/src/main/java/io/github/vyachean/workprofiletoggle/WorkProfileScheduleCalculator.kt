@@ -19,9 +19,8 @@ internal object WorkProfileScheduleCalculator {
         val workStart = schedule.resumeAt!!.toLocalTime()
         val workEnd = schedule.pauseAt!!.toLocalTime()
         val activeDays = schedule.activeDays.map { day -> day.toDayOfWeek() }.toSet()
-        val nowLocal = now.toLocalDateTime()
 
-        val expectedState = if (isInsideActiveWindow(nowLocal, workStart, workEnd, activeDays)) {
+        val expectedState = if (isInsideActiveWindow(now, workStart, workEnd, activeDays)) {
             WorkProfileScheduleExpectedState.ACTIVE
         } else {
             WorkProfileScheduleExpectedState.PAUSED
@@ -53,15 +52,20 @@ internal object WorkProfileScheduleCalculator {
     }
 
     private fun isInsideActiveWindow(
-        now: LocalDateTime,
+        now: ZonedDateTime,
         workStart: LocalTime,
         workEnd: LocalTime,
         activeDays: Set<DayOfWeek>,
     ): Boolean {
+        val zone = now.zone
         return candidateStartDates(now.toLocalDate()).any { startDate ->
-            startDate.dayOfWeek in activeDays &&
-                now >= activeWindowStart(startDate, workStart) &&
-                now < activeWindowEnd(startDate, workStart, workEnd)
+            if (startDate.dayOfWeek in activeDays) {
+                val start = activeWindowStart(startDate, workStart).atZone(zone)
+                val end = activeWindowEnd(startDate, workStart, workEnd).atZone(zone)
+                !now.isBefore(start) && now.isBefore(end)
+            } else {
+                false
+            }
         }
     }
 
@@ -71,9 +75,8 @@ internal object WorkProfileScheduleCalculator {
         workEnd: LocalTime,
         activeDays: Set<DayOfWeek>,
     ): WorkProfileScheduleBoundary? {
-        val nowLocal = now.toLocalDateTime()
         val zone = now.zone
-        return candidateStartDates(nowLocal.toLocalDate())
+        return candidateStartDates(now.toLocalDate())
             .asSequence()
             .filter { startDate -> startDate.dayOfWeek in activeDays }
             .flatMap { startDate ->
@@ -88,8 +91,8 @@ internal object WorkProfileScheduleCalculator {
                     ),
                 )
             }
-            .filter { boundary -> boundary.at.toLocalDateTime() > nowLocal }
-            .minByOrNull { boundary -> boundary.at.toLocalDateTime() }
+            .filter { boundary -> boundary.at.isAfter(now) }
+            .minByOrNull { boundary -> boundary.at.toInstant() }
     }
 
     private fun candidateStartDates(today: LocalDate): List<LocalDate> {
