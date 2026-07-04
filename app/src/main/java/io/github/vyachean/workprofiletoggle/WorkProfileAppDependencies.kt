@@ -18,6 +18,10 @@ internal class WorkProfileAppDependencies(
         defaultResult = appContext.getString(R.string.no_action_executed),
     )
 
+    val scheduleStore: WorkProfileScheduleStore = WorkProfileScheduleStore(
+        preferences = preferences,
+    )
+
     val userManager: UserManager =
         appContext.getSystemService(Context.USER_SERVICE) as UserManager
 
