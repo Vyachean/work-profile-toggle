@@ -75,6 +75,28 @@ class ScheduleBoundaryPlannerTest {
     }
 
     @Test
+    fun cancelsAlarmAndStoresIncompleteResultWhenScheduleIsIncomplete() {
+        val fixture = fixture()
+        fixture.scheduleStore.save(
+            WorkProfileSchedule(
+                enabled = true,
+                resumeAt = ScheduleTime(hour = 9, minute = 0),
+                pauseAt = null,
+                activeDays = setOf(ScheduleDay.MONDAY),
+            ),
+        )
+
+        val result = fixture.planner.refresh()
+
+        assertEquals(
+            ScheduleBoundaryPlanResult.Blocked(ScheduleRuntimeFailureCategory.SCHEDULE_INCOMPLETE),
+            result,
+        )
+        assertEquals(listOf(BackendCall.Cancel), fixture.backend.calls)
+        assertEquals(blockedResult(ScheduleRuntimeFailureCategory.SCHEDULE_INCOMPLETE), fixture.runtimeResultStore.load())
+    }
+
+    @Test
     fun cancelsAlarmAndStoresInvalidResultWhenScheduleIsInvalid() {
         val fixture = fixture()
         fixture.scheduleStore.save(
@@ -94,6 +116,28 @@ class ScheduleBoundaryPlannerTest {
         )
         assertEquals(listOf(BackendCall.Cancel), fixture.backend.calls)
         assertEquals(blockedResult(ScheduleRuntimeFailureCategory.SCHEDULE_INVALID), fixture.runtimeResultStore.load())
+    }
+
+    @Test
+    fun storesAndroidRejectedResultWhenCancelBeforeSchedulingFails() {
+        val fixture = fixture(cancelFailure = RuntimeException("Cancel rejected"))
+        fixture.scheduleStore.save(
+            WorkProfileSchedule(
+                enabled = true,
+                resumeAt = ScheduleTime(hour = 9, minute = 0),
+                pauseAt = ScheduleTime(hour = 17, minute = 0),
+                activeDays = setOf(ScheduleDay.MONDAY),
+            ),
+        )
+
+        val result = fixture.planner.refresh()
+
+        assertEquals(
+            ScheduleBoundaryPlanResult.Failed(ScheduleRuntimeFailureCategory.ANDROID_REQUEST_REJECTED),
+            result,
+        )
+        assertEquals(listOf(BackendCall.Cancel), fixture.backend.calls)
+        assertEquals(failedResult(ScheduleRuntimeFailureCategory.ANDROID_REQUEST_REJECTED), fixture.runtimeResultStore.load())
     }
 
     @Test
