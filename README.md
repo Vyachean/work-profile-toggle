@@ -1,6 +1,6 @@
 # Work Profile Toggle
 
-Android app for controlling an existing work profile. It can pause and resume a work profile after the required ADB-granted permission is available. The main product goal is to provide a Digital Wellbeing-style work-profile schedule for devices where the built-in Google/OEM schedule feature is missing or unavailable.
+Android app for controlling an existing work profile. It can pause and resume a work profile after the required ADB-granted permission is available, and it can run a simple work-hours schedule using Android alarms. The main product goal is to provide a Digital Wellbeing-style work-profile schedule for devices where the built-in Google/OEM schedule feature is missing or unavailable.
 
 ## Scope
 
@@ -12,7 +12,8 @@ The app is intentionally focused:
 - Toggle the selected work profile state.
 - Provide dynamic launcher shortcuts for supported launchers.
 - Provide a legacy Android shortcut picker for automation apps such as MacroDroid.
-- Store schedule settings for future work-profile schedule support.
+- Store and run schedule settings for the selected work profile.
+- Reschedule the next work-profile boundary after reboot, app update, manual time change, and timezone change.
 
 ## Non-goals
 
@@ -110,6 +111,7 @@ Expected successful setup behavior:
 - The app can list associated profile handles.
 - The app can read quiet-mode state.
 - Quiet-mode actions return `true` when Android accepts the requested state change.
+- The schedule runtime can apply the expected work-profile state at schedule boundaries.
 
 Known failure modes:
 
@@ -122,6 +124,21 @@ To revoke the permission:
 ```sh
 adb shell pm revoke io.github.vyachean.workprofiletoggle android.permission.MODIFY_QUIET_MODE
 ```
+
+## Work-profile schedule
+
+The schedule feature applies one selected work profile state at configured boundaries:
+
+```text
+inside configured work hours  -> work profile active
+outside configured work hours -> work profile paused
+```
+
+The current runtime uses Android inexact alarms. This keeps the implementation simple and avoids Android exact-alarm special access, but Android battery restrictions may delay schedule boundaries. The app recalculates and reschedules the next boundary after schedule changes, selected-profile changes, device reboot, app update, manual time changes, and timezone changes.
+
+Manual pause and resume actions remain available. The next schedule boundary reconciles the selected profile back to the state expected by the saved schedule.
+
+The app stores the last schedule runtime result and shows the next scheduled action or the current schedule issue when available. Device/OEM behavior still needs real-device validation because Android work-profile control and background alarm delivery are platform-dependent.
 
 ## Launcher shortcuts
 
@@ -220,15 +237,4 @@ If the executable bit is lost on a Unix-like system, run:
 
 ```sh
 chmod +x ./gradlew
-./gradlew lint test assembleDebug
 ```
-
-## Development status
-
-The project currently contains an Android application proving profile discovery, quiet-mode control through an ADB-granted permission, dynamic launcher shortcuts, MacroDroid-compatible legacy shortcuts, saved schedule settings, stable CI debug APK updates, and release APK publishing infrastructure.
-
-The first signed release still requires configuring release signing secrets and pushing a version tag.
-
-## License
-
-MIT License.
