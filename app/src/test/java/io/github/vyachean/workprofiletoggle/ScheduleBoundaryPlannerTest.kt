@@ -14,21 +14,11 @@ class ScheduleBoundaryPlannerTest {
     @Test
     fun schedulesNextBoundaryForReadySchedule() {
         val fixture = fixture()
-        fixture.scheduleStore.save(
-            WorkProfileSchedule(
-                enabled = true,
-                resumeAt = ScheduleTime(hour = 9, minute = 0),
-                pauseAt = ScheduleTime(hour = 17, minute = 0),
-                activeDays = setOf(ScheduleDay.MONDAY),
-            ),
-        )
+        fixture.scheduleStore.save(readySchedule())
 
         val result = fixture.planner.refresh()
 
-        val expectedBoundary = WorkProfileScheduleBoundary(
-            at = ZonedDateTime.of(2026, 1, 5, 17, 0, 0, 0, zone),
-            expectedState = WorkProfileScheduleExpectedState.PAUSED,
-        )
+        val expectedBoundary = boundaryAt(hour = 17, expectedState = WorkProfileScheduleExpectedState.PAUSED)
         assertEquals(ScheduleBoundaryPlanResult.Scheduled(expectedBoundary), result)
         assertEquals(
             listOf(
@@ -55,14 +45,7 @@ class ScheduleBoundaryPlannerTest {
     @Test
     fun cancelsAlarmAndStoresDisabledResultWhenScheduleIsDisabled() {
         val fixture = fixture()
-        fixture.scheduleStore.save(
-            WorkProfileSchedule(
-                enabled = false,
-                resumeAt = ScheduleTime(hour = 9, minute = 0),
-                pauseAt = ScheduleTime(hour = 17, minute = 0),
-                activeDays = setOf(ScheduleDay.MONDAY),
-            ),
-        )
+        fixture.scheduleStore.save(readySchedule(enabled = false))
 
         val result = fixture.planner.refresh()
 
@@ -71,7 +54,10 @@ class ScheduleBoundaryPlannerTest {
             result,
         )
         assertEquals(listOf(BackendCall.Cancel), fixture.backend.calls)
-        assertEquals(blockedResult(ScheduleRuntimeFailureCategory.SCHEDULE_DISABLED), fixture.runtimeResultStore.load())
+        assertEquals(
+            blockedResult(ScheduleRuntimeFailureCategory.SCHEDULE_DISABLED),
+            fixture.runtimeResultStore.load(),
+        )
     }
 
     @Test
@@ -93,7 +79,10 @@ class ScheduleBoundaryPlannerTest {
             result,
         )
         assertEquals(listOf(BackendCall.Cancel), fixture.backend.calls)
-        assertEquals(blockedResult(ScheduleRuntimeFailureCategory.SCHEDULE_INCOMPLETE), fixture.runtimeResultStore.load())
+        assertEquals(
+            blockedResult(ScheduleRuntimeFailureCategory.SCHEDULE_INCOMPLETE),
+            fixture.runtimeResultStore.load(),
+        )
     }
 
     @Test
@@ -115,20 +104,16 @@ class ScheduleBoundaryPlannerTest {
             result,
         )
         assertEquals(listOf(BackendCall.Cancel), fixture.backend.calls)
-        assertEquals(blockedResult(ScheduleRuntimeFailureCategory.SCHEDULE_INVALID), fixture.runtimeResultStore.load())
+        assertEquals(
+            blockedResult(ScheduleRuntimeFailureCategory.SCHEDULE_INVALID),
+            fixture.runtimeResultStore.load(),
+        )
     }
 
     @Test
     fun storesAndroidRejectedResultWhenCancelBeforeSchedulingFails() {
         val fixture = fixture(cancelFailure = RuntimeException("Cancel rejected"))
-        fixture.scheduleStore.save(
-            WorkProfileSchedule(
-                enabled = true,
-                resumeAt = ScheduleTime(hour = 9, minute = 0),
-                pauseAt = ScheduleTime(hour = 17, minute = 0),
-                activeDays = setOf(ScheduleDay.MONDAY),
-            ),
-        )
+        fixture.scheduleStore.save(readySchedule())
 
         val result = fixture.planner.refresh()
 
@@ -137,20 +122,16 @@ class ScheduleBoundaryPlannerTest {
             result,
         )
         assertEquals(listOf(BackendCall.Cancel), fixture.backend.calls)
-        assertEquals(failedResult(ScheduleRuntimeFailureCategory.ANDROID_REQUEST_REJECTED), fixture.runtimeResultStore.load())
+        assertEquals(
+            failedResult(ScheduleRuntimeFailureCategory.ANDROID_REQUEST_REJECTED),
+            fixture.runtimeResultStore.load(),
+        )
     }
 
     @Test
     fun storesAndroidRejectedResultWhenSchedulingFails() {
         val fixture = fixture(setInexactFailure = RuntimeException("Alarm rejected"))
-        fixture.scheduleStore.save(
-            WorkProfileSchedule(
-                enabled = true,
-                resumeAt = ScheduleTime(hour = 9, minute = 0),
-                pauseAt = ScheduleTime(hour = 17, minute = 0),
-                activeDays = setOf(ScheduleDay.MONDAY),
-            ),
-        )
+        fixture.scheduleStore.save(readySchedule())
 
         val result = fixture.planner.refresh()
 
@@ -161,11 +142,14 @@ class ScheduleBoundaryPlannerTest {
         assertEquals(
             listOf(
                 BackendCall.Cancel,
-                BackendCall.SetInexact(ZonedDateTime.of(2026, 1, 5, 17, 0, 0, 0, zone).toInstant().toEpochMilli()),
+                BackendCall.SetInexact(boundaryAt(hour = 17).at.toInstant().toEpochMilli()),
             ),
             fixture.backend.calls,
         )
-        assertEquals(failedResult(ScheduleRuntimeFailureCategory.ANDROID_REQUEST_REJECTED), fixture.runtimeResultStore.load())
+        assertEquals(
+            failedResult(ScheduleRuntimeFailureCategory.ANDROID_REQUEST_REJECTED),
+            fixture.runtimeResultStore.load(),
+        )
     }
 
     @Test
@@ -176,7 +160,10 @@ class ScheduleBoundaryPlannerTest {
 
         assertEquals(ScheduleBoundaryPlanResult.Cancelled, result)
         assertEquals(listOf(BackendCall.Cancel), fixture.backend.calls)
-        assertEquals(blockedResult(ScheduleRuntimeFailureCategory.SCHEDULE_DISABLED), fixture.runtimeResultStore.load())
+        assertEquals(
+            blockedResult(ScheduleRuntimeFailureCategory.SCHEDULE_DISABLED),
+            fixture.runtimeResultStore.load(),
+        )
     }
 
     @Test
@@ -190,7 +177,10 @@ class ScheduleBoundaryPlannerTest {
             result,
         )
         assertEquals(listOf(BackendCall.Cancel), fixture.backend.calls)
-        assertEquals(failedResult(ScheduleRuntimeFailureCategory.ANDROID_REQUEST_REJECTED), fixture.runtimeResultStore.load())
+        assertEquals(
+            failedResult(ScheduleRuntimeFailureCategory.ANDROID_REQUEST_REJECTED),
+            fixture.runtimeResultStore.load(),
+        )
     }
 
     private fun fixture(
@@ -215,6 +205,27 @@ class ScheduleBoundaryPlannerTest {
                 runtimeResultStore = runtimeResultStore,
                 clock = clock,
             ),
+        )
+    }
+
+    private fun readySchedule(
+        enabled: Boolean = true,
+    ): WorkProfileSchedule {
+        return WorkProfileSchedule(
+            enabled = enabled,
+            resumeAt = ScheduleTime(hour = 9, minute = 0),
+            pauseAt = ScheduleTime(hour = 17, minute = 0),
+            activeDays = setOf(ScheduleDay.MONDAY),
+        )
+    }
+
+    private fun boundaryAt(
+        hour: Int,
+        expectedState: WorkProfileScheduleExpectedState = WorkProfileScheduleExpectedState.PAUSED,
+    ): WorkProfileScheduleBoundary {
+        return WorkProfileScheduleBoundary(
+            at = ZonedDateTime.of(2026, 1, 5, hour, 0, 0, 0, zone),
+            expectedState = expectedState,
         )
     }
 
