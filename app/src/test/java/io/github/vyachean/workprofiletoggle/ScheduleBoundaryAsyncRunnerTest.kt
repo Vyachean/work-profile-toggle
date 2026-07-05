@@ -3,6 +3,7 @@ package io.github.vyachean.workprofiletoggle
 import java.util.concurrent.Executor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -27,10 +28,28 @@ class ScheduleBoundaryAsyncRunnerTest {
     }
 
     @Test
-    fun finishesPendingResultWhenHandlerFailsWithException() {
+    fun reportsFailureAndFinishesPendingResultWhenHandlerFailsWithException() {
         val executor = RecordingExecutor()
         val pendingResult = RecordingPendingResult()
-        val handler = FailingHandler()
+        val failure = Exception("Handler failed")
+        val handler = FailingHandler(failure)
+        val runner = ScheduleBoundaryAsyncRunner(executor)
+
+        val result = runner.dispatch(pendingResult = pendingResult, handler = handler)
+
+        assertEquals(ScheduleBoundaryDispatchResult.Dispatched, result)
+
+        executor.runCommand()
+
+        assertSame(failure, handler.reportedFailure)
+        assertEquals(1, pendingResult.finishCount)
+    }
+
+    @Test
+    fun finishesPendingResultWhenFailureReportingFails() {
+        val executor = RecordingExecutor()
+        val pendingResult = RecordingPendingResult()
+        val handler = FailingFailureReporter()
         val runner = ScheduleBoundaryAsyncRunner(executor)
 
         val result = runner.dispatch(pendingResult = pendingResult, handler = handler)
@@ -92,9 +111,28 @@ class ScheduleBoundaryAsyncRunnerTest {
         }
     }
 
-    private class FailingHandler : ScheduleBoundaryHandler {
+    private class FailingHandler(
+        private val failure: Exception,
+    ) : ScheduleBoundaryHandler {
+        var reportedFailure: Exception? = null
+            private set
+
+        override fun handleBoundary() {
+            throw failure
+        }
+
+        override fun handleFailure(exception: Exception) {
+            reportedFailure = exception
+        }
+    }
+
+    private class FailingFailureReporter : ScheduleBoundaryHandler {
         override fun handleBoundary() {
             throw Exception("Handler failed")
+        }
+
+        override fun handleFailure(exception: Exception) {
+            throw Exception("Failure reporting failed")
         }
     }
 }
