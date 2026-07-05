@@ -18,6 +18,21 @@ internal class ScheduleBoundaryRuntimeHandler(
         runtimeResultStore.save(calculation.toRuntimeResult(triggerTime))
     }
 
+    override fun handleFailure(exception: Exception) {
+        runtimeResultStore.save(
+            ScheduleRuntimeResult(
+                triggerTime = ZonedDateTime.now(clock),
+                expectedState = null,
+                selectedProfileStatus = ScheduleRuntimeProfileStatus.NOT_CHECKED,
+                requestedAction = ScheduleRuntimeRequestedAction.NONE,
+                actionResult = ScheduleRuntimeActionResult.FAILED,
+                finalStateConfirmed = false,
+                nextBoundary = null,
+                failureCategory = ScheduleRuntimeFailureCategory.RUNTIME_EXCEPTION,
+            ),
+        )
+    }
+
     private fun WorkProfileScheduleCalculation.toRuntimeResult(
         triggerTime: ZonedDateTime,
     ): ScheduleRuntimeResult {
