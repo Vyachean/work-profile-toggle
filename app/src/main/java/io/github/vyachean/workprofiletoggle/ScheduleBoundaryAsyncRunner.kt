@@ -14,8 +14,7 @@ internal class ScheduleBoundaryAsyncRunner(
                 try {
                     handler.handleBoundary()
                 } catch (_: RuntimeException) {
-                    // The receiver boundary must not crash the process. Runtime failures are
-                    // handled by the runtime layer in later reconciliation work.
+                    // Do not let receiver background work crash the process.
                 } finally {
                     pendingResult.finish()
                 }
