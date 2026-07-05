@@ -18,6 +18,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import java.text.SimpleDateFormat
+import java.time.ZonedDateTime
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -31,6 +32,7 @@ class MainActivity : Activity() {
     private lateinit var dependencies: WorkProfileAppDependencies
     private lateinit var actionResultStore: ActionResultStore
     private lateinit var scheduleStore: WorkProfileScheduleStore
+    private lateinit var scheduleRuntimeResultStore: ScheduleRuntimeResultStore
     private lateinit var scheduleBoundaryPlanner: ScheduleBoundaryPlanner
     private lateinit var quietModeController: QuietModeController
     private lateinit var workProfileRepository: WorkProfileRepository
@@ -45,6 +47,7 @@ class MainActivity : Activity() {
         dependencies = WorkProfileAppDependencies(this)
         actionResultStore = dependencies.actionResultStore
         scheduleStore = dependencies.scheduleStore
+        scheduleRuntimeResultStore = dependencies.scheduleRuntimeResultStore
         scheduleBoundaryPlanner = dependencies.scheduleBoundaryPlanner
         lastResult = actionResultStore.restore(savedInstanceState?.getString(STATE_LAST_RESULT))
         quietModeController = dependencies.quietModeController
@@ -96,6 +99,7 @@ class MainActivity : Activity() {
         val primaryQuietMode = primaryProfile?.let { readQuietMode(it.userHandle) }
         val permissionGranted = hasQuietModePermission()
         val schedule = scheduleStore.load()
+        val scheduleRuntimeResult = scheduleRuntimeResultStore.load()
         val shortcutUpdateResult = shortcutController.updateShortcuts(labeledEntries)
 
         content.removeAllViews()
@@ -103,7 +107,7 @@ class MainActivity : Activity() {
         content.addView(textView(getString(R.string.home_title), textSize = 22f))
         renderPrimaryStatus(profileSelection, primaryQuietMode, permissionGranted, profileDiscovery.profilesAvailable)
         renderSetup(profileSelection, permissionGranted, profileDiscovery.error)
-        renderSchedulePreview(schedule)
+        renderSchedulePreview(schedule, scheduleRuntimeResult)
         renderAdvanced(profileEntries, shortcutUpdateResult)
     }
 
@@ -202,7 +206,10 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun renderSchedulePreview(schedule: WorkProfileSchedule) {
+    private fun renderSchedulePreview(
+        schedule: WorkProfileSchedule,
+        runtimeResult: ScheduleRuntimeResult?,
+    ) {
         content.addView(sectionTitle(getString(R.string.schedule_title)))
         if (schedule == WorkProfileSchedule()) {
             content.addView(textView(getString(R.string.schedule_not_configured)))
@@ -219,9 +226,46 @@ class MainActivity : Activity() {
             content.addView(textView(getString(R.string.schedule_pause_at, formatScheduleTime(schedule.pauseAt))))
             content.addView(textView(getString(R.string.schedule_resume_at, formatScheduleTime(schedule.resumeAt))))
             content.addView(textView(getString(R.string.schedule_active_days, formatScheduleDays(schedule.activeDays))))
+            renderScheduleRuntimeStatus(schedule, runtimeResult)
         }
         renderScheduleControls(schedule)
         content.addView(textView(getString(R.string.schedule_future_note)))
+    }
+
+    private fun renderScheduleRuntimeStatus(
+        schedule: WorkProfileSchedule,
+        runtimeResult: ScheduleRuntimeResult?,
+    ) {
+        val status = ScheduleRuntimeStatusSummary.from(
+            schedule = schedule,
+            result = runtimeResult,
+        ) ?: return
+
+        status.nextAction?.let { nextAction ->
+            val formattedBoundary = formatScheduleDateTime(nextAction.boundary.at)
+            val text = when (nextAction.type) {
+                ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE -> getString(
+                    R.string.schedule_next_action_pause,
+                    formattedBoundary,
+                )
+                ScheduleRuntimeNextActionType.RESUME_WORK_PROFILE -> getString(
+                    R.string.schedule_next_action_resume,
+                    formattedBoundary,
+                )
+            }
+            content.addView(textView(text))
+        }
+
+        status.issue?.let { issue ->
+            content.addView(
+                textView(
+                    getString(
+                        R.string.schedule_runtime_issue,
+                        scheduleRuntimeIssueLabel(issue),
+                    ),
+                ),
+            )
+        }
     }
 
     private fun renderScheduleControls(schedule: WorkProfileSchedule) {
@@ -493,6 +537,13 @@ class MainActivity : Activity() {
         return DateFormat.getTimeFormat(this).format(calendar.time)
     }
 
+    private fun formatScheduleDateTime(dateTime: ZonedDateTime): String {
+        return java.text.DateFormat.getDateTimeInstance(
+            java.text.DateFormat.MEDIUM,
+            java.text.DateFormat.SHORT,
+        ).format(Date.from(dateTime.toInstant()))
+    }
+
     private fun formatScheduleDays(days: Set<ScheduleDay>): String {
         return when {
             days.isEmpty() -> getString(R.string.schedule_no_days)
@@ -512,6 +563,23 @@ class MainActivity : Activity() {
             ScheduleDay.SATURDAY -> R.string.schedule_day_saturday
             ScheduleDay.SUNDAY -> R.string.schedule_day_sunday
         }
+    }
+
+    private fun scheduleRuntimeIssueLabel(issue: ScheduleRuntimeIssue): String {
+        val stringId = when (issue) {
+            ScheduleRuntimeIssue.PENDING -> R.string.schedule_runtime_issue_pending
+            ScheduleRuntimeIssue.SCHEDULE_DISABLED -> R.string.schedule_runtime_issue_disabled
+            ScheduleRuntimeIssue.SCHEDULE_INCOMPLETE -> R.string.schedule_runtime_issue_incomplete
+            ScheduleRuntimeIssue.SCHEDULE_INVALID -> R.string.schedule_runtime_issue_invalid
+            ScheduleRuntimeIssue.SELECTED_PROFILE_MISSING -> R.string.schedule_runtime_issue_selected_profile_missing
+            ScheduleRuntimeIssue.WORK_PROFILE_UNAVAILABLE -> R.string.schedule_runtime_issue_work_profile_unavailable
+            ScheduleRuntimeIssue.PERMISSION_MISSING -> R.string.schedule_runtime_issue_permission_missing
+            ScheduleRuntimeIssue.CREDENTIAL_REQUIRED -> R.string.schedule_runtime_issue_credential_required
+            ScheduleRuntimeIssue.ANDROID_REQUEST_REJECTED -> R.string.schedule_runtime_issue_android_request_rejected
+            ScheduleRuntimeIssue.EXACT_ALARM_ACCESS_MISSING -> R.string.schedule_runtime_issue_exact_alarm_access_missing
+            ScheduleRuntimeIssue.RUNTIME_EXCEPTION -> R.string.schedule_runtime_issue_runtime_exception
+        }
+        return getString(stringId)
     }
 
     private fun hasQuietModePermission(): Boolean {

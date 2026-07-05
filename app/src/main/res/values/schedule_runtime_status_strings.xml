@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="schedule_next_action_pause">Next action: Pause work profile at %1$s</string>
+    <string name="schedule_next_action_resume">Next action: Resume work profile at %1$s</string>
+    <string name="schedule_runtime_issue">Schedule issue: %1$s</string>
+    <string name="schedule_runtime_issue_pending">waiting for the next schedule update</string>
+    <string name="schedule_runtime_issue_disabled">schedule disabled</string>
+    <string name="schedule_runtime_issue_incomplete">schedule incomplete</string>
+    <string name="schedule_runtime_issue_invalid">schedule invalid</string>
+    <string name="schedule_runtime_issue_selected_profile_missing">selected work profile missing</string>
+    <string name="schedule_runtime_issue_work_profile_unavailable">work profile unavailable</string>
+    <string name="schedule_runtime_issue_permission_missing">permission missing</string>
+    <string name="schedule_runtime_issue_credential_required">unlock required to resume work profile</string>
+    <string name="schedule_runtime_issue_android_request_rejected">Android rejected the request</string>
+    <string name="schedule_runtime_issue_exact_alarm_access_missing">alarm access missing</string>
+    <string name="schedule_runtime_issue_runtime_exception">runtime error</string>
+</resources>
