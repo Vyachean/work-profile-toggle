@@ -31,22 +31,28 @@ internal class WorkProfileAppDependencies(
         keyValueStore = keyValueStore,
     )
 
-    private val scheduleBoundaryPendingIntent = AndroidScheduleBoundaryPendingIntentFactory(appContext).create()
+    private val scheduleBoundaryPendingIntent by lazy {
+        AndroidScheduleBoundaryPendingIntentFactory(appContext).create()
+    }
 
-    private val scheduleAlarmScheduler: ScheduleAlarmScheduler = ScheduleAlarmScheduler(
-        backend = AndroidScheduleAlarmBackend(
-            alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager,
-            operation = scheduleBoundaryPendingIntent,
-        ),
-        clock = clock,
-    )
+    private val scheduleAlarmScheduler: ScheduleAlarmScheduler by lazy {
+        ScheduleAlarmScheduler(
+            backend = AndroidScheduleAlarmBackend(
+                alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager,
+                operation = scheduleBoundaryPendingIntent,
+            ),
+            clock = clock,
+        )
+    }
 
-    val scheduleBoundaryPlanner: ScheduleBoundaryPlanner = ScheduleBoundaryPlanner(
-        scheduleStore = scheduleStore,
-        alarmScheduler = scheduleAlarmScheduler,
-        runtimeResultStore = scheduleRuntimeResultStore,
-        clock = clock,
-    )
+    val scheduleBoundaryPlanner: ScheduleBoundaryPlanner by lazy {
+        ScheduleBoundaryPlanner(
+            scheduleStore = scheduleStore,
+            alarmScheduler = scheduleAlarmScheduler,
+            runtimeResultStore = scheduleRuntimeResultStore,
+            clock = clock,
+        )
+    }
 
     val scheduleBoundaryHandler: ScheduleBoundaryHandler = ScheduleBoundaryRuntimeHandler(
         scheduleStore = scheduleStore,
