@@ -54,12 +54,6 @@ internal class WorkProfileAppDependencies(
         )
     }
 
-    val scheduleBoundaryHandler: ScheduleBoundaryHandler = ScheduleBoundaryRuntimeHandler(
-        scheduleStore = scheduleStore,
-        runtimeResultStore = scheduleRuntimeResultStore,
-        clock = clock,
-    )
-
     val userManager: UserManager =
         appContext.getSystemService(Context.USER_SERVICE) as UserManager
 
@@ -80,6 +74,24 @@ internal class WorkProfileAppDependencies(
         workProfileRepository = workProfileRepository,
         quietModeController = quietModeController,
     )
+
+    private val scheduleWorkProfileReconciler: ScheduleWorkProfileReconciler by lazy {
+        AndroidScheduleWorkProfileReconciler(
+            workProfileRepository = workProfileRepository,
+            quietModeController = quietModeController,
+            actionDispatcher = actionDispatcher,
+        )
+    }
+
+    val scheduleBoundaryHandler: ScheduleBoundaryHandler by lazy {
+        ScheduleBoundaryRuntimeHandler(
+            scheduleStore = scheduleStore,
+            runtimeResultStore = scheduleRuntimeResultStore,
+            workProfileReconciler = scheduleWorkProfileReconciler,
+            refreshBoundaryPlan = { scheduleBoundaryPlanner.refresh() },
+            clock = clock,
+        )
+    }
 
     val shortcutController: ShortcutController by lazy {
         ShortcutController(
