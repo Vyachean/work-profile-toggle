@@ -31,6 +31,7 @@ class MainActivity : Activity() {
     private lateinit var dependencies: WorkProfileAppDependencies
     private lateinit var actionResultStore: ActionResultStore
     private lateinit var scheduleStore: WorkProfileScheduleStore
+    private lateinit var scheduleBoundaryPlanner: ScheduleBoundaryPlanner
     private lateinit var quietModeController: QuietModeController
     private lateinit var workProfileRepository: WorkProfileRepository
     private lateinit var shortcutController: ShortcutController
@@ -44,6 +45,7 @@ class MainActivity : Activity() {
         dependencies = WorkProfileAppDependencies(this)
         actionResultStore = dependencies.actionResultStore
         scheduleStore = dependencies.scheduleStore
+        scheduleBoundaryPlanner = dependencies.scheduleBoundaryPlanner
         lastResult = actionResultStore.restore(savedInstanceState?.getString(STATE_LAST_RESULT))
         quietModeController = dependencies.quietModeController
         workProfileRepository = dependencies.workProfileRepository
@@ -259,9 +261,7 @@ class MainActivity : Activity() {
                 content.addView(textView(getString(R.string.schedule_enable_requirements)))
             }
             content.addView(button(getString(R.string.schedule_clear)) {
-                scheduleStore.clear()
-                Toast.makeText(this, getString(R.string.schedule_cleared), Toast.LENGTH_SHORT).show()
-                render()
+                clearSchedule()
             })
         }
     }
@@ -310,7 +310,15 @@ class MainActivity : Activity() {
 
     private fun saveSchedule(schedule: WorkProfileSchedule) {
         scheduleStore.save(normalizeSchedule(schedule))
+        scheduleBoundaryPlanner.refresh()
         Toast.makeText(this, getString(R.string.schedule_saved), Toast.LENGTH_SHORT).show()
+        render()
+    }
+
+    private fun clearSchedule() {
+        scheduleStore.clear()
+        scheduleBoundaryPlanner.cancel()
+        Toast.makeText(this, getString(R.string.schedule_cleared), Toast.LENGTH_SHORT).show()
         render()
     }
 
