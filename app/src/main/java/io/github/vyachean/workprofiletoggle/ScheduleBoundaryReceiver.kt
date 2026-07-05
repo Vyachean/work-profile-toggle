@@ -17,7 +17,7 @@ class ScheduleBoundaryReceiver : BroadcastReceiver() {
     }
 
     private class AndroidScheduleBoundaryPendingResult(
-        private val pendingResult: PendingResult,
+        private val pendingResult: BroadcastReceiver.PendingResult,
     ) : ScheduleBoundaryPendingResult {
         override fun finish() {
             pendingResult.finish()
