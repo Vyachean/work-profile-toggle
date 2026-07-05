@@ -11,9 +11,14 @@ class ScheduleBoundaryReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_SCHEDULE_BOUNDARY) return
 
-        val pendingResult = AndroidScheduleBoundaryPendingResult(goAsync())
+        val asyncResult = goAsync()
+        if (asyncResult == null) return
+
         val handler = WorkProfileAppDependencies(context.applicationContext).scheduleBoundaryHandler
-        runner.dispatch(pendingResult = pendingResult, handler = handler)
+        runner.dispatch(
+            pendingResult = AndroidScheduleBoundaryPendingResult(asyncResult),
+            handler = handler,
+        )
     }
 
     private class AndroidScheduleBoundaryPendingResult(
