@@ -36,13 +36,7 @@ internal interface ScheduleBoundaryHandler {
     fun handleBoundary()
 }
 
-internal enum class ScheduleBoundaryDispatchResult {
-    DISPATCHED,
-    FAILED_TO_DISPATCH,
-    ;
-
-    companion object {
-        val Dispatched: ScheduleBoundaryDispatchResult = DISPATCHED
-        val FailedToDispatch: ScheduleBoundaryDispatchResult = FAILED_TO_DISPATCH
-    }
+internal sealed class ScheduleBoundaryDispatchResult {
+    object Dispatched : ScheduleBoundaryDispatchResult()
+    object FailedToDispatch : ScheduleBoundaryDispatchResult()
 }
