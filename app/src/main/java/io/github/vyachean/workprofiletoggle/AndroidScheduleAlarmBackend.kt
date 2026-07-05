@@ -9,7 +9,11 @@ internal class AndroidScheduleAlarmBackend(
     private val operation: PendingIntent,
 ) : ScheduleAlarmBackend {
     override fun canScheduleExactAlarms(): Boolean {
-        return Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            alarmManager.canScheduleExactAlarms()
+        } else {
+            true
+        }
     }
 
     override fun setInexact(triggerAtEpochMillis: Long) {
@@ -17,7 +21,7 @@ internal class AndroidScheduleAlarmBackend(
     }
 
     override fun setExact(triggerAtEpochMillis: Long) {
-        alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtEpochMillis, operation)
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtEpochMillis, operation)
     }
 
     override fun cancel() {
