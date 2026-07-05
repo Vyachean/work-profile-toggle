@@ -72,6 +72,79 @@ class ScheduleAlarmSchedulerTest {
     }
 
     @Test
+    fun blocksExactAlarmWhenExactAlarmAccessIsRevokedDuringScheduling() {
+        val backend = FakeScheduleAlarmBackend(
+            canScheduleExactAlarms = true,
+            setExactFailure = SecurityException("Exact alarm access revoked"),
+        )
+        val scheduler = ScheduleAlarmScheduler(backend = backend, clock = clock)
+        val request = request(
+            triggerAt = now.plusHours(1),
+            precision = ScheduleAlarmPrecision.EXACT,
+        )
+
+        val result = scheduler.schedule(request)
+
+        assertEquals(
+            ScheduleAlarmScheduleResult.Blocked(ScheduleAlarmBlockedReason.EXACT_ALARM_ACCESS_MISSING),
+            result,
+        )
+        assertEquals(
+            listOf(
+                BackendCall.Cancel,
+                BackendCall.SetExact(now.plusHours(1).toEpochMillis()),
+            ),
+            backend.calls,
+        )
+    }
+
+    @Test
+    fun failsWhenInexactAlarmIsRejectedByBackend() {
+        val backend = FakeScheduleAlarmBackend(
+            setInexactFailure = RuntimeException("Alarm rejected"),
+        )
+        val scheduler = ScheduleAlarmScheduler(backend = backend, clock = clock)
+        val request = request(
+            triggerAt = now.plusHours(1),
+            precision = ScheduleAlarmPrecision.INEXACT,
+        )
+
+        val result = scheduler.schedule(request)
+
+        assertEquals(
+            ScheduleAlarmScheduleResult.Failed(ScheduleAlarmFailureReason.ANDROID_ALARM_REJECTED),
+            result,
+        )
+        assertEquals(
+            listOf(
+                BackendCall.Cancel,
+                BackendCall.SetInexact(now.plusHours(1).toEpochMillis()),
+            ),
+            backend.calls,
+        )
+    }
+
+    @Test
+    fun failsWhenCancelBeforeSchedulingIsRejectedByBackend() {
+        val backend = FakeScheduleAlarmBackend(
+            cancelFailure = RuntimeException("Cancel rejected"),
+        )
+        val scheduler = ScheduleAlarmScheduler(backend = backend, clock = clock)
+        val request = request(
+            triggerAt = now.plusHours(1),
+            precision = ScheduleAlarmPrecision.INEXACT,
+        )
+
+        val result = scheduler.schedule(request)
+
+        assertEquals(
+            ScheduleAlarmScheduleResult.Failed(ScheduleAlarmFailureReason.ANDROID_ALARM_REJECTED),
+            result,
+        )
+        assertEquals(listOf(BackendCall.Cancel), backend.calls)
+    }
+
+    @Test
     fun blocksAlarmWhenBoundaryIsNow() {
         val backend = FakeScheduleAlarmBackend()
         val scheduler = ScheduleAlarmScheduler(backend = backend, clock = clock)
@@ -112,8 +185,25 @@ class ScheduleAlarmSchedulerTest {
         val backend = FakeScheduleAlarmBackend()
         val scheduler = ScheduleAlarmScheduler(backend = backend, clock = clock)
 
-        scheduler.cancel()
+        val result = scheduler.cancel()
 
+        assertEquals(ScheduleAlarmCancelResult.Cancelled, result)
+        assertEquals(listOf(BackendCall.Cancel), backend.calls)
+    }
+
+    @Test
+    fun cancelReturnsFailureWhenBackendRejectsCancel() {
+        val backend = FakeScheduleAlarmBackend(
+            cancelFailure = RuntimeException("Cancel rejected"),
+        )
+        val scheduler = ScheduleAlarmScheduler(backend = backend, clock = clock)
+
+        val result = scheduler.cancel()
+
+        assertEquals(
+            ScheduleAlarmCancelResult.Failed(ScheduleAlarmFailureReason.ANDROID_ALARM_REJECTED),
+            result,
+        )
         assertEquals(listOf(BackendCall.Cancel), backend.calls)
     }
 
@@ -133,6 +223,9 @@ class ScheduleAlarmSchedulerTest {
 
     private class FakeScheduleAlarmBackend(
         private val canScheduleExactAlarms: Boolean = true,
+        private val cancelFailure: RuntimeException? = null,
+        private val setInexactFailure: RuntimeException? = null,
+        private val setExactFailure: RuntimeException? = null,
     ) : ScheduleAlarmBackend {
         val calls = mutableListOf<BackendCall>()
 
@@ -142,14 +235,17 @@ class ScheduleAlarmSchedulerTest {
 
         override fun setInexact(triggerAtEpochMillis: Long) {
             calls.add(BackendCall.SetInexact(triggerAtEpochMillis))
+            setInexactFailure?.let { failure -> throw failure }
         }
 
         override fun setExact(triggerAtEpochMillis: Long) {
             calls.add(BackendCall.SetExact(triggerAtEpochMillis))
+            setExactFailure?.let { failure -> throw failure }
         }
 
         override fun cancel() {
             calls.add(BackendCall.Cancel)
+            cancelFailure?.let { failure -> throw failure }
         }
     }
 
