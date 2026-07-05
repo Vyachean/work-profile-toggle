@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.ShortcutManager
 import android.os.UserManager
+import java.time.Clock
 
 internal class WorkProfileAppDependencies(
     context: Context,
@@ -22,6 +23,16 @@ internal class WorkProfileAppDependencies(
 
     val scheduleStore: WorkProfileScheduleStore = WorkProfileScheduleStore(
         keyValueStore = keyValueStore,
+    )
+
+    val scheduleRuntimeResultStore: ScheduleRuntimeResultStore = ScheduleRuntimeResultStore(
+        keyValueStore = keyValueStore,
+    )
+
+    val scheduleBoundaryHandler: ScheduleBoundaryHandler = ScheduleBoundaryRuntimeHandler(
+        scheduleStore = scheduleStore,
+        runtimeResultStore = scheduleRuntimeResultStore,
+        clock = Clock.systemDefaultZone(),
     )
 
     val userManager: UserManager =
