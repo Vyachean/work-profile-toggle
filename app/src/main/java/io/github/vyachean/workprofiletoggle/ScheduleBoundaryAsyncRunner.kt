@@ -13,7 +13,7 @@ internal class ScheduleBoundaryAsyncRunner(
             executor.execute {
                 try {
                     handler.handleBoundary()
-                } catch (_: RuntimeException) {
+                } catch (_: Exception) {
                     // Do not let receiver background work crash the process.
                 } finally {
                     pendingResult.finish()
