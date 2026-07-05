@@ -6,16 +6,21 @@ import java.time.ZonedDateTime
 internal class ScheduleBoundaryRuntimeHandler(
     private val scheduleStore: WorkProfileScheduleStore,
     private val runtimeResultStore: ScheduleRuntimeResultStore,
+    private val workProfileReconciler: ScheduleWorkProfileReconciler,
+    private val refreshBoundaryPlan: () -> ScheduleBoundaryPlanResult,
     private val clock: Clock,
 ) : ScheduleBoundaryHandler {
     override fun handleBoundary() {
         val triggerTime = ZonedDateTime.now(clock)
-        val calculation = WorkProfileScheduleCalculator.evaluate(
-            schedule = scheduleStore.load(),
-            now = triggerTime,
-        )
-
-        runtimeResultStore.save(calculation.toRuntimeResult(triggerTime))
+        when (val calculation = WorkProfileScheduleCalculator.evaluate(scheduleStore.load(), triggerTime)) {
+            is WorkProfileScheduleCalculation.Ready -> handleReadyBoundary(
+                triggerTime = triggerTime,
+                calculation = calculation,
+            )
+            is WorkProfileScheduleCalculation.Blocked -> runtimeResultStore.save(
+                calculation.toRuntimeResult(triggerTime),
+            )
+        }
     }
 
     override fun handleFailure(exception: Exception) {
@@ -33,30 +38,58 @@ internal class ScheduleBoundaryRuntimeHandler(
         )
     }
 
-    private fun WorkProfileScheduleCalculation.toRuntimeResult(
+    private fun handleReadyBoundary(
+        triggerTime: ZonedDateTime,
+        calculation: WorkProfileScheduleCalculation.Ready,
+    ) {
+        val reconciliation = workProfileReconciler.reconcile(calculation.expectedState)
+        val planResult = refreshBoundaryPlan()
+        runtimeResultStore.save(
+            ScheduleRuntimeResult(
+                triggerTime = triggerTime,
+                expectedState = calculation.expectedState,
+                selectedProfileStatus = reconciliation.selectedProfileStatus,
+                requestedAction = reconciliation.requestedAction,
+                actionResult = reconciliation.actionResult,
+                finalStateConfirmed = reconciliation.finalStateConfirmed,
+                nextBoundary = planResult.nextBoundaryOrNull(),
+                failureCategory = reconciliation.failureCategory ?: planResult.failureCategoryOrNull(),
+            ),
+        )
+    }
+
+    private fun WorkProfileScheduleCalculation.Blocked.toRuntimeResult(
         triggerTime: ZonedDateTime,
     ): ScheduleRuntimeResult {
+        return ScheduleRuntimeResult(
+            triggerTime = triggerTime,
+            expectedState = null,
+            selectedProfileStatus = ScheduleRuntimeProfileStatus.NOT_CHECKED,
+            requestedAction = ScheduleRuntimeRequestedAction.NONE,
+            actionResult = ScheduleRuntimeActionResult.BLOCKED,
+            finalStateConfirmed = false,
+            nextBoundary = null,
+            failureCategory = reason.toFailureCategory(),
+        )
+    }
+
+    private fun ScheduleBoundaryPlanResult.nextBoundaryOrNull(): WorkProfileScheduleBoundary? {
         return when (this) {
-            is WorkProfileScheduleCalculation.Ready -> ScheduleRuntimeResult(
-                triggerTime = triggerTime,
-                expectedState = expectedState,
-                selectedProfileStatus = ScheduleRuntimeProfileStatus.NOT_CHECKED,
-                requestedAction = ScheduleRuntimeRequestedAction.NONE,
-                actionResult = ScheduleRuntimeActionResult.NOT_REQUESTED,
-                finalStateConfirmed = false,
-                nextBoundary = nextBoundary,
-                failureCategory = null,
-            )
-            is WorkProfileScheduleCalculation.Blocked -> ScheduleRuntimeResult(
-                triggerTime = triggerTime,
-                expectedState = null,
-                selectedProfileStatus = ScheduleRuntimeProfileStatus.NOT_CHECKED,
-                requestedAction = ScheduleRuntimeRequestedAction.NONE,
-                actionResult = ScheduleRuntimeActionResult.BLOCKED,
-                finalStateConfirmed = false,
-                nextBoundary = null,
-                failureCategory = reason.toFailureCategory(),
-            )
+            is ScheduleBoundaryPlanResult.Scheduled -> nextBoundary
+            is ScheduleBoundaryPlanResult.Blocked,
+            is ScheduleBoundaryPlanResult.Failed,
+            ScheduleBoundaryPlanResult.Cancelled,
+            -> null
+        }
+    }
+
+    private fun ScheduleBoundaryPlanResult.failureCategoryOrNull(): ScheduleRuntimeFailureCategory? {
+        return when (this) {
+            is ScheduleBoundaryPlanResult.Blocked -> failureCategory
+            is ScheduleBoundaryPlanResult.Failed -> failureCategory
+            is ScheduleBoundaryPlanResult.Scheduled,
+            ScheduleBoundaryPlanResult.Cancelled,
+            -> null
         }
     }
 
