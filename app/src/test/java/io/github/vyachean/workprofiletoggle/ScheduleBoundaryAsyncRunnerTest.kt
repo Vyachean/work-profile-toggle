@@ -27,7 +27,7 @@ class ScheduleBoundaryAsyncRunnerTest {
     }
 
     @Test
-    fun finishesPendingResultWhenHandlerFails() {
+    fun finishesPendingResultWhenHandlerFailsWithException() {
         val executor = RecordingExecutor()
         val pendingResult = RecordingPendingResult()
         val handler = FailingHandler()
@@ -94,7 +94,7 @@ class ScheduleBoundaryAsyncRunnerTest {
 
     private class FailingHandler : ScheduleBoundaryHandler {
         override fun handleBoundary() {
-            throw RuntimeException("Handler failed")
+            throw Exception("Handler failed")
         }
     }
 }
