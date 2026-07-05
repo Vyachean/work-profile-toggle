@@ -238,3 +238,13 @@ If the executable bit is lost on a Unix-like system, run:
 ```sh
 chmod +x ./gradlew
 ```
+
+## Development status
+
+The project currently contains an Android application proving profile discovery, quiet-mode control through an ADB-granted permission, dynamic launcher shortcuts, MacroDroid-compatible legacy shortcuts, inexact-alarm schedule runtime, schedule runtime status, stable CI debug APK updates, and release APK publishing infrastructure.
+
+The first signed release still requires configuring release signing secrets, pushing a version tag, and validating schedule runtime behavior on a real device.
+
+## License
+
+MIT License.
