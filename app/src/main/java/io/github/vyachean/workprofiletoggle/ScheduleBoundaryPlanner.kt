@@ -8,7 +8,6 @@ internal class ScheduleBoundaryPlanner(
     private val alarmScheduler: ScheduleAlarmScheduler,
     private val runtimeResultStore: ScheduleRuntimeResultStore,
     private val clock: Clock,
-    private val precision: ScheduleAlarmPrecision = ScheduleAlarmPrecision.INEXACT,
 ) {
     fun refresh(): ScheduleBoundaryPlanResult {
         val now = ZonedDateTime.now(clock)
@@ -44,7 +43,7 @@ internal class ScheduleBoundaryPlanner(
     ): ScheduleBoundaryPlanResult {
         val request = ScheduleAlarmRequest(
             triggerAt = calculation.nextBoundary.at,
-            precision = precision,
+            precision = ScheduleAlarmPrecision.INEXACT,
         )
         return when (val result = alarmScheduler.schedule(request)) {
             is ScheduleAlarmScheduleResult.Scheduled -> {
