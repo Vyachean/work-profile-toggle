@@ -78,8 +78,7 @@ internal class ScheduleBoundaryRuntimeHandler(
             is ScheduleBoundaryPlanResult.Scheduled -> nextBoundary
             is ScheduleBoundaryPlanResult.Blocked,
             is ScheduleBoundaryPlanResult.Failed,
-            ScheduleBoundaryPlanResult.Cancelled,
-            -> null
+            ScheduleBoundaryPlanResult.Cancelled -> null
         }
     }
 
@@ -88,8 +87,7 @@ internal class ScheduleBoundaryRuntimeHandler(
             is ScheduleBoundaryPlanResult.Blocked -> failureCategory
             is ScheduleBoundaryPlanResult.Failed -> failureCategory
             is ScheduleBoundaryPlanResult.Scheduled,
-            ScheduleBoundaryPlanResult.Cancelled,
-            -> null
+            ScheduleBoundaryPlanResult.Cancelled -> null
         }
     }
 
