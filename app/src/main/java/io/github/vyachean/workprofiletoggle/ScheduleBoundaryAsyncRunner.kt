@@ -13,8 +13,8 @@ internal class ScheduleBoundaryAsyncRunner(
             executor.execute {
                 try {
                     handler.handleBoundary()
-                } catch (_: Exception) {
-                    // Do not let receiver background work crash the process.
+                } catch (exception: Exception) {
+                    reportFailure(handler, exception)
                 } finally {
                     pendingResult.finish()
                 }
@@ -25,6 +25,17 @@ internal class ScheduleBoundaryAsyncRunner(
             ScheduleBoundaryDispatchResult.FailedToDispatch
         }
     }
+
+    private fun reportFailure(
+        handler: ScheduleBoundaryHandler,
+        exception: Exception,
+    ) {
+        try {
+            handler.handleFailure(exception)
+        } catch (_: Exception) {
+            // Do not let failure reporting crash receiver background work.
+        }
+    }
 }
 
 internal interface ScheduleBoundaryPendingResult {
@@ -33,6 +44,8 @@ internal interface ScheduleBoundaryPendingResult {
 
 internal interface ScheduleBoundaryHandler {
     fun handleBoundary()
+
+    fun handleFailure(exception: Exception) = Unit
 }
 
 internal sealed class ScheduleBoundaryDispatchResult {
