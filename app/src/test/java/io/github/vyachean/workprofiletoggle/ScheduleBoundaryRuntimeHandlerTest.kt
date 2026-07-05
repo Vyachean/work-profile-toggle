@@ -106,6 +106,28 @@ class ScheduleBoundaryRuntimeHandlerTest {
         )
     }
 
+    @Test
+    fun savesRuntimeExceptionResultWhenBoundaryHandlingFails() {
+        val stores = stores()
+        val handler = handler(stores)
+
+        handler.handleFailure(Exception("Boundary handling failed"))
+
+        assertEquals(
+            ScheduleRuntimeResult(
+                triggerTime = triggerTime,
+                expectedState = null,
+                selectedProfileStatus = ScheduleRuntimeProfileStatus.NOT_CHECKED,
+                requestedAction = ScheduleRuntimeRequestedAction.NONE,
+                actionResult = ScheduleRuntimeActionResult.FAILED,
+                finalStateConfirmed = false,
+                nextBoundary = null,
+                failureCategory = ScheduleRuntimeFailureCategory.RUNTIME_EXCEPTION,
+            ),
+            stores.runtimeResultStore.load(),
+        )
+    }
+
     private fun stores(): Stores {
         val keyValueStore = InMemoryKeyValueStore()
         return Stores(
