@@ -193,8 +193,7 @@ internal class AndroidScheduleWorkProfileReconciler(
         return when (this) {
             QuietModeAction.Disable -> ScheduleRuntimeFailureCategory.CREDENTIAL_REQUIRED
             QuietModeAction.Enable,
-            QuietModeAction.Toggle,
-            -> ScheduleRuntimeFailureCategory.ANDROID_REQUEST_REJECTED
+            QuietModeAction.Toggle -> ScheduleRuntimeFailureCategory.ANDROID_REQUEST_REJECTED
         }
     }
 }
