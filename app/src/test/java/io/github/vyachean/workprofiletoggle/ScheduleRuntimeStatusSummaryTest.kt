@@ -169,6 +169,29 @@ class ScheduleRuntimeStatusSummaryTest {
         )
     }
 
+    @Test
+    fun returnsScheduleIssueBeforeStoredRuntimeFailureWhenScheduleIsInvalid() {
+        assertEquals(
+            ScheduleRuntimeStatusSummary(
+                nextAction = null,
+                issue = ScheduleRuntimeIssue.SCHEDULE_INVALID,
+            ),
+            ScheduleRuntimeStatusSummary.from(
+                schedule = WorkProfileSchedule(
+                    enabled = true,
+                    resumeAt = ScheduleTime(hour = 9, minute = 0),
+                    pauseAt = ScheduleTime(hour = 9, minute = 0),
+                    activeDays = setOf(ScheduleDay.MONDAY),
+                ),
+                result = readyResult(
+                    nextBoundary = null,
+                    failureCategory = ScheduleRuntimeFailureCategory.PERMISSION_MISSING,
+                ),
+                now = now,
+            ),
+        )
+    }
+
     private fun readySchedule(enabled: Boolean = true): WorkProfileSchedule {
         return WorkProfileSchedule(
             enabled = enabled,
