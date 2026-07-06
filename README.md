@@ -31,6 +31,7 @@ This app is not a Shelter, Island, or work-profile manager replacement. It must 
 - [Product model](docs/product.md)
 - [Roadmap](docs/roadmap.md)
 - [Screenshots plan](docs/screenshots.md)
+- [Release process](docs/release.md)
 - [Documentation maintenance](docs/maintenance.md)
 
 ## Screenshots
@@ -176,7 +177,7 @@ This key is only for development APKs. It must not be used for release builds.
 
 ## Release APK signing
 
-Release APKs are signed only by the tag-based `Release` GitHub Actions workflow. The release key must be stored in GitHub Secrets and must not be committed to the repository.
+Release APKs are signed only by the `Release` GitHub Actions workflow. The release key must be stored in GitHub Secrets and must not be committed to the repository. See [Release process](docs/release.md) for the full release checklist.
 
 Required repository secrets:
 
@@ -185,6 +186,12 @@ RELEASE_KEYSTORE_BASE64
 RELEASE_KEYSTORE_PASSWORD
 RELEASE_KEY_ALIAS
 RELEASE_KEY_PASSWORD
+```
+
+Recommended repository secret:
+
+```text
+RELEASE_CERT_SHA256
 ```
 
 Create a release keystore locally and keep it private:
@@ -209,14 +216,11 @@ On systems where `base64` does not support `-w`, remove line breaks before stori
 
 Set the other secrets to the keystore password, key alias, and key password used when creating the keystore.
 
-Create a release by pushing a version tag:
+The preferred release path is to increase both `versionName` and `versionCode` in `app/build.gradle.kts` and merge that change to `main`. The `Create release tag` workflow creates `v<versionName>` and dispatches the `Release` workflow.
 
-```sh
-git tag v0.1.0
-git push origin v0.1.0
-```
+For the first release, when `versionName` is already correct, run `Create release tag` manually from GitHub Actions. Manual tag pushes remain available only as a fallback.
 
-The workflow builds `assembleRelease`, verifies the APK with `apksigner`, renames it to `work-profile-toggle-<tag>.apk`, and publishes it to the GitHub Release for the tag.
+The release workflow builds `assembleRelease`, verifies the APK with `apksigner`, renames it to `work-profile-toggle-<tag>.apk`, uploads it as a workflow artifact, and publishes it to the GitHub Release for the tag.
 
 A debug APK and a release APK cannot update each other unless they are signed with the same certificate. This project intentionally uses separate debug and release signing identities, so switching between debug and release installs requires uninstalling the existing package first.
 
@@ -243,7 +247,7 @@ chmod +x ./gradlew
 
 The project currently contains an Android application proving profile discovery, quiet-mode control through an ADB-granted permission, dynamic launcher shortcuts, MacroDroid-compatible legacy shortcuts, inexact-alarm schedule runtime, schedule runtime status, stable CI debug APK updates, and release APK publishing infrastructure.
 
-The first signed release still requires configuring release signing secrets, pushing a version tag, and validating schedule runtime behavior on a real device.
+The first signed release still requires running `Create release tag`, checking the generated signed APK, and validating schedule runtime behavior on a real device.
 
 ## License
 
