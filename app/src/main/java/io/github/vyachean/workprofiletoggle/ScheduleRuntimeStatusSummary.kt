@@ -16,10 +16,12 @@ internal data class ScheduleRuntimeStatusSummary(
 
             val calculation = WorkProfileScheduleCalculator.evaluate(schedule, now)
             val nextAction = calculation.nextBoundaryOrNull()?.toNextAction()
+            val configurationIssue = calculation.failureIssueOrNull()
+            val runtimeIssue = result?.failureCategory?.toRuntimeIssue()
             return ScheduleRuntimeStatusSummary(
                 nextAction = nextAction,
-                issue = result?.failureCategory?.toRuntimeIssue()
-                    ?: calculation.failureIssueOrNull()
+                issue = configurationIssue
+                    ?: runtimeIssue
                     ?: ScheduleRuntimeIssue.PENDING.takeIf { nextAction == null },
             )
         }
