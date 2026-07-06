@@ -14,28 +14,109 @@ internal data class ScheduleWorkProfileReconciliation(
     val failureCategory: ScheduleRuntimeFailureCategory?,
 )
 
-internal class AndroidScheduleWorkProfileReconciler(
+internal interface ScheduleWorkProfileHandle
+
+internal sealed class ScheduleWorkProfileResolution {
+    data class Selected(
+        val handle: ScheduleWorkProfileHandle,
+    ) : ScheduleWorkProfileResolution()
+
+    object Missing : ScheduleWorkProfileResolution()
+    object Unavailable : ScheduleWorkProfileResolution()
+}
+
+internal sealed class ScheduleWorkProfileDispatchResult {
+    object Completed : ScheduleWorkProfileDispatchResult()
+    object Ignored : ScheduleWorkProfileDispatchResult()
+    object MissingProfile : ScheduleWorkProfileDispatchResult()
+
+    data class Failed(
+        val error: Throwable,
+    ) : ScheduleWorkProfileDispatchResult()
+}
+
+internal interface ScheduleWorkProfileController {
+    fun resolveSelectedProfile(): ScheduleWorkProfileResolution
+    fun isQuietModeEnabled(handle: ScheduleWorkProfileHandle): Result<Boolean>
+    fun dispatch(handle: ScheduleWorkProfileHandle, requestedAction: QuietModeAction): ScheduleWorkProfileDispatchResult
+}
+
+private data class AndroidScheduleWorkProfileHandle(
+    val userHandle: UserHandle,
+) : ScheduleWorkProfileHandle
+
+internal class AndroidScheduleWorkProfileController(
     private val workProfileRepository: WorkProfileRepository,
     private val quietModeController: QuietModeController,
     private val actionDispatcher: WorkProfileActionDispatcher,
-) : ScheduleWorkProfileReconciler {
-    override fun reconcile(expectedState: WorkProfileScheduleExpectedState): ScheduleWorkProfileReconciliation {
+) : ScheduleWorkProfileController {
+    override fun resolveSelectedProfile(): ScheduleWorkProfileResolution {
         val discovery = workProfileRepository.discoverProfiles()
         if (discovery.error != null) {
-            return blocked(
-                selectedProfileStatus = ScheduleRuntimeProfileStatus.UNAVAILABLE,
-                failureCategory = ScheduleRuntimeFailureCategory.WORK_PROFILE_UNAVAILABLE,
-            )
+            return ScheduleWorkProfileResolution.Unavailable
         }
 
         val profileSelection = workProfileRepository.resolveProfileSelection(discovery.labeledEntries)
-        val selectedProfile = profileSelection.selected ?: return blocked(
-            selectedProfileStatus = ScheduleRuntimeProfileStatus.MISSING,
-            failureCategory = ScheduleRuntimeFailureCategory.SELECTED_PROFILE_MISSING,
-        )
+        val selectedProfile = profileSelection.selected ?: return ScheduleWorkProfileResolution.Missing
 
+        return ScheduleWorkProfileResolution.Selected(AndroidScheduleWorkProfileHandle(selectedProfile.userHandle))
+    }
+
+    override fun isQuietModeEnabled(handle: ScheduleWorkProfileHandle): Result<Boolean> {
+        return quietModeController.isQuietModeEnabled(handle.requireAndroidHandle().userHandle)
+    }
+
+    override fun dispatch(
+        handle: ScheduleWorkProfileHandle,
+        requestedAction: QuietModeAction,
+    ): ScheduleWorkProfileDispatchResult {
+        return when (val result = actionDispatcher.dispatch(handle.requireAndroidHandle().userHandle, requestedAction)) {
+            WorkProfileActionResult.Ignored -> ScheduleWorkProfileDispatchResult.Ignored
+            WorkProfileActionResult.MissingProfileSerial -> ScheduleWorkProfileDispatchResult.MissingProfile
+            is WorkProfileActionResult.UnknownProfile -> ScheduleWorkProfileDispatchResult.MissingProfile
+            is WorkProfileActionResult.Failed -> ScheduleWorkProfileDispatchResult.Failed(result.error)
+            is WorkProfileActionResult.Completed -> ScheduleWorkProfileDispatchResult.Completed
+        }
+    }
+
+    private fun ScheduleWorkProfileHandle.requireAndroidHandle(): AndroidScheduleWorkProfileHandle {
+        return requireNotNull(this as? AndroidScheduleWorkProfileHandle) {
+            "Unsupported schedule work profile handle"
+        }
+    }
+}
+
+internal class AndroidScheduleWorkProfileReconciler(
+    private val controller: ScheduleWorkProfileController,
+) : ScheduleWorkProfileReconciler {
+    constructor(
+        workProfileRepository: WorkProfileRepository,
+        quietModeController: QuietModeController,
+        actionDispatcher: WorkProfileActionDispatcher,
+    ) : this(
+        controller = AndroidScheduleWorkProfileController(
+            workProfileRepository = workProfileRepository,
+            quietModeController = quietModeController,
+            actionDispatcher = actionDispatcher,
+        ),
+    )
+
+    override fun reconcile(expectedState: WorkProfileScheduleExpectedState): ScheduleWorkProfileReconciliation {
+        val selectedProfile = when (val resolution = controller.resolveSelectedProfile()) {
+            ScheduleWorkProfileResolution.Unavailable -> return blocked(
+                selectedProfileStatus = ScheduleRuntimeProfileStatus.UNAVAILABLE,
+                failureCategory = ScheduleRuntimeFailureCategory.WORK_PROFILE_UNAVAILABLE,
+            )
+            ScheduleWorkProfileResolution.Missing -> return blocked(
+                selectedProfileStatus = ScheduleRuntimeProfileStatus.MISSING,
+                failureCategory = ScheduleRuntimeFailureCategory.SELECTED_PROFILE_MISSING,
+            )
+            is ScheduleWorkProfileResolution.Selected -> resolution
+        }
+
+        val selectedHandle = selectedProfile.handle
         val expectedQuietMode = expectedState.toQuietModeEnabled()
-        val currentQuietMode = quietModeController.isQuietModeEnabled(selectedProfile.userHandle)
+        val currentQuietMode = controller.isQuietModeEnabled(selectedHandle)
             .getOrElse { error ->
                 return failedBeforeAction(
                     selectedProfileStatus = ScheduleRuntimeProfileStatus.SELECTED,
@@ -55,25 +136,21 @@ internal class AndroidScheduleWorkProfileReconciler(
 
         val quietModeAction = expectedState.toQuietModeAction()
         val requestedAction = quietModeAction.toScheduleRequestedAction()
-        return when (val actionResult = actionDispatcher.dispatch(selectedProfile.userHandle, quietModeAction)) {
-            WorkProfileActionResult.Ignored -> failedAfterActionRequest(
+        return when (val actionResult = controller.dispatch(selectedHandle, quietModeAction)) {
+            ScheduleWorkProfileDispatchResult.Ignored -> failedAfterActionRequest(
                 requestedAction = requestedAction,
                 failureCategory = ScheduleRuntimeFailureCategory.ANDROID_REQUEST_REJECTED,
             )
-            WorkProfileActionResult.MissingProfileSerial -> blocked(
+            ScheduleWorkProfileDispatchResult.MissingProfile -> blocked(
                 selectedProfileStatus = ScheduleRuntimeProfileStatus.MISSING,
                 failureCategory = ScheduleRuntimeFailureCategory.SELECTED_PROFILE_MISSING,
             )
-            is WorkProfileActionResult.UnknownProfile -> blocked(
-                selectedProfileStatus = ScheduleRuntimeProfileStatus.MISSING,
-                failureCategory = ScheduleRuntimeFailureCategory.SELECTED_PROFILE_MISSING,
-            )
-            is WorkProfileActionResult.Failed -> failedAfterActionRequest(
+            is ScheduleWorkProfileDispatchResult.Failed -> failedAfterActionRequest(
                 requestedAction = requestedAction,
                 failureCategory = classifyQuietModeRequestFailure(actionResult.error),
             )
-            is WorkProfileActionResult.Completed -> confirmFinalState(
-                userHandle = selectedProfile.userHandle,
+            ScheduleWorkProfileDispatchResult.Completed -> confirmFinalState(
+                handle = selectedHandle,
                 expectedQuietMode = expectedQuietMode,
                 requestedAction = requestedAction,
                 quietModeAction = quietModeAction,
@@ -82,12 +159,12 @@ internal class AndroidScheduleWorkProfileReconciler(
     }
 
     private fun confirmFinalState(
-        userHandle: UserHandle,
+        handle: ScheduleWorkProfileHandle,
         expectedQuietMode: Boolean,
         requestedAction: ScheduleRuntimeRequestedAction,
         quietModeAction: QuietModeAction,
     ): ScheduleWorkProfileReconciliation {
-        val finalQuietMode = quietModeController.isQuietModeEnabled(userHandle)
+        val finalQuietMode = controller.isQuietModeEnabled(handle)
             .getOrElse { error ->
                 return ScheduleWorkProfileReconciliation(
                     selectedProfileStatus = ScheduleRuntimeProfileStatus.SELECTED,

@@ -198,11 +198,11 @@ Existing unit tests cover:
 - runtime failure precedence;
 - runtime exception persistence;
 - runtime status summary mapping for next action and issue states;
+- work-profile reconciliation for selected profile availability, no-op success, pause/resume dispatch, read failures, request failures, missing profile, and unconfirmed final state;
 - reschedule receiver action filtering.
 
 Known automated coverage gaps:
 
-- no dedicated `AndroidScheduleWorkProfileReconciler` unit test yet;
 - no end-to-end instrumentation test for `AlarmManager -> BroadcastReceiver -> UserManager.requestQuietModeEnabled`;
 - no deterministic screenshot tests;
 - no CI real-device or managed-device smoke test;
@@ -225,7 +225,6 @@ Before treating schedule runtime as release-ready, validate on a real device wit
 
 ## Current implementation follow-ups
 
-- Add dedicated `AndroidScheduleWorkProfileReconciler` tests for selected profile missing, discovery error, already-matching quiet mode, pause success, resume success, `SecurityException`, rejected request, and unconfirmed resume.
 - Improve schedule setup/status UX.
 - Add copyable diagnostics for blocked runtime results.
 - Decide whether exact alarms are needed.
