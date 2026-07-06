@@ -662,7 +662,7 @@ class MainActivity : Activity() {
         exactAlarmAccessState: ScheduleExactAlarmAccessState,
     ) {
         val diagnostics = ScheduleRuntimeDiagnosticsFormatter.format(
-            appVersionName = "unknown",
+            appVersionName = BuildConfig.VERSION_NAME,
             currentTime = ZonedDateTime.now(),
             schedule = schedule,
             exactAlarmAccessState = exactAlarmAccessState,
