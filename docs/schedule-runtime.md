@@ -4,7 +4,7 @@
 
 Implemented baseline, still in real-device validation.
 
-The app now has a schedule runtime that calculates the next schedule boundary, schedules an Android alarm, reconciles the selected work profile at the boundary, persists a structured runtime result, shows user-facing runtime status, and reschedules after key system events.
+The app now has a schedule runtime that calculates the next schedule boundary, schedules an Android exact alarm, reconciles the selected work profile at the boundary, persists a structured runtime result, shows user-facing runtime status, and reschedules after key app and system events.
 
 This document is the runtime contract for future changes. Keep it updated in the same PR as behavior changes.
 
@@ -83,7 +83,8 @@ Rules:
 The current runtime uses:
 
 - `AlarmManager` for the next boundary;
-- inexact alarms for the first shipped runtime path;
+- exact alarms through `setExactAndAllowWhileIdle(...)` for scheduled boundaries;
+- an exact-alarm access check before planning exact alarms on Android versions that require it;
 - a `BroadcastReceiver` as the alarm entry point;
 - `BroadcastReceiver.goAsync()` for bounded background execution;
 - the shared work-profile action dispatcher/controller path for quiet-mode changes;
@@ -93,19 +94,29 @@ The receiver must keep orchestration short and always finish its pending result.
 
 ## Alarm precision
 
-The first runtime path uses inexact alarms.
+The runtime currently uses exact alarms for schedule boundaries.
 
 Rationale:
 
-- lower Android special-access burden;
-- simpler setup UX;
-- acceptable first implementation while reliability is being validated.
+- work-profile boundaries are user-visible schedule events;
+- delayed boundaries can leave the work profile active outside work hours or paused inside work hours;
+- exact alarms make real-device validation clearer because expected boundary timing is explicit.
+
+Setup and blocking behavior:
+
+- On Android versions where exact-alarm access is not required, schedule planning can proceed without extra user action.
+- On Android versions where exact-alarm access is required, the app checks `canScheduleExactAlarms()` before scheduling.
+- If exact-alarm access is missing, the app does not schedule the boundary and records a blocked runtime status with `exact alarm access missing`.
+- The UI should show the missing access state and guide the user to the relevant Android settings screen.
+- The app refreshes planning after returning from settings and after exact-alarm access change broadcasts.
 
 Known limitation:
 
-- Android battery restrictions, Doze, and OEM background policies may delay inexact alarms.
+- Exact alarms reduce timing drift compared with inexact alarms, but Android/OEM power management can still affect background execution and work-profile APIs. Real-device validation remains required.
 
-Exact alarms are not currently enabled as a product path. If exact alarms are added later, the app must check Android 12+ exact-alarm access, guide the user to settings when missing, handle access loss, and update tests and documentation in the same PR.
+Future decision:
+
+- Add an optional inexact fallback only if there is a clear product reason for users who cannot or do not want to grant exact-alarm access. A fallback must be explicit in UI/status because delayed boundaries are not equivalent to the exact schedule behavior.
 
 ## Rescheduling events
 
@@ -116,11 +127,11 @@ The runtime reschedules from persisted settings after:
 - device reboot;
 - app update;
 - timezone change;
-- manual time change.
+- manual time change;
+- exact-alarm access change;
+- returning to the app after exact-alarm settings.
 
 Direct Boot support is not currently enabled. App schedule state is stored in normal app storage and is available after credential-protected storage is unlocked.
-
-If exact alarms are introduced later, exact-alarm access changes must be handled by checking current access state when the app opens and when the runtime plans work. Do not rely only on a revoke broadcast.
 
 ## Manual override behavior
 
@@ -175,7 +186,8 @@ Before schedule runtime can work reliably, the app needs:
 - a selected switchable work profile;
 - readable quiet-mode state;
 - permission or platform capability to request pause/resume;
-- Android acceptance of the requested state change.
+- Android acceptance of the requested state change;
+- exact-alarm access when Android requires it.
 
 Schedule settings may remain saved when setup is incomplete, but runtime execution should report the missing requirement instead of silently pretending that scheduling is working.
 
@@ -206,7 +218,7 @@ Known automated coverage gaps:
 - no end-to-end instrumentation test for `AlarmManager -> BroadcastReceiver -> UserManager.requestQuietModeEnabled`;
 - no deterministic screenshot tests;
 - no CI real-device or managed-device smoke test;
-- no automated reboot/timezone/time-change end-to-end verification.
+- no automated reboot/timezone/time-change/exact-alarm-settings end-to-end verification.
 
 ## Required real-device smoke test
 
@@ -214,18 +226,20 @@ Before treating schedule runtime as release-ready, validate on a real device wit
 
 1. Install a current debug APK.
 2. Grant `android.permission.MODIFY_QUIET_MODE` through ADB.
-3. Select the work profile in the app.
-4. Configure a near-future schedule boundary.
-5. Confirm that the UI shows the next action.
-6. Confirm that the selected profile pauses/resumes at the boundary.
-7. Confirm that manual pause/resume is reconciled at the next boundary.
-8. Confirm that reboot preserves and refreshes the next boundary.
-9. Confirm that manual time and timezone changes refresh the next boundary.
-10. Confirm that blocked states are visible in the schedule runtime status.
+3. Grant exact-alarm access when Android requires it.
+4. Select the work profile in the app.
+5. Configure a near-future schedule boundary.
+6. Confirm that the UI shows the next action.
+7. Confirm that the selected profile pauses/resumes at the boundary.
+8. Confirm that manual pause/resume is reconciled at the next boundary.
+9. Confirm that reboot preserves and refreshes the next boundary.
+10. Confirm that manual time and timezone changes refresh the next boundary.
+11. Confirm that exact-alarm access loss is shown as a blocked schedule state.
+12. Confirm that blocked states are visible in the schedule runtime status.
 
 ## Current implementation follow-ups
 
 - Improve schedule setup/status UX.
 - Add copyable diagnostics for blocked runtime results.
-- Decide whether exact alarms are needed.
+- Decide whether an optional inexact fallback mode is useful.
 - Add deterministic screenshots after UI state extraction.
