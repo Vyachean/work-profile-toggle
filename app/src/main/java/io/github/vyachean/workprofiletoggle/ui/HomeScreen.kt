@@ -252,7 +252,10 @@ private fun SectionCard(
 
 @Composable
 private fun StatusRow(label: String, value: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
