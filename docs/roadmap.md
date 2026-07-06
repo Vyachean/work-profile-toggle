@@ -19,6 +19,7 @@ The app currently supports manual and scheduled work-profile control after setup
 - bounded asynchronous schedule-boundary reconciliation through a broadcast receiver;
 - persisted last schedule runtime result;
 - user-facing schedule runtime status with next action or issue;
+- copyable schedule runtime diagnostics for real-world reports;
 - schedule rescheduling after app update, device reboot, manual time change, timezone change, selected-profile changes, schedule changes, and exact-alarm access changes;
 - CI debug APK artifacts;
 - release APK workflow infrastructure.
@@ -115,6 +116,7 @@ Implemented baseline:
 - Alarm receiver that reconciles the selected work profile to the expected state.
 - Next-boundary rescheduling after each handled boundary.
 - Runtime result persistence for diagnostics and UI status.
+- Copyable diagnostics payload for blocked or failed real-world reports.
 - Rescheduling after reboot, app update, manual time change, timezone change, schedule changes, selected-profile changes, and exact-alarm access changes.
 
 Current limitations:
@@ -129,7 +131,6 @@ Remaining work before this stage is complete:
 
 - Manual smoke test on a real device with an actual work profile.
 - Better setup/status guidance for permission missing, selected profile missing, credential required, Android request rejected, and exact-alarm access missing states.
-- Diagnostics wording and copyable advanced details for blocked schedule runs.
 - Decide whether an inexact fallback mode is useful for users who cannot or do not want to grant exact-alarm access.
 
 Status: in progress.
@@ -157,5 +158,4 @@ Status: planned.
 - Create stable README screenshots after screenshot architecture exists.
 - Decide between Compose Material 3 and Material Components Views.
 - Add stronger automated coverage for schedule editor validation.
-- Improve diagnostics wording and copyable error details.
 - Evaluate whether an optional inexact fallback should exist for devices where exact-alarm access is unavailable.

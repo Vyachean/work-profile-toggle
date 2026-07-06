@@ -4,7 +4,7 @@
 
 Implemented baseline, still in real-device validation.
 
-The app now has a schedule runtime that calculates the next schedule boundary, schedules an Android exact alarm, reconciles the selected work profile at the boundary, persists a structured runtime result, shows user-facing runtime status, and reschedules after key app and system events.
+The app now has a schedule runtime that calculates the next schedule boundary, schedules an Android exact alarm, reconciles the selected work profile at the boundary, persists a structured runtime result, shows user-facing runtime status, provides copyable schedule diagnostics, and reschedules after key app and system events.
 
 This document is the runtime contract for future changes. Keep it updated in the same PR as behavior changes.
 
@@ -175,7 +175,32 @@ Failure categories:
 - exact alarm access missing;
 - runtime exception.
 
-User-facing diagnostics should be concise and actionable. Raw Android details belong in Advanced/Diagnostics.
+User-facing diagnostics should be concise and actionable. Raw Android details belong in Advanced/Diagnostics or in explicitly copied diagnostics payloads.
+
+## Copyable diagnostics
+
+The Schedule section provides a copyable diagnostics payload for configured schedules.
+
+The copied payload is stable, plain text, and intended for debugging real-world reports. It includes:
+
+- app version name;
+- current time and timezone;
+- saved schedule enabled flag;
+- saved work days;
+- saved resume/start time;
+- saved pause/end time;
+- exact-alarm access state;
+- whether a runtime result is present;
+- runtime trigger time;
+- runtime expected state;
+- selected profile status;
+- requested action;
+- action result;
+- final-state confirmation flag;
+- next boundary timestamp and expected state;
+- failure category.
+
+The payload must not include profile names or raw user/profile identifiers. If future diagnostics need more context, prefer stable enums and non-personal state fields over names, serials, or handles.
 
 ## Permission and setup model
 
@@ -211,7 +236,8 @@ Existing unit tests cover:
 - runtime exception persistence;
 - runtime status summary mapping for next action and issue states;
 - work-profile reconciliation for selected profile availability, no-op success, pause/resume dispatch, read failures, request failures, missing profile, and unconfirmed final state;
-- reschedule receiver action filtering.
+- reschedule receiver action filtering;
+- schedule diagnostics payload formatting for complete and missing runtime results.
 
 Known automated coverage gaps:
 
@@ -236,10 +262,10 @@ Before treating schedule runtime as release-ready, validate on a real device wit
 10. Confirm that manual time and timezone changes refresh the next boundary.
 11. Confirm that exact-alarm access loss is shown as a blocked schedule state.
 12. Confirm that blocked states are visible in the schedule runtime status.
+13. Copy schedule diagnostics and confirm that the payload is readable and does not include profile names, serials, or handles.
 
 ## Current implementation follow-ups
 
 - Improve schedule setup/status UX.
-- Add copyable diagnostics for blocked runtime results.
 - Decide whether an optional inexact fallback mode is useful.
 - Add deterministic screenshots after UI state extraction.
