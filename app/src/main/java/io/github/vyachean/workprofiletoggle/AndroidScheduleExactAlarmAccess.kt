@@ -25,13 +25,18 @@ internal class AndroidScheduleExactAlarmAccess(
         }
     }
 
-    fun openAppSettings(): Boolean {
+    fun openSettings(): Boolean {
         return try {
-            context.startActivity(
+            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                    data = Uri.parse("package:${appContext.packageName}")
+                }
+            } else {
                 Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                     data = Uri.parse("package:${appContext.packageName}")
-                },
-            )
+                }
+            }
+            context.startActivity(intent)
             true
         } catch (exception: RuntimeException) {
             false
