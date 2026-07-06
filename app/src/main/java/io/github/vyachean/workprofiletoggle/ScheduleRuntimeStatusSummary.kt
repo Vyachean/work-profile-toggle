@@ -1,5 +1,7 @@
 package io.github.vyachean.workprofiletoggle
 
+import java.time.ZonedDateTime
+
 internal data class ScheduleRuntimeStatusSummary(
     val nextAction: ScheduleRuntimeNextAction?,
     val issue: ScheduleRuntimeIssue?,
@@ -8,19 +10,18 @@ internal data class ScheduleRuntimeStatusSummary(
         fun from(
             schedule: WorkProfileSchedule,
             result: ScheduleRuntimeResult?,
+            now: ZonedDateTime = ZonedDateTime.now(),
         ): ScheduleRuntimeStatusSummary? {
             if (!schedule.enabled) return null
-            if (result == null) {
-                return ScheduleRuntimeStatusSummary(
-                    nextAction = null,
-                    issue = ScheduleRuntimeIssue.PENDING,
-                )
-            }
 
-            val nextAction = result.nextBoundary?.toNextAction()
+            val calculation = WorkProfileScheduleCalculator.evaluate(schedule, now)
+            val nextAction = calculation.nextBoundaryOrNull()?.toNextAction()
+            val configurationIssue = calculation.failureIssueOrNull()
+            val runtimeIssue = result?.failureCategory?.toRuntimeIssue()
             return ScheduleRuntimeStatusSummary(
                 nextAction = nextAction,
-                issue = result.failureCategory?.toRuntimeIssue()
+                issue = configurationIssue
+                    ?: runtimeIssue
                     ?: ScheduleRuntimeIssue.PENDING.takeIf { nextAction == null },
             )
         }
@@ -51,6 +52,20 @@ internal enum class ScheduleRuntimeIssue {
     RUNTIME_EXCEPTION,
 }
 
+private fun WorkProfileScheduleCalculation.nextBoundaryOrNull(): WorkProfileScheduleBoundary? {
+    return when (this) {
+        is WorkProfileScheduleCalculation.Ready -> nextBoundary
+        is WorkProfileScheduleCalculation.Blocked -> null
+    }
+}
+
+private fun WorkProfileScheduleCalculation.failureIssueOrNull(): ScheduleRuntimeIssue? {
+    return when (this) {
+        is WorkProfileScheduleCalculation.Ready -> null
+        is WorkProfileScheduleCalculation.Blocked -> reason.toRuntimeIssue()
+    }
+}
+
 private fun WorkProfileScheduleBoundary.toNextAction(): ScheduleRuntimeNextAction {
     return ScheduleRuntimeNextAction(
         type = when (expectedState) {
@@ -59,6 +74,14 @@ private fun WorkProfileScheduleBoundary.toNextAction(): ScheduleRuntimeNextActio
         },
         boundary = this,
     )
+}
+
+private fun WorkProfileScheduleBlockedReason.toRuntimeIssue(): ScheduleRuntimeIssue {
+    return when (this) {
+        WorkProfileScheduleBlockedReason.SCHEDULE_DISABLED -> ScheduleRuntimeIssue.SCHEDULE_DISABLED
+        WorkProfileScheduleBlockedReason.SCHEDULE_INCOMPLETE -> ScheduleRuntimeIssue.SCHEDULE_INCOMPLETE
+        WorkProfileScheduleBlockedReason.SCHEDULE_INVALID -> ScheduleRuntimeIssue.SCHEDULE_INVALID
+    }
 }
 
 private fun ScheduleRuntimeFailureCategory.toRuntimeIssue(): ScheduleRuntimeIssue {

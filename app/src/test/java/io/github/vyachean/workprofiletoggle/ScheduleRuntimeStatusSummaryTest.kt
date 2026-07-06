@@ -20,20 +20,25 @@ class ScheduleRuntimeStatusSummaryTest {
             ScheduleRuntimeStatusSummary.from(
                 schedule = readySchedule(enabled = false),
                 result = readyResult(nextBoundary = nextBoundary),
+                now = now,
             ),
         )
     }
 
     @Test
-    fun returnsPendingIssueWhenEnabledScheduleHasNoRuntimeResult() {
+    fun derivesNextActionWhenEnabledScheduleHasNoRuntimeResult() {
         assertEquals(
             ScheduleRuntimeStatusSummary(
-                nextAction = null,
-                issue = ScheduleRuntimeIssue.PENDING,
+                nextAction = ScheduleRuntimeNextAction(
+                    type = ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE,
+                    boundary = nextBoundary,
+                ),
+                issue = null,
             ),
             ScheduleRuntimeStatusSummary.from(
                 schedule = readySchedule(),
                 result = null,
+                now = now,
             ),
         )
     }
@@ -51,13 +56,18 @@ class ScheduleRuntimeStatusSummaryTest {
             ScheduleRuntimeStatusSummary.from(
                 schedule = readySchedule(),
                 result = readyResult(nextBoundary = nextBoundary),
+                now = now,
             ),
         )
     }
 
     @Test
     fun returnsResumeNextActionForActiveBoundary() {
-        val activeBoundary = nextBoundary.copy(expectedState = WorkProfileScheduleExpectedState.ACTIVE)
+        val morningBeforeResume = ZonedDateTime.of(2026, 1, 5, 8, 0, 0, 0, zone)
+        val activeBoundary = WorkProfileScheduleBoundary(
+            at = ZonedDateTime.of(2026, 1, 5, 9, 0, 0, 0, zone),
+            expectedState = WorkProfileScheduleExpectedState.ACTIVE,
+        )
 
         assertEquals(
             ScheduleRuntimeStatusSummary(
@@ -70,12 +80,36 @@ class ScheduleRuntimeStatusSummaryTest {
             ScheduleRuntimeStatusSummary.from(
                 schedule = readySchedule(),
                 result = readyResult(nextBoundary = activeBoundary),
+                now = morningBeforeResume,
             ),
         )
     }
 
     @Test
-    fun returnsFailureIssueWithNextActionWhenRuntimeResultHasFailureAndBoundary() {
+    fun derivesFreshNextActionWhenRuntimeBoundaryIsStale() {
+        val staleBoundary = WorkProfileScheduleBoundary(
+            at = ZonedDateTime.of(2026, 1, 5, 9, 0, 0, 0, zone),
+            expectedState = WorkProfileScheduleExpectedState.ACTIVE,
+        )
+
+        assertEquals(
+            ScheduleRuntimeStatusSummary(
+                nextAction = ScheduleRuntimeNextAction(
+                    type = ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE,
+                    boundary = nextBoundary,
+                ),
+                issue = null,
+            ),
+            ScheduleRuntimeStatusSummary.from(
+                schedule = readySchedule(),
+                result = readyResult(nextBoundary = staleBoundary),
+                now = now,
+            ),
+        )
+    }
+
+    @Test
+    fun returnsFailureIssueWithDerivedNextActionWhenRuntimeResultHasFailure() {
         assertEquals(
             ScheduleRuntimeStatusSummary(
                 nextAction = ScheduleRuntimeNextAction(
@@ -87,23 +121,73 @@ class ScheduleRuntimeStatusSummaryTest {
             ScheduleRuntimeStatusSummary.from(
                 schedule = readySchedule(),
                 result = readyResult(
-                    nextBoundary = nextBoundary,
+                    nextBoundary = null,
                     failureCategory = ScheduleRuntimeFailureCategory.PERMISSION_MISSING,
                 ),
+                now = now,
             ),
         )
     }
 
     @Test
-    fun returnsPendingIssueWhenEnabledRuntimeResultHasNoBoundaryOrFailure() {
+    fun returnsScheduleIssueWhenScheduleIsIncomplete() {
         assertEquals(
             ScheduleRuntimeStatusSummary(
                 nextAction = null,
-                issue = ScheduleRuntimeIssue.PENDING,
+                issue = ScheduleRuntimeIssue.SCHEDULE_INCOMPLETE,
             ),
             ScheduleRuntimeStatusSummary.from(
-                schedule = readySchedule(),
-                result = readyResult(nextBoundary = null),
+                schedule = WorkProfileSchedule(
+                    enabled = true,
+                    resumeAt = ScheduleTime(hour = 9, minute = 0),
+                    pauseAt = null,
+                    activeDays = setOf(ScheduleDay.MONDAY),
+                ),
+                result = null,
+                now = now,
+            ),
+        )
+    }
+
+    @Test
+    fun returnsScheduleIssueWhenScheduleIsInvalid() {
+        assertEquals(
+            ScheduleRuntimeStatusSummary(
+                nextAction = null,
+                issue = ScheduleRuntimeIssue.SCHEDULE_INVALID,
+            ),
+            ScheduleRuntimeStatusSummary.from(
+                schedule = WorkProfileSchedule(
+                    enabled = true,
+                    resumeAt = ScheduleTime(hour = 9, minute = 0),
+                    pauseAt = ScheduleTime(hour = 9, minute = 0),
+                    activeDays = setOf(ScheduleDay.MONDAY),
+                ),
+                result = null,
+                now = now,
+            ),
+        )
+    }
+
+    @Test
+    fun returnsScheduleIssueBeforeStoredRuntimeFailureWhenScheduleIsInvalid() {
+        assertEquals(
+            ScheduleRuntimeStatusSummary(
+                nextAction = null,
+                issue = ScheduleRuntimeIssue.SCHEDULE_INVALID,
+            ),
+            ScheduleRuntimeStatusSummary.from(
+                schedule = WorkProfileSchedule(
+                    enabled = true,
+                    resumeAt = ScheduleTime(hour = 9, minute = 0),
+                    pauseAt = ScheduleTime(hour = 9, minute = 0),
+                    activeDays = setOf(ScheduleDay.MONDAY),
+                ),
+                result = readyResult(
+                    nextBoundary = null,
+                    failureCategory = ScheduleRuntimeFailureCategory.PERMISSION_MISSING,
+                ),
+                now = now,
             ),
         )
     }
