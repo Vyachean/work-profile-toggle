@@ -43,7 +43,12 @@ adb shell pm grant io.github.vyachean.workprofiletoggle android.permission.MODIF
 
 ## Exact alarm setup
 
-1. Temporarily revoke exact alarm access for the app on Android 12+.
+1. Temporarily revoke exact alarm access for the app on Android 12+:
+
+   ```sh
+   adb shell appops set io.github.vyachean.workprofiletoggle SCHEDULE_EXACT_ALARM deny
+   ```
+
 2. Open the app.
 3. Expected result: the Schedule section reports exact alarm access missing.
 4. Tap the settings button.
