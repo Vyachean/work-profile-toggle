@@ -125,4 +125,4 @@ jobs:
 
           # Tag pushes created with GITHUB_TOKEN do not trigger push workflows.
           # Use workflow_dispatch explicitly so the Release workflow starts without a PAT.
-          gh workflow run release.yml --ref main -f tag="$RELEASE_TAG"
+          gh workflow run Release --ref main -f tag="$RELEASE_TAG"
