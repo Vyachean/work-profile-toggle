@@ -3,7 +3,7 @@ package io.github.vyachean.workprofiletoggle
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class AndroidScheduleWorkProfileReconcilerTest {
+class DefaultScheduleWorkProfileReconcilerTest {
     @Test
     fun blocksWhenSelectedProfileIsUnavailable() {
         val fixture = fixture(
@@ -294,7 +294,7 @@ class AndroidScheduleWorkProfileReconcilerTest {
         )
         return Fixture(
             controller = controller,
-            reconciler = AndroidScheduleWorkProfileReconciler(controller),
+            reconciler = DefaultScheduleWorkProfileReconciler(controller),
         )
     }
 
@@ -316,7 +316,7 @@ class AndroidScheduleWorkProfileReconcilerTest {
 
     private data class Fixture(
         val controller: FakeScheduleWorkProfileController,
-        val reconciler: AndroidScheduleWorkProfileReconciler,
+        val reconciler: DefaultScheduleWorkProfileReconciler,
     )
 
     private class FakeScheduleWorkProfileController(

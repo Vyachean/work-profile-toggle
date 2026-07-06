@@ -75,12 +75,16 @@ internal class WorkProfileAppDependencies(
         quietModeController = quietModeController,
     )
 
-    private val scheduleWorkProfileReconciler: ScheduleWorkProfileReconciler by lazy {
-        AndroidScheduleWorkProfileReconciler(
+    private val scheduleWorkProfileController: ScheduleWorkProfileController by lazy {
+        AndroidScheduleWorkProfileController(
             workProfileRepository = workProfileRepository,
             quietModeController = quietModeController,
             actionDispatcher = actionDispatcher,
         )
+    }
+
+    private val scheduleWorkProfileReconciler: ScheduleWorkProfileReconciler by lazy {
+        DefaultScheduleWorkProfileReconciler(scheduleWorkProfileController)
     }
 
     val scheduleBoundaryHandler: ScheduleBoundaryHandler by lazy {
