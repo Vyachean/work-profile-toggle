@@ -6,7 +6,7 @@ Work Profile Toggle is an Android app for controlling an existing Android work p
 
 The main product goal is to provide a Digital Wellbeing-style work-profile schedule for devices where the built-in Google/OEM schedule feature is missing or unavailable.
 
-The app should provide a clear user-facing flow for pausing and resuming a work profile manually first, then add a reliable schedule experience when the scheduling runtime is implemented.
+The app should provide a clear setup flow for selecting and controlling a work profile manually, then keep that selected work profile aligned with the configured work-hours schedule.
 
 Advanced Android and automation details should remain available but secondary.
 
@@ -47,7 +47,7 @@ Avoid exposing these terms in the main user flow unless the user is in an advanc
 
 ## Product behavior target
 
-The schedule feature should model work-profile availability:
+The schedule feature models work-profile availability:
 
 - the user chooses the days when the schedule applies;
 - the user chooses when work hours start;
@@ -55,7 +55,8 @@ The schedule feature should model work-profile availability:
 - during work hours, the work profile should be active;
 - outside work hours, the work profile should be paused;
 - the user can still pause or resume manually;
-- the app should clearly communicate when schedule support is not active, blocked, unreliable, or missing required setup.
+- the next schedule boundary reconciles the selected profile back to the state expected by the saved schedule;
+- the app should clearly communicate when schedule support is disabled, incomplete, invalid, blocked, unreliable, or missing required setup.
 
 The schedule is not meant to be a generic automation engine. It is specifically for work-profile pause/resume.
 
@@ -68,8 +69,15 @@ The current app can:
 - pause, resume, or toggle the selected work profile after setup;
 - expose dynamic launcher shortcuts;
 - expose a legacy Android shortcut picker for automation apps;
-- store schedule settings for future work-profile schedule support;
-- persist the last action result;
+- save and run schedule settings for the selected work profile;
+- calculate same-day and overnight schedule boundaries;
+- schedule the next boundary through Android exact alarms;
+- block scheduling and show guidance when Android exact-alarm access is missing;
+- reconcile the selected work profile at a schedule boundary;
+- reschedule after handled boundaries, schedule changes, selected-profile changes, reboot, app update, manual time changes, timezone changes, and exact-alarm access changes;
+- persist the last manual action result;
+- persist the last schedule runtime result;
+- show schedule runtime status with the next scheduled action or the current blocking issue;
 - build stable CI debug APK artifacts;
 - publish signed release APKs after release secrets are configured.
 
@@ -90,11 +98,13 @@ It must not:
 
 ```text
 Setup required
-  -> grant required permission with ADB
+  -> grant required work-profile control permission with ADB
+  -> grant exact-alarm access when Android requires it
   -> select or auto-detect work profile
   -> show current state
-  -> pause or resume work profile
-  -> show persisted last action result
+  -> pause or resume work profile manually
+  -> configure schedule when needed
+  -> show persisted manual and schedule runtime status
 ```
 
 ## Schedule flow
@@ -102,30 +112,29 @@ Setup required
 Current state:
 
 ```text
-Schedule settings can be saved.
-Schedule runtime is not active yet.
-```
-
-Target state:
-
-```text
 Configure work days
   -> configure work start time
   -> configure work end time
   -> enable schedule
+  -> app checks exact-alarm access
+  -> app schedules the next boundary when setup is complete
   -> work profile is active during configured work hours
   -> work profile is paused outside configured work hours
-  -> app reports blocked or missed schedule changes clearly
+  -> app reports the next scheduled action or the current blocked state
 ```
+
+The runtime is implemented as a baseline and is still in real-device validation. It should not be described as fully release-ready until the smoke-test checklist is completed on real devices.
 
 ## Advanced flow
 
 Advanced or diagnostic surfaces may expose:
 
 - ADB setup details;
+- exact-alarm access details;
 - raw profile data;
 - shortcut compatibility details;
 - diagnostic errors;
-- last action result details.
+- last action result details;
+- last schedule runtime result details.
 
 These details should not dominate the Home screen.
