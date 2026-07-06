@@ -106,7 +106,7 @@ class HomeUiStateFactoryTest {
     }
 
     @Test
-    fun exposesIncompleteScheduleControlsState() {
+    fun exposesIncompleteScheduleEditorState() {
         val state = HomeUiStateFactory.from(
             input = input(
                 schedule = WorkProfileSchedule(
@@ -121,8 +121,8 @@ class HomeUiStateFactoryTest {
 
         assertTrue(state.schedule.configured)
         assertEquals(HomeScheduleSavedState.DISABLED, state.schedule.savedState)
-        assertFalse(state.schedule.enableToggleAvailable)
-        assertTrue(state.schedule.showEnableRequirements)
+        assertNull(state.schedule.editor.enableToggle)
+        assertTrue(state.schedule.editor.showEnableRequirements)
     }
 
     @Test
