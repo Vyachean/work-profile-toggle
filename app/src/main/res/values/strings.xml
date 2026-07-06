@@ -30,6 +30,9 @@
     <string name="schedule_exact_alarm_missing_description">Automatic scheduling needs Alarms &amp; reminders access to switch the work profile at the configured time.</string>
     <string name="schedule_open_app_settings">Open app settings</string>
     <string name="schedule_exact_alarm_settings_unavailable">Could not open app settings.</string>
+    <string name="copy_schedule_diagnostics">Copy schedule diagnostics</string>
+    <string name="schedule_diagnostics_clip_label">Schedule diagnostics</string>
+    <string name="schedule_diagnostics_copied">Schedule diagnostics copied.</string>
     <string name="schedule_pause_at">Pause at: %1$s</string>
     <string name="schedule_resume_at">Resume at: %1$s</string>
     <string name="schedule_active_days">Active days: %1$s</string>
