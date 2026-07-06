@@ -24,12 +24,10 @@ import androidx.compose.ui.unit.dp
 import io.github.vyachean.workprofiletoggle.HomePrimaryState
 import io.github.vyachean.workprofiletoggle.HomeScheduleSavedState
 import io.github.vyachean.workprofiletoggle.HomeUiState
+import io.github.vyachean.workprofiletoggle.ScheduleDateTimeFormatter
 import io.github.vyachean.workprofiletoggle.ScheduleEditorEnableToggleAction
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeIssue
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextActionType
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 internal data class HomeScreenActions(
     val onCheckAgain: () -> Unit,
@@ -183,11 +181,7 @@ private fun ScheduleCard(
             )
             state.schedule.runtimeStatus?.nextAction?.let { nextAction ->
                 val formattedBoundary = remember(nextAction.boundary.at) {
-                    val formatter = DateTimeFormatter.ofLocalizedDateTime(
-                        FormatStyle.MEDIUM,
-                        FormatStyle.SHORT,
-                    ).withZone(ZoneId.systemDefault())
-                    nextAction.boundary.at.format(formatter)
+                    ScheduleDateTimeFormatter.formatForDisplay(nextAction.boundary.at)
                 }
                 Text(
                     text = when (nextAction.type) {
