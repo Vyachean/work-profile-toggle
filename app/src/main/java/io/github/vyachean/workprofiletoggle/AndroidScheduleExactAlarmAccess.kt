@@ -2,10 +2,13 @@ package io.github.vyachean.workprofiletoggle
 
 import android.app.AlarmManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 
 internal class AndroidScheduleExactAlarmAccess(
-    context: Context,
+    private val context: Context,
 ) {
     private val appContext: Context = context.applicationContext
 
@@ -18,5 +21,18 @@ internal class AndroidScheduleExactAlarmAccess(
                 alarmManager.canScheduleExactAlarms()
             },
         )
+    }
+
+    fun openAppSettings(): Boolean {
+        return try {
+            context.startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${appContext.packageName}")
+                },
+            )
+            true
+        } catch (exception: RuntimeException) {
+            false
+        }
     }
 }
