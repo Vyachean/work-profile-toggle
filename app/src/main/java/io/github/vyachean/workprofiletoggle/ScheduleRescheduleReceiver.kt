@@ -5,11 +5,15 @@ import android.content.Context
 import android.content.Intent
 import java.util.concurrent.Executors
 
+internal const val ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_CHANGED =
+    "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"
+
 internal val SCHEDULE_RESCHEDULE_ACTIONS: Set<String> = setOf(
     Intent.ACTION_BOOT_COMPLETED,
     Intent.ACTION_MY_PACKAGE_REPLACED,
     Intent.ACTION_TIME_CHANGED,
     Intent.ACTION_TIMEZONE_CHANGED,
+    ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_CHANGED,
 )
 
 internal fun isScheduleRescheduleAction(action: String?): Boolean {
