@@ -252,7 +252,7 @@ class MainActivity : Activity() {
                 })
             }
         }
-        renderScheduleControls(state, schedule)
+        renderScheduleControls(state.editor, schedule)
         content.addView(textView(getString(R.string.schedule_future_note)))
     }
 
@@ -325,13 +325,13 @@ class MainActivity : Activity() {
     }
 
     private fun renderScheduleControls(
-        state: HomeScheduleUiState,
+        state: ScheduleEditorUiState,
         schedule: WorkProfileSchedule,
     ) {
         content.addView(button(getString(R.string.schedule_set_pause_time)) {
             showScheduleTimePicker(
                 title = getString(R.string.schedule_set_pause_time),
-                initialTime = schedule.pauseAt ?: ScheduleTime(hour = 18, minute = 0),
+                initialTime = state.pauseInitialTime,
             ) { selectedTime ->
                 saveSchedule(schedule.copy(pauseAt = selectedTime))
             }
@@ -339,7 +339,7 @@ class MainActivity : Activity() {
         content.addView(button(getString(R.string.schedule_set_resume_time)) {
             showScheduleTimePicker(
                 title = getString(R.string.schedule_set_resume_time),
-                initialTime = schedule.resumeAt ?: ScheduleTime(hour = 9, minute = 0),
+                initialTime = state.resumeInitialTime,
             ) { selectedTime ->
                 saveSchedule(schedule.copy(resumeAt = selectedTime))
             }
@@ -347,22 +347,27 @@ class MainActivity : Activity() {
         content.addView(button(getString(R.string.schedule_choose_active_days)) {
             showScheduleDaysPicker(schedule)
         })
-        if (state.configured) {
-            if (state.enableToggleAvailable) {
-                content.addView(
-                    button(
-                        if (schedule.enabled) {
-                            getString(R.string.schedule_disable)
-                        } else {
-                            getString(R.string.schedule_enable)
-                        },
-                    ) {
-                        saveSchedule(schedule.copy(enabled = !schedule.enabled))
+        state.enableToggle?.let { toggle ->
+            content.addView(
+                button(
+                    when (toggle.action) {
+                        ScheduleEditorEnableToggleAction.ENABLE -> getString(R.string.schedule_enable)
+                        ScheduleEditorEnableToggleAction.DISABLE -> getString(R.string.schedule_disable)
                     },
-                )
-            } else if (state.showEnableRequirements) {
+                ) {
+                    saveSchedule(
+                        schedule.copy(
+                            enabled = toggle.action == ScheduleEditorEnableToggleAction.ENABLE,
+                        ),
+                    )
+                },
+            )
+        } ?: run {
+            if (state.showEnableRequirements) {
                 content.addView(textView(getString(R.string.schedule_enable_requirements)))
             }
+        }
+        if (state.canClear) {
             content.addView(button(getString(R.string.schedule_clear)) {
                 clearSchedule()
             })
