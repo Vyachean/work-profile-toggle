@@ -81,7 +81,7 @@ internal class AndroidScheduleWorkProfileController(
 
     private fun ScheduleWorkProfileHandle.requireAndroidHandle(): AndroidScheduleWorkProfileHandle {
         return requireNotNull(this as? AndroidScheduleWorkProfileHandle) {
-            "Unsupported schedule work profile handle: ${this::class.java.name}"
+            "Unsupported schedule work profile handle"
         }
     }
 }
@@ -102,7 +102,7 @@ internal class AndroidScheduleWorkProfileReconciler(
     )
 
     override fun reconcile(expectedState: WorkProfileScheduleExpectedState): ScheduleWorkProfileReconciliation {
-        val selectedProfile = when (controller.resolveSelectedProfile()) {
+        val selectedProfile = when (val resolution = controller.resolveSelectedProfile()) {
             ScheduleWorkProfileResolution.Unavailable -> return blocked(
                 selectedProfileStatus = ScheduleRuntimeProfileStatus.UNAVAILABLE,
                 failureCategory = ScheduleRuntimeFailureCategory.WORK_PROFILE_UNAVAILABLE,
@@ -111,10 +111,10 @@ internal class AndroidScheduleWorkProfileReconciler(
                 selectedProfileStatus = ScheduleRuntimeProfileStatus.MISSING,
                 failureCategory = ScheduleRuntimeFailureCategory.SELECTED_PROFILE_MISSING,
             )
-            is ScheduleWorkProfileResolution.Selected -> controller.resolveSelectedProfile()
+            is ScheduleWorkProfileResolution.Selected -> resolution
         }
 
-        val selectedHandle = (selectedProfile as ScheduleWorkProfileResolution.Selected).handle
+        val selectedHandle = selectedProfile.handle
         val expectedQuietMode = expectedState.toQuietModeEnabled()
         val currentQuietMode = controller.isQuietModeEnabled(selectedHandle)
             .getOrElse { error ->
