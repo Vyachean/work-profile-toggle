@@ -23,7 +23,7 @@ class ScheduleBoundaryPlannerTest {
         assertEquals(
             listOf(
                 BackendCall.Cancel,
-                BackendCall.SetInexact(expectedBoundary.at.toInstant().toEpochMilli()),
+                BackendCall.SetExact(expectedBoundary.at.toInstant().toEpochMilli()),
             ),
             fixture.backend.calls,
         )
@@ -38,6 +38,24 @@ class ScheduleBoundaryPlannerTest {
                 nextBoundary = expectedBoundary,
                 failureCategory = null,
             ),
+            fixture.runtimeResultStore.load(),
+        )
+    }
+
+    @Test
+    fun storesExactAlarmMissingResultWhenExactAlarmAccessIsMissing() {
+        val fixture = fixture(canScheduleExactAlarms = false)
+        fixture.scheduleStore.save(readySchedule())
+
+        val result = fixture.planner.refresh()
+
+        assertEquals(
+            ScheduleBoundaryPlanResult.Failed(ScheduleRuntimeFailureCategory.EXACT_ALARM_ACCESS_MISSING),
+            result,
+        )
+        assertEquals(emptyList<BackendCall>(), fixture.backend.calls)
+        assertEquals(
+            failedResult(ScheduleRuntimeFailureCategory.EXACT_ALARM_ACCESS_MISSING),
             fixture.runtimeResultStore.load(),
         )
     }
@@ -130,7 +148,7 @@ class ScheduleBoundaryPlannerTest {
 
     @Test
     fun storesAndroidRejectedResultWhenSchedulingFails() {
-        val fixture = fixture(setInexactFailure = RuntimeException("Alarm rejected"))
+        val fixture = fixture(setExactFailure = RuntimeException("Alarm rejected"))
         fixture.scheduleStore.save(readySchedule())
 
         val result = fixture.planner.refresh()
@@ -142,7 +160,7 @@ class ScheduleBoundaryPlannerTest {
         assertEquals(
             listOf(
                 BackendCall.Cancel,
-                BackendCall.SetInexact(boundaryAt(hour = 17).at.toInstant().toEpochMilli()),
+                BackendCall.SetExact(boundaryAt(hour = 17).at.toInstant().toEpochMilli()),
             ),
             fixture.backend.calls,
         )
@@ -184,15 +202,17 @@ class ScheduleBoundaryPlannerTest {
     }
 
     private fun fixture(
+        canScheduleExactAlarms: Boolean = true,
         cancelFailure: RuntimeException? = null,
-        setInexactFailure: RuntimeException? = null,
+        setExactFailure: RuntimeException? = null,
     ): Fixture {
         val keyValueStore = InMemoryKeyValueStore()
         val scheduleStore = WorkProfileScheduleStore(keyValueStore)
         val runtimeResultStore = ScheduleRuntimeResultStore(keyValueStore)
         val backend = FakeScheduleAlarmBackend(
+            canScheduleExactAlarms = canScheduleExactAlarms,
             cancelFailure = cancelFailure,
-            setInexactFailure = setInexactFailure,
+            setExactFailure = setExactFailure,
         )
         val alarmScheduler = ScheduleAlarmScheduler(backend = backend, clock = clock)
         return Fixture(
@@ -267,22 +287,23 @@ class ScheduleBoundaryPlannerTest {
     )
 
     private class FakeScheduleAlarmBackend(
+        private val canScheduleExactAlarms: Boolean = true,
         private val cancelFailure: RuntimeException? = null,
-        private val setInexactFailure: RuntimeException? = null,
+        private val setExactFailure: RuntimeException? = null,
     ) : ScheduleAlarmBackend {
         val calls = mutableListOf<BackendCall>()
 
         override fun canScheduleExactAlarms(): Boolean {
-            return true
+            return canScheduleExactAlarms
         }
 
         override fun setInexact(triggerAtEpochMillis: Long) {
             calls.add(BackendCall.SetInexact(triggerAtEpochMillis))
-            setInexactFailure?.let { failure -> throw failure }
         }
 
         override fun setExact(triggerAtEpochMillis: Long) {
             calls.add(BackendCall.SetExact(triggerAtEpochMillis))
+            setExactFailure?.let { failure -> throw failure }
         }
 
         override fun cancel() {
