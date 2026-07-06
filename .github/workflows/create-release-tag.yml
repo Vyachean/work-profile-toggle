@@ -60,10 +60,34 @@ jobs:
             if git show "$BEFORE_SHA:app/build.gradle.kts" > "$previous_build_file" 2>/dev/null; then
               previous_version_name="$(extract_version_name "$previous_build_file")"
               previous_version_code="$(extract_version_code "$previous_build_file")"
-              if [ "$previous_version_name" = "$version_name" ] && [ "$previous_version_code" = "$version_code" ]; then
-                echo "app/build.gradle.kts changed, but versionName/versionCode did not. No release tag will be created."
-                echo "SKIP_RELEASE_TAG=true" >> "$GITHUB_ENV"
-                exit 0
+
+              if [ -z "$previous_version_name" ]; then
+                echo "Could not read previous versionName from app/build.gradle.kts." >&2
+                exit 1
+              fi
+              if [ -z "$previous_version_code" ]; then
+                echo "Could not read previous versionCode from app/build.gradle.kts." >&2
+                exit 1
+              fi
+
+              if [ "$previous_version_name" = "$version_name" ]; then
+                if [ "$previous_version_code" = "$version_code" ]; then
+                  echo "app/build.gradle.kts changed, but versionName/versionCode did not. No release tag will be created."
+                  echo "SKIP_RELEASE_TAG=true" >> "$GITHUB_ENV"
+                  exit 0
+                fi
+
+                echo "versionCode changed without a versionName change. Stable release tags are based on versionName." >&2
+                echo "Previous: versionName=$previous_version_name versionCode=$previous_version_code" >&2
+                echo "Current:  versionName=$version_name versionCode=$version_code" >&2
+                exit 1
+              fi
+
+              if [ "$version_code" -le "$previous_version_code" ]; then
+                echo "versionCode must increase when versionName changes." >&2
+                echo "Previous: versionName=$previous_version_name versionCode=$previous_version_code" >&2
+                echo "Current:  versionName=$version_name versionCode=$version_code" >&2
+                exit 1
               fi
             fi
           fi
