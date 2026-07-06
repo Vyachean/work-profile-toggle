@@ -1,6 +1,6 @@
 # Work Profile Toggle
 
-Android app for controlling an existing work profile. It can pause and resume a work profile after the required ADB-granted permission is available, and it can run a simple work-hours schedule using Android alarms. The main product goal is to provide a Digital Wellbeing-style work-profile schedule for devices where the built-in Google/OEM schedule feature is missing or unavailable.
+Android app for controlling an existing work profile. It can pause and resume a work profile after the required ADB-granted permission is available, and it can run a simple work-hours schedule using Android exact alarms. The main product goal is to provide a Digital Wellbeing-style work-profile schedule for devices where the built-in Google/OEM schedule feature is missing or unavailable.
 
 ## Scope
 
@@ -13,7 +13,7 @@ The app is intentionally focused:
 - Provide dynamic launcher shortcuts for supported launchers.
 - Provide a legacy Android shortcut picker for automation apps such as MacroDroid.
 - Store and run schedule settings for the selected work profile.
-- Reschedule the next work-profile boundary after reboot, app update, manual time change, and timezone change.
+- Reschedule the next work-profile boundary after reboot, app update, manual time change, timezone change, and exact alarm access changes.
 
 ## Non-goals
 
@@ -32,6 +32,7 @@ This app is not a Shelter, Island, or work-profile manager replacement. It must 
 - [Roadmap](docs/roadmap.md)
 - [Screenshots plan](docs/screenshots.md)
 - [Release process](docs/release.md)
+- [Release smoke test](docs/smoke-test.md)
 - [Documentation maintenance](docs/maintenance.md)
 
 ## Screenshots
@@ -126,6 +127,20 @@ To revoke the permission:
 adb shell pm revoke io.github.vyachean.workprofiletoggle android.permission.MODIFY_QUIET_MODE
 ```
 
+## Exact alarm access
+
+Automatic scheduling uses Android exact alarms so work-profile boundaries are applied close to the configured time. On Android 12 and newer, Android may require explicit special access for exact alarms.
+
+The app shows the exact alarm access state in the Schedule section:
+
+```text
+Exact alarm access: Granted
+Exact alarm access: Missing
+Exact alarm access: Not required on this Android version
+```
+
+When access is missing, the saved schedule is blocked and the app shows a settings button. Grant exact alarm access in Android settings, then return to the app. The app refreshes schedule planning after returning from settings and when Android broadcasts exact-alarm access changes.
+
 ## Work-profile schedule
 
 The schedule feature applies one selected work profile state at configured boundaries:
@@ -135,7 +150,7 @@ inside configured work hours  -> work profile active
 outside configured work hours -> work profile paused
 ```
 
-The current runtime uses Android inexact alarms. This keeps the implementation simple and avoids Android exact-alarm special access, but Android battery restrictions may delay schedule boundaries. The app recalculates and reschedules the next boundary after schedule changes, selected-profile changes, device reboot, app update, manual time changes, and timezone changes.
+The runtime schedules the next boundary with an exact Android alarm, executes that boundary, recalculates the next boundary, and stores the latest runtime status. It also recalculates and reschedules after schedule changes, selected-profile changes, device reboot, app update, manual time changes, timezone changes, and exact alarm access changes.
 
 Manual pause and resume actions remain available. The next schedule boundary reconciles the selected profile back to the state expected by the saved schedule.
 
@@ -150,6 +165,8 @@ Supported launchers can show the app's dynamic shortcuts through the app icon co
 - Toggle work profile.
 
 The owner profile is intentionally skipped.
+
+Dynamic launcher shortcuts run through a no-display action activity and are intended to switch quiet mode without bringing Work Profile Toggle to the foreground.
 
 ## MacroDroid and automation apps
 
@@ -245,9 +262,9 @@ chmod +x ./gradlew
 
 ## Development status
 
-The project currently contains an Android application proving profile discovery, quiet-mode control through an ADB-granted permission, dynamic launcher shortcuts, MacroDroid-compatible legacy shortcuts, inexact-alarm schedule runtime, schedule runtime status, stable CI debug APK updates, and release APK publishing infrastructure.
+The project currently contains an Android application proving profile discovery, quiet-mode control through an ADB-granted permission, dynamic launcher shortcuts, MacroDroid-compatible legacy shortcuts, exact-alarm schedule runtime, exact-alarm setup status, schedule runtime status, stable CI debug APK updates, and release APK publishing infrastructure.
 
-The first signed release still requires running `Create release tag`, checking the generated signed APK, and validating schedule runtime behavior on a real device.
+The signed `v0.1.3` release was validated on a real device for manual quiet-mode actions, exact alarm setup, schedule execution, shortcut behavior, and next-action status refresh.
 
 ## License
 
