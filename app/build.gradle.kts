@@ -16,6 +16,10 @@ android {
         versionName = "0.1.3"
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     signingConfigs {
         getByName("debug") {
             val ciDebugKeystorePath = providers.gradleProperty("ciDebugKeystorePath")
