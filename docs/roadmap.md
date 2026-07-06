@@ -4,7 +4,7 @@ This roadmap records the current development direction. It should be updated whe
 
 ## Current baseline
 
-The app currently supports manual and scheduled work-profile control after ADB setup:
+The app currently supports manual and scheduled work-profile control after setup:
 
 - setup-first Home screen;
 - persisted selected work profile;
@@ -14,11 +14,12 @@ The app currently supports manual and scheduled work-profile control after ADB s
 - persisted last manual action result;
 - saved schedule settings;
 - schedule boundary calculation for same-day and overnight work windows;
-- inexact Android alarm scheduling for the next schedule boundary;
+- exact Android alarm scheduling for the next schedule boundary;
+- exact-alarm access checks and user-facing blocked state;
 - bounded asynchronous schedule-boundary reconciliation through a broadcast receiver;
 - persisted last schedule runtime result;
 - user-facing schedule runtime status with next action or issue;
-- schedule rescheduling after app update, device reboot, manual time change, and timezone change;
+- schedule rescheduling after app update, device reboot, manual time change, timezone change, selected-profile changes, schedule changes, and exact-alarm access changes;
 - CI debug APK artifacts;
 - release APK workflow infrastructure.
 
@@ -109,26 +110,27 @@ Implemented baseline:
 - Local schedule calculation from saved days/start/end settings.
 - Same-day and overnight active windows.
 - Invalid and incomplete schedule blocking.
-- Inexact Android alarm scheduling for the next boundary.
+- Exact Android alarm scheduling for the next boundary.
+- Exact-alarm access status and setup guidance on Android versions that require it.
 - Alarm receiver that reconciles the selected work profile to the expected state.
 - Next-boundary rescheduling after each handled boundary.
 - Runtime result persistence for diagnostics and UI status.
-- Rescheduling after reboot, app update, manual time change, and timezone change.
+- Rescheduling after reboot, app update, manual time change, timezone change, schedule changes, selected-profile changes, and exact-alarm access changes.
 
 Current limitations:
 
 - Runtime behavior still needs repeated real-device validation across Android/OEM variants.
-- The first implementation uses inexact alarms, so Android battery restrictions may delay boundaries.
-- Exact-alarm mode is not enabled.
+- Android 12+ exact-alarm special access can block scheduling until the user grants it.
+- Exact alarms can still be affected by OEM background restrictions and platform behavior.
 - Direct Boot support is not enabled; the app uses normal credential-protected app storage.
 - Schedule UI is functional but not yet a polished setup-first flow.
 
 Remaining work before this stage is complete:
 
 - Manual smoke test on a real device with an actual work profile.
-- Better setup/status guidance for permission missing, selected profile missing, credential required, and Android request rejected states.
+- Better setup/status guidance for permission missing, selected profile missing, credential required, Android request rejected, and exact-alarm access missing states.
 - Diagnostics wording and copyable advanced details for blocked schedule runs.
-- Decide whether exact alarms are worth the Android special-access UX cost.
+- Decide whether an inexact fallback mode is useful for users who cannot or do not want to grant exact-alarm access.
 
 Status: in progress.
 
@@ -156,3 +158,4 @@ Status: planned.
 - Decide between Compose Material 3 and Material Components Views.
 - Add stronger automated coverage for schedule editor validation.
 - Improve diagnostics wording and copyable error details.
+- Evaluate whether an optional inexact fallback should exist for devices where exact-alarm access is unavailable.
