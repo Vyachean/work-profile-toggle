@@ -236,6 +236,9 @@ class MainActivity : Activity() {
             content.addView(textView(getString(R.string.schedule_resume_at, formatScheduleTime(schedule.resumeAt))))
             content.addView(textView(getString(R.string.schedule_active_days, formatScheduleDays(schedule.activeDays))))
             renderScheduleRuntimeStatus(schedule, runtimeResult)
+            content.addView(button(getString(R.string.copy_schedule_diagnostics)) {
+                copyScheduleDiagnostics(schedule, runtimeResult, exactAlarmAccessState)
+            })
         }
         renderScheduleControls(schedule)
         content.addView(textView(getString(R.string.schedule_future_note)))
@@ -651,6 +654,28 @@ class MainActivity : Activity() {
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText(getString(R.string.setup_title), setupText()))
         Toast.makeText(this, getString(R.string.setup_text_copied), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun copyScheduleDiagnostics(
+        schedule: WorkProfileSchedule,
+        runtimeResult: ScheduleRuntimeResult?,
+        exactAlarmAccessState: ScheduleExactAlarmAccessState,
+    ) {
+        val diagnostics = ScheduleRuntimeDiagnosticsFormatter.format(
+            appVersionName = "unknown",
+            currentTime = ZonedDateTime.now(),
+            schedule = schedule,
+            exactAlarmAccessState = exactAlarmAccessState,
+            runtimeResult = runtimeResult,
+        )
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(
+            ClipData.newPlainText(
+                getString(R.string.schedule_diagnostics_clip_label),
+                diagnostics,
+            ),
+        )
+        Toast.makeText(this, getString(R.string.schedule_diagnostics_copied), Toast.LENGTH_SHORT).show()
     }
 
     private fun setLastResult(result: String) {
