@@ -46,7 +46,7 @@
     <string name="schedule_save">Save</string>
     <string name="schedule_saved">Schedule saved.</string>
     <string name="schedule_cleared">Schedule cleared.</string>
-    <string name="schedule_future_note">Automatic scheduling uses Android alarms and may be delayed by battery restrictions.</string>
+    <string name="schedule_future_note">Automatic scheduling uses exact Android alarms. On Android 12 and newer, enable Alarms &amp; reminders if the schedule reports exact alarm access missing.</string>
     <string name="advanced_title">Advanced</string>
     <string name="diagnostics_title">Diagnostics</string>
     <string name="adb_setup_title">ADB setup</string>

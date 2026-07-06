@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <uses-permission
         android:name="android.permission.MODIFY_QUIET_MODE"
@@ -18,7 +19,10 @@
             android:name=".QuietModeActionActivity"
             android:excludeFromRecents="true"
             android:exported="true"
+            android:finishOnTaskLaunch="true"
+            android:launchMode="singleTask"
             android:noHistory="true"
+            android:taskAffinity="io.github.vyachean.workprofiletoggle.action"
             android:theme="@style/NoDisplayTheme" />
 
         <activity
@@ -42,6 +46,7 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
             </intent-filter>
         </receiver>
 

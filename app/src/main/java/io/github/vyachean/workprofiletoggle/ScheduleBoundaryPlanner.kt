@@ -43,7 +43,7 @@ internal class ScheduleBoundaryPlanner(
     ): ScheduleBoundaryPlanResult {
         val request = ScheduleAlarmRequest(
             triggerAt = calculation.nextBoundary.at,
-            precision = ScheduleAlarmPrecision.INEXACT,
+            precision = ScheduleAlarmPrecision.EXACT,
         )
         return when (val result = alarmScheduler.schedule(request)) {
             is ScheduleAlarmScheduleResult.Scheduled -> {
