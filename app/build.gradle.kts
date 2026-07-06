@@ -56,6 +56,9 @@ android {
 dependencies {
     implementation("androidx.compose.material3:material3:1.4.0")
     implementation("androidx.compose.ui:ui:1.10.6")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.10.6")
+
+    debugImplementation("androidx.compose.ui:ui-tooling:1.10.6")
 
     testImplementation("junit:junit:4.13.2")
 }
