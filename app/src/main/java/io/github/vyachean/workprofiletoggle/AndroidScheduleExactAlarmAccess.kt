@@ -13,14 +13,16 @@ internal class AndroidScheduleExactAlarmAccess(
     private val appContext: Context = context.applicationContext
 
     fun state(): ScheduleExactAlarmAccessState {
-        return resolveScheduleExactAlarmAccess(
-            sdkInt = Build.VERSION.SDK_INT,
-            exactAlarmAccessIntroducedSdkInt = Build.VERSION_CODES.S,
-            canScheduleExactAlarms = {
-                val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-                alarmManager.canScheduleExactAlarms()
-            },
-        )
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return ScheduleExactAlarmAccessState.NOT_REQUIRED
+        }
+
+        val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        return if (alarmManager.canScheduleExactAlarms()) {
+            ScheduleExactAlarmAccessState.GRANTED
+        } else {
+            ScheduleExactAlarmAccessState.MISSING
+        }
     }
 
     fun openAppSettings(): Boolean {
