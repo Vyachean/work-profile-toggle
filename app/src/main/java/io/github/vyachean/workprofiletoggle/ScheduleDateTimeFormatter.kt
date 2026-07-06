@@ -7,17 +7,19 @@ import java.time.format.FormatStyle
 import java.util.Locale
 
 internal object ScheduleDateTimeFormatter {
+    private val baseFormatter = DateTimeFormatter.ofLocalizedDateTime(
+        FormatStyle.MEDIUM,
+        FormatStyle.SHORT,
+    )
+
     fun formatForDisplay(
         dateTime: ZonedDateTime,
         zoneId: ZoneId = ZoneId.systemDefault(),
         locale: Locale = Locale.getDefault(),
     ): String {
-        val formatter = DateTimeFormatter.ofLocalizedDateTime(
-            FormatStyle.MEDIUM,
-            FormatStyle.SHORT,
-        )
+        return baseFormatter
             .withLocale(locale)
             .withZone(zoneId)
-        return formatter.format(dateTime)
+            .format(dateTime)
     }
 }
