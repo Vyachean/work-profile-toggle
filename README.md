@@ -1,271 +1,82 @@
 # Work Profile Toggle
 
-Android app for controlling an existing work profile. It can pause and resume a work profile after the required ADB-granted permission is available, and it can run a simple work-hours schedule using Android exact alarms. The main product goal is to provide a Digital Wellbeing-style work-profile schedule for devices where the built-in Google/OEM schedule feature is missing or unavailable.
+Android app for pausing, resuming, and scheduling an existing Android work profile.
 
-## Scope
+The main goal is to provide a Digital Wellbeing-style work-profile schedule for devices where the built-in Google or OEM schedule feature is missing or unavailable.
 
-The app is intentionally focused:
+## Status
 
-- List switchable Android work profiles associated with the current user.
-- Pause a selected work profile.
-- Resume a selected work profile.
-- Toggle the selected work profile state.
-- Provide dynamic launcher shortcuts for supported launchers.
-- Provide a legacy Android shortcut picker for automation apps such as MacroDroid.
-- Store and run schedule settings for the selected work profile.
-- Reschedule the next work-profile boundary after reboot, app update, manual time change, timezone change, and exact alarm access changes.
+Work Profile Toggle is an early MVP under real-device validation.
 
-## Non-goals
+Current validated baseline:
 
-This app is not a Shelter, Island, or work-profile manager replacement. It must not:
+- manual pause and resume work after the required ADB-granted permission is available;
+- schedule settings are persisted;
+- the app can plan and run work-profile schedule boundaries with Android exact alarms;
+- device and OEM behavior still needs broader validation.
 
-- Create, provision, or delete profiles.
-- Install, clone, freeze, or manage apps inside a profile.
-- Replace Android enterprise/work-profile provisioning tools.
-- Duplicate Tasker, MacroDroid, or launcher functionality.
-- Become a generic task scheduler or automation engine.
-- Add broad device-management policies unrelated to work-profile pause/resume.
+## Who it is for
 
-## Project documentation
+This app is for users who:
 
-- [Product model](docs/product.md)
-- [Roadmap](docs/roadmap.md)
-- [Screenshots plan](docs/screenshots.md)
-- [Release process](docs/release.md)
-- [Release smoke test](docs/smoke-test.md)
-- [Documentation maintenance](docs/maintenance.md)
+- already have an Android work profile;
+- want that work profile to be active during chosen work hours and paused outside them;
+- do not have a suitable built-in work-profile schedule feature on their device;
+- can grant the required protected Android permission with ADB.
+
+## What it does
+
+- Lists switchable Android work profiles associated with the current user.
+- Pauses or resumes the selected work profile.
+- Toggles the selected work profile state.
+- Stores and runs work-hours schedule settings.
+- Provides launcher shortcuts and legacy Android shortcuts for automation apps such as MacroDroid.
+- Reschedules the next work-profile boundary after reboot, app update, manual time change, timezone change, and exact-alarm access changes.
+
+## What it does not do
+
+Work Profile Toggle is not a Shelter, Island, or Android enterprise management replacement.
+
+It does not:
+
+- create, provision, or delete work profiles;
+- install, clone, freeze, or manage apps inside a profile;
+- replace Android enterprise/work-profile provisioning tools;
+- duplicate Tasker, MacroDroid, or launcher functionality;
+- act as a generic task scheduler or automation engine.
 
 ## Screenshots
 
 Stable README screenshots should be committed under `docs/screenshots/` and linked from this section.
 
-Automatic screenshot generation is planned, but it should be implemented as deterministic screenshot tests, not as ad-hoc emulator screen captures. See [Screenshots plan](docs/screenshots.md).
+Automatic screenshot generation is planned as deterministic screenshot tests. See [Screenshots plan](docs/screenshots.md).
 
-## Platform assumptions
+## Install and setup
 
-The implementation is based on Android profile quiet-mode APIs:
-
-- `UserManager.getUserProfiles()` for associated user/profile handles.
-- `UserManager.isQuietModeEnabled(UserHandle)` for current quiet-mode state.
-- `UserManager.requestQuietModeEnabled(...)` for changing quiet mode.
-
-Verified constraints:
-
-- Profile discovery and quiet-mode readback work from a regular APK.
-- Changing quiet mode from a regular APK requires additional access.
-- ADB-granted `android.permission.MODIFY_QUIET_MODE` was verified to allow `UserManager.requestQuietModeEnabled(...)` on a real device.
-- Disabling quiet mode may require user credentials and can return `false`.
-- Profile display names may not be available to ordinary apps, so shortcuts use stable technical labels.
-- The owner profile is hidden because Android does not allow toggling quiet mode for it.
-- Devices and OEM ROMs may behave differently.
-
-## Package name
+Package name:
 
 ```text
 io.github.vyachean.workprofiletoggle
 ```
 
-## Install a development APK
-
-Download the `work-profile-toggle-debug-apk` artifact from the latest successful GitHub Actions run on `main`, then extract `app-debug.apk`.
-
-Install for the first time:
-
-```sh
-adb install app-debug.apk
-```
-
-Update an existing development install:
-
-```sh
-adb install -r app-debug.apk
-```
-
-If Android reports `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, the currently installed APK was signed with a different key. Remove it once, then install the current debug APK again:
-
-```sh
-adb uninstall io.github.vyachean.workprofiletoggle
-adb install app-debug.apk
-```
-
-After installing or reinstalling, grant the required permission again.
-
-## ADB permission setup
-
-The app is intended for advanced users. Quiet-mode write access requires the protected Android permission `android.permission.MODIFY_QUIET_MODE`.
-
-Grant the permission from a computer with ADB:
-
-```sh
-adb shell pm grant io.github.vyachean.workprofiletoggle android.permission.MODIFY_QUIET_MODE
-```
-
-Verify that the permission is granted:
-
-```sh
-adb shell "dumpsys package io.github.vyachean.workprofiletoggle | grep MODIFY_QUIET_MODE"
-```
-
-The output should show `granted=true` for `android.permission.MODIFY_QUIET_MODE`.
-
-Expected successful setup behavior:
-
-- The app can list associated profile handles.
-- The app can read quiet-mode state.
-- Quiet-mode actions return `true` when Android accepts the requested state change.
-- The schedule runtime can apply the expected work-profile state at schedule boundaries.
-
-Known failure modes:
-
-- `SecurityException: Can't modify quiet mode, caller is neither foreground default launcher nor has MANAGE_USERS/MODIFY_QUIET_MODE permission` means the permission is missing or was not accepted by the device.
-- `pm grant` can fail on some devices or ROMs because `MODIFY_QUIET_MODE` is a protected permission. Some OEM Android distributions require additional developer options for privileged ADB operations; for example, Xiaomi/MIUI devices may require enabling `USB Debugging (Security Settings)`.
-- Disabling quiet mode can return `false` when Android requires profile credentials or refuses the request.
-
-To revoke the permission:
-
-```sh
-adb shell pm revoke io.github.vyachean.workprofiletoggle android.permission.MODIFY_QUIET_MODE
-```
-
-## Exact alarm access
-
-Automatic scheduling uses Android exact alarms so work-profile boundaries are applied close to the configured time. On Android 12 and newer, Android may require explicit special access for exact alarms.
-
-The app shows the exact alarm access state in the Schedule section:
-
-```text
-Exact alarm access: Granted
-Exact alarm access: Missing
-Exact alarm access: Not required on this Android version
-```
-
-When access is missing, the saved schedule is blocked and the app shows a settings button. Grant exact alarm access in Android settings, then return to the app. The app refreshes schedule planning after returning from settings and when Android broadcasts exact-alarm access changes.
-
-## Work-profile schedule
-
-The schedule feature applies one selected work profile state at configured boundaries:
-
-```text
-inside configured work hours  -> work profile active
-outside configured work hours -> work profile paused
-```
-
-The runtime schedules the next boundary with an exact Android alarm, executes that boundary, recalculates the next boundary, and stores the latest runtime status. It also recalculates and reschedules after schedule changes, selected-profile changes, device reboot, app update, manual time changes, timezone changes, and exact alarm access changes.
-
-Manual pause and resume actions remain available. The next schedule boundary reconciles the selected profile back to the state expected by the saved schedule.
-
-The app stores the last schedule runtime result and shows the next scheduled action or the current schedule issue when available. Device/OEM behavior still needs real-device validation because Android work-profile control and background alarm delivery are platform-dependent.
-
-## Launcher shortcuts
-
-Supported launchers can show the app's dynamic shortcuts through the app icon context menu. The app creates quiet-mode actions for switchable profiles only:
-
-- Pause work profile.
-- Resume work profile.
-- Toggle work profile.
-
-The owner profile is intentionally skipped.
-
-Dynamic launcher shortcuts run through a no-display action activity and are intended to switch quiet mode without bringing Work Profile Toggle to the foreground.
-
-## MacroDroid and automation apps
-
-Some automation apps do not show Android dynamic launcher shortcuts. For compatibility, the app also exposes a legacy `ACTION_CREATE_SHORTCUT` picker.
-
-In MacroDroid, add an action that launches an Android shortcut, choose Work Profile Toggle, then select the required profile/action pair.
-
-Picker-created shortcuts run through a no-display action activity. They are intended to switch quiet mode without bringing Work Profile Toggle to the foreground.
-
-If a shortcut was created before this no-display action path existed, recreate it in MacroDroid.
-
-## Debug APK signing
-
-GitHub Actions debug APKs are signed with a committed debug-only CI keystore so development artifacts can update each other with `adb install -r`.
-
-Expected debug APK certificate SHA-256:
-
-```text
-5f49f7e574cac855329af8151a480f4757615e5b28afae1372e7991a5215cb77
-```
-
-CI verifies this fingerprint and fails if the debug APK signing certificate changes.
-
-This key is only for development APKs. It must not be used for release builds.
-
-## Release APK signing
-
-Release APKs are signed only by the `Release` GitHub Actions workflow. The release key must be stored in GitHub Secrets and must not be committed to the repository. See [Release process](docs/release.md) for the full release checklist.
-
-Required repository secrets:
-
-```text
-RELEASE_KEYSTORE_BASE64
-RELEASE_KEYSTORE_PASSWORD
-RELEASE_KEY_ALIAS
-RELEASE_KEY_PASSWORD
-```
-
-Recommended repository secret:
-
-```text
-RELEASE_CERT_SHA256
-```
-
-Create a release keystore locally and keep it private:
-
-```sh
-keytool -genkeypair \
-  -v \
-  -keystore work-profile-toggle-release.keystore \
-  -alias work-profile-toggle \
-  -keyalg RSA \
-  -keysize 4096 \
-  -validity 10000
-```
-
-Encode it for `RELEASE_KEYSTORE_BASE64`:
-
-```sh
-base64 -w 0 work-profile-toggle-release.keystore
-```
-
-On systems where `base64` does not support `-w`, remove line breaks before storing the value as a secret.
-
-Set the other secrets to the keystore password, key alias, and key password used when creating the keystore.
-
-The preferred release path is to increase both `versionName` and `versionCode` in `app/build.gradle.kts` and merge that change to `main`. The `Create release tag` workflow creates `v<versionName>` and dispatches the `Release` workflow.
-
-For the first release, when `versionName` is already correct, run `Create release tag` manually from GitHub Actions. Manual tag pushes remain available only as a fallback.
-
-The release workflow builds `assembleRelease`, verifies the APK with `apksigner`, renames it to `work-profile-toggle-<tag>.apk`, uploads it as a workflow artifact, and publishes it to the GitHub Release for the tag.
-
-A debug APK and a release APK cannot update each other unless they are signed with the same certificate. This project intentionally uses separate debug and release signing identities, so switching between debug and release installs requires uninstalling the existing package first.
-
-## Development
-
-Requirements:
-
-- JDK 17.
-- Android SDK with platform 36.
-
-Build and verify locally:
-
-```sh
-./gradlew lint test assembleDebug
-```
-
-If the executable bit is lost on a Unix-like system, run:
-
-```sh
-chmod +x ./gradlew
-```
-
-## Development status
-
-The project currently contains an Android application proving profile discovery, quiet-mode control through an ADB-granted permission, dynamic launcher shortcuts, MacroDroid-compatible legacy shortcuts, exact-alarm schedule runtime, exact-alarm setup status, schedule runtime status, stable CI debug APK updates, and release APK publishing infrastructure.
-
-The signed `v0.1.3` release was validated on a real device for manual quiet-mode actions, exact alarm setup, schedule execution, shortcut behavior, and next-action status refresh.
-
-## License
-
-MIT License.
+Development APKs are available as GitHub Actions artifacts from successful `main` runs. Signed release APKs are published through GitHub Releases when release signing is configured.
+
+Basic setup:
+
+1. Install the APK.
+2. Grant `android.permission.MODIFY_QUIET_MODE` with ADB.
+3. Grant exact alarm access on Android versions that require it.
+4. Select a work profile and configure the schedule.
+
+Full instructions: [Setup guide](docs/setup.md).
+
+## Documentation
+
+- [Setup guide](docs/setup.md)
+- [Product model](docs/product.md)
+- [Platform notes](docs/platform.md)
+- [Roadmap](docs/roadmap.md)
+- [Screenshots plan](docs/screenshots.md)
+- [Release process](docs/release.md)
+- [Release smoke test](docs/smoke-test.md)
+- [Documentation maintenance](docs/maintenance.md)
