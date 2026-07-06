@@ -16,6 +16,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -26,6 +27,8 @@ import io.github.vyachean.workprofiletoggle.HomeUiState
 import io.github.vyachean.workprofiletoggle.ScheduleEditorEnableToggleAction
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeIssue
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextActionType
+import java.text.DateFormat
+import java.util.Date
 
 internal data class HomeScreenActions(
     val onCheckAgain: () -> Unit,
@@ -178,10 +181,14 @@ private fun ScheduleCard(
                 style = MaterialTheme.typography.bodyMedium,
             )
             state.schedule.runtimeStatus?.nextAction?.let { nextAction ->
+                val formattedBoundary = remember(nextAction.boundary.at) {
+                    DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+                        .format(Date.from(nextAction.boundary.at.toInstant()))
+                }
                 Text(
                     text = when (nextAction.type) {
-                        ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE -> "Next action: pause work profile"
-                        ScheduleRuntimeNextActionType.RESUME_WORK_PROFILE -> "Next action: resume work profile"
+                        ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE -> "Next action: pause at $formattedBoundary"
+                        ScheduleRuntimeNextActionType.RESUME_WORK_PROFILE -> "Next action: resume at $formattedBoundary"
                     },
                     style = MaterialTheme.typography.bodyMedium,
                 )
