@@ -38,7 +38,23 @@ jobs:
           echo "CI_DEBUG_KEYSTORE_PATH=$keystore_path" >> "$GITHUB_ENV"
 
       - name: Check project
-        run: sh ./gradlew -PciDebugKeystorePath="$CI_DEBUG_KEYSTORE_PATH" lint test assembleDebug assembleRelease
+        run: |
+          set +e
+          sh ./gradlew -PciDebugKeystorePath="$CI_DEBUG_KEYSTORE_PATH" lint test assembleDebug assembleRelease > gradle-check.log 2>&1
+          status=$?
+          tail -n 240 gradle-check.log > gradle-check-tail.log
+          cat gradle-check-tail.log
+          exit "$status"
+
+      - name: Upload Gradle check log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-check-log
+          path: |
+            gradle-check.log
+            gradle-check-tail.log
+          if-no-files-found: error
 
       - name: Verify debug APK signing certificate
         run: |
