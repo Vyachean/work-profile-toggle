@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.vyachean.workprofiletoggle.HomePrimaryState
@@ -180,7 +181,8 @@ private fun ScheduleCard(
                 style = MaterialTheme.typography.bodyMedium,
             )
             state.schedule.runtimeStatus?.nextAction?.let { nextAction ->
-                val formattedBoundary = remember(nextAction.boundary.at) {
+                val configuration = LocalConfiguration.current
+                val formattedBoundary = remember(nextAction.boundary.at, configuration) {
                     ScheduleDateTimeFormatter.formatForDisplay(nextAction.boundary.at)
                 }
                 Text(
