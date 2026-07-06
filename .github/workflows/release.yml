@@ -17,6 +17,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate release tag
+        run: |
+          version_name="$(sed -n 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)"
+          version_code="$(sed -n 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*\([0-9][0-9]*\).*/\1/p' app/build.gradle.kts | head -n 1)"
+
+          if [ -z "$version_name" ]; then
+            echo "Could not read versionName from app/build.gradle.kts." >&2
+            exit 1
+          fi
+          if [ -z "$version_code" ]; then
+            echo "Could not read versionCode from app/build.gradle.kts." >&2
+            exit 1
+          fi
+
+          expected_tag="v$version_name"
+          if [ "$GITHUB_REF_NAME" != "$expected_tag" ]; then
+            echo "Release tag must match versionName." >&2
+            echo "Expected: $expected_tag" >&2
+            echo "Actual:   $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+
+          echo "Release versionName=$version_name versionCode=$version_code tag=$GITHUB_REF_NAME"
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
@@ -74,6 +98,8 @@ jobs:
             lint test assembleRelease
 
       - name: Verify release APK
+        env:
+          RELEASE_CERT_SHA256: ${{ secrets.RELEASE_CERT_SHA256 }}
         run: |
           apksigner_path="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           if [ -z "$apksigner_path" ]; then
@@ -81,12 +107,37 @@ jobs:
             exit 1
           fi
 
-          "$apksigner_path" verify --print-certs app/build/outputs/apk/release/app-release.apk
+          certs="$($apksigner_path verify --print-certs app/build/outputs/apk/release/app-release.apk)"
+          printf '%s\n' "$certs"
+
+          if [ -n "$RELEASE_CERT_SHA256" ]; then
+            expected_sha256="$(printf '%s' "$RELEASE_CERT_SHA256" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]:')"
+            actual_sha256="$(printf '%s\n' "$certs" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p; s/^V[0-9].*Signer: certificate SHA-256 digest: //p' | head -n 1 | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]:')"
+
+            if [ -z "$actual_sha256" ]; then
+              echo "Could not read release APK signing certificate SHA-256." >&2
+              exit 1
+            fi
+            if [ "$actual_sha256" != "$expected_sha256" ]; then
+              echo "Unexpected release APK signing certificate SHA-256: $actual_sha256" >&2
+              echo "Expected: $expected_sha256" >&2
+              exit 1
+            fi
+          else
+            echo "RELEASE_CERT_SHA256 is not configured; skipping fixed release certificate fingerprint check."
+          fi
 
       - name: Rename release APK
         run: |
           mkdir -p release-artifacts
           cp app/build/outputs/apk/release/app-release.apk "release-artifacts/work-profile-toggle-${GITHUB_REF_NAME}.apk"
+
+      - name: Upload release APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: work-profile-toggle-${{ github.ref_name }}-release-apk
+          path: release-artifacts/*.apk
+          if-no-files-found: error
 
       - name: Create GitHub Release
         env:
@@ -95,4 +146,5 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             release-artifacts/*.apk \
             --title "$GITHUB_REF_NAME" \
-            --generate-notes
+            --generate-notes \
+            --verify-tag
