@@ -1,0 +1,128 @@
+name: Create release tag
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - app/build.gradle.kts
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: release-tag
+  cancel-in-progress: false
+
+jobs:
+  create-release-tag:
+    name: Create release tag
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          extract_version_name() {
+            sed -n 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$1" | head -n 1
+          }
+
+          extract_version_code() {
+            sed -n 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$1" | head -n 1
+          }
+
+          version_name="$(extract_version_name app/build.gradle.kts)"
+          version_code="$(extract_version_code app/build.gradle.kts)"
+
+          if [ -z "$version_name" ]; then
+            echo "Could not read versionName from app/build.gradle.kts." >&2
+            exit 1
+          fi
+          if [ -z "$version_code" ]; then
+            echo "Could not read versionCode from app/build.gradle.kts." >&2
+            exit 1
+          fi
+          if ! printf '%s\n' "$version_name" | grep -Eq '^[0-9]+[.][0-9]+[.][0-9]+([-+][0-9A-Za-z.-]+)?$'; then
+            echo "versionName must look like 0.1.0 or 0.1.0-rc.1: $version_name" >&2
+            exit 1
+          fi
+
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+            previous_build_file="$(mktemp)"
+            if git show "$BEFORE_SHA:app/build.gradle.kts" > "$previous_build_file" 2>/dev/null; then
+              previous_version_name="$(extract_version_name "$previous_build_file")"
+              previous_version_code="$(extract_version_code "$previous_build_file")"
+
+              if [ -z "$previous_version_name" ]; then
+                echo "Could not read previous versionName from app/build.gradle.kts." >&2
+                exit 1
+              fi
+              if [ -z "$previous_version_code" ]; then
+                echo "Could not read previous versionCode from app/build.gradle.kts." >&2
+                exit 1
+              fi
+
+              if [ "$previous_version_name" = "$version_name" ]; then
+                if [ "$previous_version_code" = "$version_code" ]; then
+                  echo "app/build.gradle.kts changed, but versionName/versionCode did not. No release tag will be created."
+                  echo "SKIP_RELEASE_TAG=true" >> "$GITHUB_ENV"
+                  exit 0
+                fi
+
+                echo "versionCode changed without a versionName change. Stable release tags are based on versionName." >&2
+                echo "Previous: versionName=$previous_version_name versionCode=$previous_version_code" >&2
+                echo "Current:  versionName=$version_name versionCode=$version_code" >&2
+                exit 1
+              fi
+
+              if [ "$version_code" -le "$previous_version_code" ]; then
+                echo "versionCode must increase when versionName changes." >&2
+                echo "Previous: versionName=$previous_version_name versionCode=$previous_version_code" >&2
+                echo "Current:  versionName=$version_name versionCode=$version_code" >&2
+                exit 1
+              fi
+            fi
+          fi
+
+          release_tag="v$version_name"
+          echo "RELEASE_TAG=$release_tag" >> "$GITHUB_ENV"
+          echo "Release versionName=$version_name versionCode=$version_code tag=$release_tag"
+
+      - name: Create tag and dispatch release
+        if: env.SKIP_RELEASE_TAG != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --tags --force
+
+          if git rev-parse --verify --quiet "refs/tags/$RELEASE_TAG^{commit}" >/dev/null; then
+            tag_commit="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+            head_commit="$(git rev-parse HEAD)"
+            if [ "$tag_commit" != "$head_commit" ]; then
+              echo "Tag $RELEASE_TAG already exists but points to $tag_commit, not $head_commit." >&2
+              exit 1
+            fi
+            echo "Tag $RELEASE_TAG already points to HEAD."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$RELEASE_TAG" -m "$RELEASE_TAG"
+            git push origin "refs/tags/$RELEASE_TAG"
+          fi
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "GitHub Release $RELEASE_TAG already exists. Nothing to dispatch."
+            exit 0
+          fi
+
+          # Tag pushes created with GITHUB_TOKEN do not trigger push workflows.
+          # Use workflow_dispatch explicitly so the Release workflow starts without a PAT.
+          gh workflow run Release --ref main -f tag="$RELEASE_TAG"
