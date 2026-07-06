@@ -34,12 +34,14 @@ class MainActivity : Activity() {
     private lateinit var scheduleStore: WorkProfileScheduleStore
     private lateinit var scheduleRuntimeResultStore: ScheduleRuntimeResultStore
     private lateinit var scheduleBoundaryPlanner: ScheduleBoundaryPlanner
+    private lateinit var scheduleExactAlarmAccess: AndroidScheduleExactAlarmAccess
     private lateinit var quietModeController: QuietModeController
     private lateinit var workProfileRepository: WorkProfileRepository
     private lateinit var shortcutController: ShortcutController
     private lateinit var actionDispatcher: WorkProfileActionDispatcher
     private lateinit var content: LinearLayout
     private var lastResult: String = ""
+    private var exactAlarmSettingsRequested = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,6 +51,7 @@ class MainActivity : Activity() {
         scheduleStore = dependencies.scheduleStore
         scheduleRuntimeResultStore = dependencies.scheduleRuntimeResultStore
         scheduleBoundaryPlanner = dependencies.scheduleBoundaryPlanner
+        scheduleExactAlarmAccess = AndroidScheduleExactAlarmAccess(this)
         lastResult = actionResultStore.restore(savedInstanceState?.getString(STATE_LAST_RESULT))
         quietModeController = dependencies.quietModeController
         workProfileRepository = dependencies.workProfileRepository
@@ -83,6 +86,17 @@ class MainActivity : Activity() {
         setIntent(intent)
         handleShortcutIntent(intent)
         render()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (exactAlarmSettingsRequested) {
+            exactAlarmSettingsRequested = false
+            if (::scheduleStore.isInitialized && scheduleStore.load() != WorkProfileSchedule()) {
+                scheduleBoundaryPlanner.refresh()
+            }
+            render()
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -210,19 +224,14 @@ class MainActivity : Activity() {
         schedule: WorkProfileSchedule,
         runtimeResult: ScheduleRuntimeResult?,
     ) {
+        val exactAlarmAccessState = scheduleExactAlarmAccess.state()
+
         content.addView(sectionTitle(getString(R.string.schedule_title)))
         if (schedule == WorkProfileSchedule()) {
             content.addView(textView(getString(R.string.schedule_not_configured)))
         } else {
-            content.addView(
-                textView(
-                    if (schedule.enabled) {
-                        getString(R.string.schedule_saved_enabled)
-                    } else {
-                        getString(R.string.schedule_saved_disabled)
-                    },
-                ),
-            )
+            content.addView(textView(scheduleSavedState(schedule, exactAlarmAccessState)))
+            renderScheduleExactAlarmAccess(exactAlarmAccessState)
             content.addView(textView(getString(R.string.schedule_pause_at, formatScheduleTime(schedule.pauseAt))))
             content.addView(textView(getString(R.string.schedule_resume_at, formatScheduleTime(schedule.resumeAt))))
             content.addView(textView(getString(R.string.schedule_active_days, formatScheduleDays(schedule.activeDays))))
@@ -230,6 +239,47 @@ class MainActivity : Activity() {
         }
         renderScheduleControls(schedule)
         content.addView(textView(getString(R.string.schedule_future_note)))
+    }
+
+    private fun renderScheduleExactAlarmAccess(state: ScheduleExactAlarmAccessState) {
+        val label = when (state) {
+            ScheduleExactAlarmAccessState.NOT_REQUIRED -> R.string.schedule_exact_alarm_not_required
+            ScheduleExactAlarmAccessState.GRANTED -> R.string.schedule_exact_alarm_granted
+            ScheduleExactAlarmAccessState.MISSING -> R.string.schedule_exact_alarm_missing
+        }
+        content.addView(textView(getString(label)))
+
+        if (state == ScheduleExactAlarmAccessState.MISSING) {
+            content.addView(textView(getString(R.string.schedule_exact_alarm_missing_description)))
+            content.addView(button(getString(R.string.schedule_open_app_settings)) {
+                requestScheduleExactAlarmAccess()
+            })
+        }
+    }
+
+    private fun scheduleSavedState(
+        schedule: WorkProfileSchedule,
+        exactAlarmAccessState: ScheduleExactAlarmAccessState,
+    ): String {
+        return when {
+            schedule.enabled && exactAlarmAccessState == ScheduleExactAlarmAccessState.MISSING -> {
+                getString(R.string.schedule_saved_blocked_exact_alarm_access)
+            }
+            schedule.enabled -> getString(R.string.schedule_saved_enabled)
+            else -> getString(R.string.schedule_saved_disabled)
+        }
+    }
+
+    private fun requestScheduleExactAlarmAccess() {
+        exactAlarmSettingsRequested = true
+        if (!scheduleExactAlarmAccess.openAppSettings()) {
+            exactAlarmSettingsRequested = false
+            Toast.makeText(
+                this,
+                getString(R.string.schedule_exact_alarm_settings_unavailable),
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
     }
 
     private fun renderScheduleRuntimeStatus(

@@ -23,6 +23,13 @@
     <string name="schedule_not_configured">Not configured</string>
     <string name="schedule_saved_enabled">Saved schedule: Enabled</string>
     <string name="schedule_saved_disabled">Saved schedule: Disabled</string>
+    <string name="schedule_saved_blocked_exact_alarm_access">Saved schedule: Enabled, but exact alarm access is missing</string>
+    <string name="schedule_exact_alarm_granted">Exact alarm access: Granted</string>
+    <string name="schedule_exact_alarm_missing">Exact alarm access: Missing</string>
+    <string name="schedule_exact_alarm_not_required">Exact alarm access: Not required on this Android version</string>
+    <string name="schedule_exact_alarm_missing_description">Automatic scheduling needs Alarms &amp; reminders access to switch the work profile at the configured time.</string>
+    <string name="schedule_open_app_settings">Open app settings</string>
+    <string name="schedule_exact_alarm_settings_unavailable">Could not open app settings.</string>
     <string name="schedule_pause_at">Pause at: %1$s</string>
     <string name="schedule_resume_at">Resume at: %1$s</string>
     <string name="schedule_active_days">Active days: %1$s</string>
