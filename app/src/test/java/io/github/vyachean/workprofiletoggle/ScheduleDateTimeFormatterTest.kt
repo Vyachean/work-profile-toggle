@@ -28,4 +28,26 @@ class ScheduleDateTimeFormatterTest {
 
         assertEquals("Jan 2, 2026, 2:00 PM", formatted)
     }
+
+    @Test
+    fun formatsDateTimeInDifferentRequestedZone() {
+        val dateTime = ZonedDateTime.of(
+            2026,
+            1,
+            2,
+            10,
+            0,
+            0,
+            0,
+            ZoneId.of("UTC"),
+        )
+
+        val formatted = ScheduleDateTimeFormatter.formatForDisplay(
+            dateTime = dateTime,
+            zoneId = ZoneId.of("Europe/Berlin"),
+            locale = Locale.US,
+        )
+
+        assertEquals("Jan 2, 2026, 11:00 AM", formatted)
+    }
 }
