@@ -126,7 +126,6 @@ Current limitations:
 Remaining work before this stage is complete:
 
 - Manual smoke test on a real device with an actual work profile.
-- Stronger unit coverage for `AndroidScheduleWorkProfileReconciler` failure paths.
 - Better setup/status guidance for permission missing, selected profile missing, credential required, and Android request rejected states.
 - Diagnostics wording and copyable advanced details for blocked schedule runs.
 - Decide whether exact alarms are worth the Android special-access UX cost.
@@ -151,7 +150,6 @@ Status: planned.
 ## Known follow-ups
 
 - Keep issue #25 aligned with this roadmap.
-- Add `AndroidScheduleWorkProfileReconciler` unit tests.
 - Run and document a real-device schedule smoke test.
 - Improve schedule setup/status UX.
 - Create stable README screenshots after screenshot architecture exists.
