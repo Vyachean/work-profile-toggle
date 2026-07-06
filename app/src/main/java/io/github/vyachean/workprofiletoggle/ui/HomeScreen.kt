@@ -16,6 +16,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.vyachean.workprofiletoggle.HomePrimaryState
@@ -28,6 +29,8 @@ import io.github.vyachean.workprofiletoggle.ScheduleEditorUiState
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeIssue
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextActionType
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeStatusSummary
+import java.text.DateFormat
+import java.util.Date
 
 internal data class HomeScreenActions(
     val onRefresh: () -> Unit = {},
@@ -180,10 +183,14 @@ private fun ScheduleRuntimeStatus(status: ScheduleRuntimeStatusSummary?) {
     if (status == null) return
 
     status.nextAction?.let { nextAction ->
+        val formattedBoundary = remember(nextAction.boundary.at) {
+            DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+                .format(Date.from(nextAction.boundary.at.toInstant()))
+        }
         Text(
             text = when (nextAction.type) {
-                ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE -> "Next action: pause at ${nextAction.boundary.at}"
-                ScheduleRuntimeNextActionType.RESUME_WORK_PROFILE -> "Next action: resume at ${nextAction.boundary.at}"
+                ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE -> "Next action: pause at $formattedBoundary"
+                ScheduleRuntimeNextActionType.RESUME_WORK_PROFILE -> "Next action: resume at $formattedBoundary"
             },
         )
     }
