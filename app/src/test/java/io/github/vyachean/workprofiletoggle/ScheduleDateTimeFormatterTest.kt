@@ -30,7 +30,7 @@ class ScheduleDateTimeFormatterTest {
     }
 
     @Test
-    fun formatsDateTimeInDifferentRequestedZone() {
+    fun formatsSameInstantInDifferentRequestedZone() {
         val dateTime = ZonedDateTime.of(
             2026,
             1,
