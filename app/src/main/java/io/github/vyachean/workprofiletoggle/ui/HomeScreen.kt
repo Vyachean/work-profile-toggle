@@ -27,6 +27,7 @@ import io.github.vyachean.workprofiletoggle.HomeUiState
 import io.github.vyachean.workprofiletoggle.ScheduleEditorEnableToggleAction
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeIssue
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextActionType
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
@@ -185,7 +186,7 @@ private fun ScheduleCard(
                     val formatter = DateTimeFormatter.ofLocalizedDateTime(
                         FormatStyle.MEDIUM,
                         FormatStyle.SHORT,
-                    )
+                    ).withZone(ZoneId.systemDefault())
                     nextAction.boundary.at.format(formatter)
                 }
                 Text(
