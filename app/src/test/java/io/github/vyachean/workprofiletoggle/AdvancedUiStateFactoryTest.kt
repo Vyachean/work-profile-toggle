@@ -46,4 +46,15 @@ class AdvancedUiStateFactoryTest {
         assertEquals(3, state.shortcutSummary?.shortcutsCount)
         assertEquals(15, state.shortcutSummary?.maxShortcuts)
     }
+
+    @Test
+    fun keepsShortcutSummaryAbsentWhenShortcutUpdateIsMissing() {
+        val state = AdvancedUiStateFactory.from(
+            lastResult = "Done.",
+            profilesFound = 1,
+            shortcutUpdateState = null,
+        )
+
+        assertNull(state.shortcutSummary)
+    }
 }
