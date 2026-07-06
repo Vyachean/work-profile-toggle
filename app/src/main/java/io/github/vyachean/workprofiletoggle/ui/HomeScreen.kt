@@ -2,69 +2,77 @@ package io.github.vyachean.workprofiletoggle.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.vyachean.workprofiletoggle.HomePrimaryState
 import io.github.vyachean.workprofiletoggle.HomeScheduleSavedState
+import io.github.vyachean.workprofiletoggle.HomeScheduleUiState
+import io.github.vyachean.workprofiletoggle.HomeSetupState
 import io.github.vyachean.workprofiletoggle.HomeUiState
 import io.github.vyachean.workprofiletoggle.ScheduleEditorEnableToggleAction
+import io.github.vyachean.workprofiletoggle.ScheduleEditorUiState
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeIssue
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextActionType
+import io.github.vyachean.workprofiletoggle.ScheduleRuntimeStatusSummary
+import java.text.DateFormat
+import java.util.Date
 
 internal data class HomeScreenActions(
-    val onCheckAgain: () -> Unit,
-    val onPauseWorkProfile: () -> Unit,
-    val onResumeWorkProfile: () -> Unit,
-    val onChangeProfile: () -> Unit,
-    val onSetPauseTime: () -> Unit,
-    val onSetResumeTime: () -> Unit,
-    val onChooseActiveDays: () -> Unit,
-    val onEnableSchedule: () -> Unit,
-    val onDisableSchedule: () -> Unit,
-    val onClearSchedule: () -> Unit,
-    val onCopyDiagnostics: () -> Unit,
+    val onRefresh: () -> Unit = {},
+    val onPauseWorkProfile: () -> Unit = {},
+    val onResumeWorkProfile: () -> Unit = {},
+    val onSelectWorkProfile: () -> Unit = {},
+    val onChangeWorkProfile: () -> Unit = {},
+    val onCopySetupCommand: () -> Unit = {},
+    val onSetPauseTime: () -> Unit = {},
+    val onSetResumeTime: () -> Unit = {},
+    val onChooseActiveDays: () -> Unit = {},
+    val onToggleSchedule: () -> Unit = {},
+    val onClearSchedule: () -> Unit = {},
+    val onCopyScheduleDiagnostics: () -> Unit = {},
+    val onOpenExactAlarmSettings: () -> Unit = {},
 )
 
 @Composable
 internal fun HomeScreen(
     state: HomeUiState,
-    actions: HomeScreenActions,
+    actions: HomeScreenActions = HomeScreenActions(),
     modifier: Modifier = Modifier,
 ) {
     WorkProfileToggleTheme {
-        Scaffold(modifier = modifier) { innerPadding ->
-            Surface(color = MaterialTheme.colorScheme.background) {
-                Column(
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Text(
-                        text = "Work Profile Toggle",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    PrimaryStatusCard(state = state, actions = actions)
-                    SetupCard(state = state)
-                    ScheduleCard(state = state, actions = actions)
-                }
+        Surface(
+            modifier = modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = "Work Profile Toggle",
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+                PrimaryStatusCard(state.primary, actions)
+                SetupCard(state.setup, actions)
+                ScheduleCard(state.schedule, actions)
             }
         }
     }
@@ -72,50 +80,43 @@ internal fun HomeScreen(
 
 @Composable
 private fun PrimaryStatusCard(
-    state: HomeUiState,
-    actions: HomeScreenActions,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(
-                text = primaryTitle(state.primary),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = primaryDescription(state.primary, state.setup.selectedProfileLabel),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            PrimaryActionRow(state = state.primary, actions = actions)
-        }
-    }
-}
-
-@Composable
-private fun PrimaryActionRow(
     state: HomePrimaryState,
     actions: HomeScreenActions,
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    SectionCard(
+        title = when (state) {
+            HomePrimaryState.NO_WORK_PROFILE -> "No work profile found"
+            HomePrimaryState.CHOOSE_WORK_PROFILE -> "Choose a work profile"
+            HomePrimaryState.SETUP_REQUIRED -> "Setup required"
+            HomePrimaryState.WORK_PROFILE_PAUSED -> "Work profile paused"
+            HomePrimaryState.WORK_PROFILE_ACTIVE -> "Work profile active"
+            HomePrimaryState.WORK_PROFILE_UNKNOWN -> "Work profile status unknown"
+        },
     ) {
+        Text(
+            text = when (state) {
+                HomePrimaryState.NO_WORK_PROFILE -> "Create or enable a work profile, then check again."
+                HomePrimaryState.CHOOSE_WORK_PROFILE -> "Select which work profile this app should control."
+                HomePrimaryState.SETUP_REQUIRED -> "Grant the required quiet-mode permission before using controls."
+                HomePrimaryState.WORK_PROFILE_PAUSED -> "Work apps are currently paused."
+                HomePrimaryState.WORK_PROFILE_ACTIVE -> "Work apps are currently available."
+                HomePrimaryState.WORK_PROFILE_UNKNOWN -> "The app could not read the current quiet-mode state."
+            },
+        )
         when (state) {
             HomePrimaryState.WORK_PROFILE_ACTIVE -> Button(onClick = actions.onPauseWorkProfile) {
-                Text("Pause")
+                Text("Pause work profile")
             }
             HomePrimaryState.WORK_PROFILE_PAUSED -> Button(onClick = actions.onResumeWorkProfile) {
-                Text("Resume")
+                Text("Resume work profile")
             }
-            HomePrimaryState.CHOOSE_WORK_PROFILE -> Button(onClick = actions.onChangeProfile) {
+            HomePrimaryState.CHOOSE_WORK_PROFILE -> Button(onClick = actions.onSelectWorkProfile) {
                 Text("Choose profile")
             }
             HomePrimaryState.NO_WORK_PROFILE,
             HomePrimaryState.SETUP_REQUIRED,
-            HomePrimaryState.WORK_PROFILE_UNKNOWN -> OutlinedButton(onClick = actions.onCheckAgain) {
+            HomePrimaryState.WORK_PROFILE_UNKNOWN,
+            -> OutlinedButton(onClick = actions.onRefresh) {
                 Text("Check again")
             }
         }
@@ -123,166 +124,164 @@ private fun PrimaryActionRow(
 }
 
 @Composable
-private fun SetupCard(state: HomeUiState) {
+private fun SetupCard(
+    state: HomeSetupState,
+    actions: HomeScreenActions,
+) {
+    SectionCard(title = "Setup") {
+        StatusRow("Profile", if (state.profileFound) "Found" else "Missing")
+        StatusRow("Selected profile", state.selectedProfileLabel ?: "None")
+        StatusRow("Permission", if (state.permissionGranted) "Granted" else "Missing")
+        Text(
+            text = if (state.ready) {
+                "Setup is complete."
+            } else {
+                "Complete setup before relying on schedule automation."
+            },
+        )
+        if (!state.permissionGranted) {
+            Button(onClick = actions.onCopySetupCommand) {
+                Text("Copy setup command")
+            }
+        }
+        if (state.selectedProfileLabel != null) {
+            OutlinedButton(onClick = actions.onChangeWorkProfile) {
+                Text("Change profile")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScheduleCard(
+    state: HomeScheduleUiState,
+    actions: HomeScreenActions,
+) {
+    SectionCard(title = "Schedule") {
+        StatusRow("Saved state", scheduleStateLabel(state.savedState))
+        StatusRow("Exact alarm access", state.exactAlarmAccessState.name)
+        if (!state.configured) {
+            Text("Schedule is not configured yet.")
+        }
+        ScheduleRuntimeStatus(state.runtimeStatus)
+        ScheduleEditorControls(state.editor, actions)
+        if (state.savedState == HomeScheduleSavedState.BLOCKED_EXACT_ALARM_ACCESS) {
+            Button(onClick = actions.onOpenExactAlarmSettings) {
+                Text("Open alarm settings")
+            }
+        }
+        if (state.canCopyDiagnostics) {
+            OutlinedButton(onClick = actions.onCopyScheduleDiagnostics) {
+                Text("Copy diagnostics")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScheduleRuntimeStatus(status: ScheduleRuntimeStatusSummary?) {
+    if (status == null) return
+
+    status.nextAction?.let { nextAction ->
+        val formattedBoundary = remember(nextAction.boundary.at) {
+            DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+                .format(Date.from(nextAction.boundary.at.toInstant()))
+        }
+        Text(
+            text = when (nextAction.type) {
+                ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE -> "Next action: pause at $formattedBoundary"
+                ScheduleRuntimeNextActionType.RESUME_WORK_PROFILE -> "Next action: resume at $formattedBoundary"
+            },
+        )
+    }
+    status.issue?.let { issue ->
+        Text("Runtime issue: ${issue.label()}")
+    }
+}
+
+@Composable
+private fun ScheduleEditorControls(
+    state: ScheduleEditorUiState,
+    actions: HomeScreenActions,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OutlinedButton(onClick = actions.onSetPauseTime) {
+            Text("Pause")
+        }
+        OutlinedButton(onClick = actions.onSetResumeTime) {
+            Text("Resume")
+        }
+        OutlinedButton(onClick = actions.onChooseActiveDays) {
+            Text("Days")
+        }
+    }
+    state.enableToggle?.let { toggle ->
+        Button(onClick = actions.onToggleSchedule) {
+            Text(
+                when (toggle.action) {
+                    ScheduleEditorEnableToggleAction.ENABLE -> "Enable schedule"
+                    ScheduleEditorEnableToggleAction.DISABLE -> "Disable schedule"
+                },
+            )
+        }
+    }
+    if (state.showEnableRequirements) {
+        Text("Set pause time, resume time, and active days before enabling the schedule.")
+    }
+    if (state.canClear) {
+        OutlinedButton(onClick = actions.onClearSchedule) {
+            Text("Clear schedule")
+        }
+    }
+}
+
+@Composable
+private fun SectionCard(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = "Setup",
+                text = title,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
             )
-            SetupRow(label = "Work profile", value = if (state.setup.profileFound) "Found" else "Missing")
-            SetupRow(label = "Selected profile", value = state.setup.selectedProfileLabel ?: "Not selected")
-            SetupRow(label = "Permission", value = if (state.setup.permissionGranted) "Granted" else "Missing")
+            content()
         }
     }
 }
 
 @Composable
-private fun SetupRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth()) {
+private fun StatusRow(label: String, value: String) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
         Text(
             text = label,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.labelMedium,
         )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-        )
+        Text(text = value)
     }
 }
 
-@Composable
-private fun ScheduleCard(
-    state: HomeUiState,
-    actions: HomeScreenActions,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(
-                text = "Schedule",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = scheduleStatusText(state.schedule.savedState),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            state.schedule.runtimeStatus?.nextAction?.let { nextAction ->
-                Text(
-                    text = when (nextAction.type) {
-                        ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE -> "Next action: pause work profile"
-                        ScheduleRuntimeNextActionType.RESUME_WORK_PROFILE -> "Next action: resume work profile"
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            state.schedule.runtimeStatus?.issue?.let { issue ->
-                Text(
-                    text = "Issue: ${scheduleIssueText(issue)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-            ScheduleEditorActions(state = state, actions = actions)
-        }
-    }
-}
-
-@Composable
-private fun ScheduleEditorActions(
-    state: HomeUiState,
-    actions: HomeScreenActions,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = actions.onSetPauseTime) {
-                Text("Pause time")
-            }
-            OutlinedButton(onClick = actions.onSetResumeTime) {
-                Text("Resume time")
-            }
-        }
-        OutlinedButton(onClick = actions.onChooseActiveDays) {
-            Text("Active days")
-        }
-        val enableToggle = state.schedule.editor.enableToggle
-        if (enableToggle != null) {
-            Button(
-                onClick = when (enableToggle.action) {
-                    ScheduleEditorEnableToggleAction.ENABLE -> actions.onEnableSchedule
-                    ScheduleEditorEnableToggleAction.DISABLE -> actions.onDisableSchedule
-                },
-            ) {
-                Text(
-                    when (enableToggle.action) {
-                        ScheduleEditorEnableToggleAction.ENABLE -> "Enable schedule"
-                        ScheduleEditorEnableToggleAction.DISABLE -> "Disable schedule"
-                    },
-                )
-            }
-        } else if (state.schedule.editor.showEnableRequirements) {
-            Text(
-                text = "Set pause time, resume time, and active days before enabling the schedule.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        if (state.schedule.canCopyDiagnostics) {
-            OutlinedButton(onClick = actions.onCopyDiagnostics) {
-                Text("Copy diagnostics")
-            }
-        }
-        if (state.schedule.editor.canClear) {
-            Spacer(modifier = Modifier.height(4.dp))
-            OutlinedButton(onClick = actions.onClearSchedule) {
-                Text("Clear schedule")
-            }
-        }
-    }
-}
-
-private fun primaryTitle(state: HomePrimaryState): String {
+private fun scheduleStateLabel(state: HomeScheduleSavedState): String {
     return when (state) {
-        HomePrimaryState.NO_WORK_PROFILE -> "No work profile found"
-        HomePrimaryState.CHOOSE_WORK_PROFILE -> "Choose work profile"
-        HomePrimaryState.SETUP_REQUIRED -> "Setup required"
-        HomePrimaryState.WORK_PROFILE_PAUSED -> "Work profile paused"
-        HomePrimaryState.WORK_PROFILE_ACTIVE -> "Work profile active"
-        HomePrimaryState.WORK_PROFILE_UNKNOWN -> "Work profile status unknown"
+        HomeScheduleSavedState.NOT_CONFIGURED -> "Not configured"
+        HomeScheduleSavedState.ENABLED -> "Enabled"
+        HomeScheduleSavedState.DISABLED -> "Disabled"
+        HomeScheduleSavedState.BLOCKED_EXACT_ALARM_ACCESS -> "Blocked: exact alarm access missing"
     }
 }
 
-private fun primaryDescription(state: HomePrimaryState, selectedProfileLabel: String?): String {
-    return when (state) {
-        HomePrimaryState.NO_WORK_PROFILE -> "Create or enable a work profile, then check again."
-        HomePrimaryState.CHOOSE_WORK_PROFILE -> "Select the profile that this app should control."
-        HomePrimaryState.SETUP_REQUIRED -> "Grant quiet mode control permission before using manual actions or schedule."
-        HomePrimaryState.WORK_PROFILE_PAUSED -> selectedProfileLabel?.let { "$it is paused." } ?: "The selected work profile is paused."
-        HomePrimaryState.WORK_PROFILE_ACTIVE -> selectedProfileLabel?.let { "$it is active." } ?: "The selected work profile is active."
-        HomePrimaryState.WORK_PROFILE_UNKNOWN -> "The app could not read the current quiet mode state."
-    }
-}
-
-private fun scheduleStatusText(state: HomeScheduleSavedState): String {
-    return when (state) {
-        HomeScheduleSavedState.NOT_CONFIGURED -> "Schedule is not configured."
-        HomeScheduleSavedState.ENABLED -> "Schedule is enabled."
-        HomeScheduleSavedState.DISABLED -> "Schedule is saved but disabled."
-        HomeScheduleSavedState.BLOCKED_EXACT_ALARM_ACCESS -> "Schedule is blocked until exact alarm access is granted."
-    }
-}
-
-private fun scheduleIssueText(issue: ScheduleRuntimeIssue): String {
-    return when (issue) {
+private fun ScheduleRuntimeIssue.label(): String {
+    return when (this) {
         ScheduleRuntimeIssue.PENDING -> "Pending"
         ScheduleRuntimeIssue.SCHEDULE_DISABLED -> "Schedule disabled"
         ScheduleRuntimeIssue.SCHEDULE_INCOMPLETE -> "Schedule incomplete"
