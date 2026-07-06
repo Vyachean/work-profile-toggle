@@ -11,7 +11,7 @@ README is the short public entry point. It should explain:
 - what the app does;
 - who it is for;
 - current status;
-- current scope and non-goals;
+- what the app does and does not do (scope and non-goals);
 - the minimum setup requirement;
 - screenshots when stable screenshots exist;
 - links to deeper documentation.
