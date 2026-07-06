@@ -6,26 +6,29 @@ Documentation must be updated in the same pull request as any change that affect
 
 ## README role
 
-README is the short entry point. It should explain:
+README is the short public entry point. It should explain:
 
 - what the app does;
 - who it is for;
+- current status;
 - current scope and non-goals;
-- basic setup;
+- the minimum setup requirement;
+- screenshots when stable screenshots exist;
 - links to deeper documentation.
 
-README should not become the only source of product and architecture knowledge.
+README should not become the only source of product, platform, setup, architecture, or release knowledge.
 
 ## Docs role
 
 Use `docs/` for durable project knowledge:
 
-- product model and terms;
-- roadmap and planned stages;
-- setup and platform limitations;
-- release process;
-- testing and screenshot strategy;
-- architecture decisions that should survive individual PRs.
+- `docs/setup.md` for installation, ADB permission setup, exact alarm access, shortcuts, and user-facing troubleshooting;
+- `docs/product.md` for product model, terms, scope, and non-goals;
+- `docs/platform.md` for Android API assumptions, platform constraints, OEM behavior, and low-level runtime notes;
+- `docs/roadmap.md` for planned stages, open decisions, and roadmap status;
+- `docs/screenshots.md` for screenshot strategy;
+- `docs/release.md` for release process, signing, release workflows, and release-specific checks;
+- `docs/smoke-test.md` for real-device release validation.
 
 ## Pull request checklist
 
@@ -53,4 +56,4 @@ The roadmap should distinguish between:
 
 Do not present planned work as implemented behavior.
 
-When a planned item is implemented, update the roadmap status and move any relevant details into product, setup, testing, or release documentation.
+When a planned item is implemented, update the roadmap status and move any relevant details into product, setup, testing, platform, or release documentation.
