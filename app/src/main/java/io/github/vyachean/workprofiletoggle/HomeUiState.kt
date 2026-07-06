@@ -29,9 +29,8 @@ internal data class HomeScheduleUiState(
     val savedState: HomeScheduleSavedState,
     val exactAlarmAccessState: ScheduleExactAlarmAccessState,
     val runtimeStatus: ScheduleRuntimeStatusSummary?,
-    val enableToggleAvailable: Boolean,
-    val showEnableRequirements: Boolean,
     val canCopyDiagnostics: Boolean,
+    val editor: ScheduleEditorUiState,
 )
 
 internal enum class HomeScheduleSavedState {
@@ -83,7 +82,6 @@ internal object HomeUiStateFactory {
 
     private fun scheduleState(input: HomeUiStateInput, now: ZonedDateTime): HomeScheduleUiState {
         val configured = input.schedule != WorkProfileSchedule()
-        val complete = input.schedule.pauseAt != null && input.schedule.resumeAt != null && input.schedule.activeDays.isNotEmpty()
         return HomeScheduleUiState(
             configured = configured,
             savedState = savedState(input.schedule, input.exactAlarmAccessState, configured),
@@ -93,9 +91,8 @@ internal object HomeUiStateFactory {
                 result = input.scheduleRuntimeResult,
                 now = now,
             ),
-            enableToggleAvailable = configured && complete,
-            showEnableRequirements = configured && !complete,
             canCopyDiagnostics = configured,
+            editor = ScheduleEditorUiStateFactory.from(input.schedule),
         )
     }
 
