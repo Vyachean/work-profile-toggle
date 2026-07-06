@@ -257,7 +257,7 @@ private fun StatusRow(label: String, value: String) {
             text = label,
             style = MaterialTheme.typography.labelMedium,
         )
-        Text(value)
+        Text(text = value)
     }
 }
 
