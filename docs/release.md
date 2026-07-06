@@ -5,7 +5,7 @@ Stable APKs are published by the `Release` GitHub Actions workflow.
 ## Preferred release path
 
 1. Configure release signing repository secrets (see [Release APK signing](../README.md#release-apk-signing)).
-2. Increase both `versionName` and `versionCode` in `app/build.gradle.kts` for every new stable APK. `versionName = "0.1.3"` uses tag `v0.1.3`.
+2. Increase both `versionName` and `versionCode` in `app/build.gradle.kts` for every new stable APK. For example, `versionName = "0.1.3"` uses tag `v0.1.3`.
 3. Merge the version change to `main`.
 4. Let the `Create release tag` workflow create `v<versionName>` and dispatch the `Release` workflow.
 5. Install the generated APK on a real device and grant `android.permission.MODIFY_QUIET_MODE` again after a fresh install (see [ADB permission setup](../README.md#adb-permission-setup)).
