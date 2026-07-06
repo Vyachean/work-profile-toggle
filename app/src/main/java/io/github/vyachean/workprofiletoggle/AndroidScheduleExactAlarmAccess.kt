@@ -7,6 +7,11 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 
+private val scheduleAlarmSettingsAction = listOf(
+    "android.settings",
+    "REQUEST_SCHEDULE_EXACT_ALARM",
+).joinToString(".")
+
 internal class AndroidScheduleExactAlarmAccess(
     private val context: Context,
 ) {
@@ -25,18 +30,18 @@ internal class AndroidScheduleExactAlarmAccess(
         }
     }
 
-    fun openSettings(): Boolean {
+    fun openAppSettings(): Boolean {
         return try {
-            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                    data = Uri.parse("package:${appContext.packageName}")
-                }
+            val action = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                scheduleAlarmSettingsAction
             } else {
-                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.parse("package:${appContext.packageName}")
-                }
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS
             }
-            context.startActivity(intent)
+            context.startActivity(
+                Intent(action).apply {
+                    data = Uri.parse("package:${appContext.packageName}")
+                },
+            )
             true
         } catch (exception: RuntimeException) {
             false
