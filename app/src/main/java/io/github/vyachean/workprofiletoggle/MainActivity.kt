@@ -114,31 +114,43 @@ class MainActivity : Activity() {
         val permissionGranted = hasQuietModePermission()
         val schedule = scheduleStore.load()
         val scheduleRuntimeResult = scheduleRuntimeResultStore.load()
+        val exactAlarmAccessState = scheduleExactAlarmAccess.state()
         val shortcutUpdateResult = shortcutController.updateShortcuts(labeledEntries)
+        val homeUiState = HomeUiStateFactory.from(
+            input = HomeUiStateInput(
+                profilesAvailable = profileDiscovery.profilesAvailable,
+                availableProfileCount = profileSelection.availableProfiles.size,
+                selectedProfileLabel = primaryProfile?.profile?.label,
+                selectedProfileQuietMode = primaryQuietMode?.value,
+                permissionGranted = permissionGranted,
+                schedule = schedule,
+                exactAlarmAccessState = exactAlarmAccessState,
+                scheduleRuntimeResult = scheduleRuntimeResult,
+            ),
+            now = ZonedDateTime.now(),
+        )
 
         content.removeAllViews()
 
         content.addView(textView(getString(R.string.home_title), textSize = 22f))
-        renderPrimaryStatus(profileSelection, primaryQuietMode, permissionGranted, profileDiscovery.profilesAvailable)
-        renderSetup(profileSelection, permissionGranted, profileDiscovery.error)
-        renderSchedulePreview(schedule, scheduleRuntimeResult)
+        renderPrimaryStatus(homeUiState.primary, profileSelection)
+        renderSetup(homeUiState.setup, profileSelection, profileDiscovery.error)
+        renderSchedulePreview(homeUiState.schedule, schedule, scheduleRuntimeResult)
         renderAdvanced(profileEntries, shortcutUpdateResult)
     }
 
     private fun renderPrimaryStatus(
+        state: HomePrimaryState,
         profileSelection: ProfileSelection,
-        quietMode: QuietModeState?,
-        permissionGranted: Boolean,
-        profilesAvailable: Boolean,
     ) {
         val primaryProfile = profileSelection.selected
-        when {
-            !profilesAvailable || profileSelection.availableProfiles.isEmpty() -> {
+        when (state) {
+            HomePrimaryState.NO_WORK_PROFILE -> {
                 content.addView(textView(getString(R.string.no_work_profile_found_title), textSize = 18f))
                 content.addView(textView(getString(R.string.no_work_profile_found_description)))
                 content.addView(button(getString(R.string.check_again)) { render() })
             }
-            primaryProfile == null -> {
+            HomePrimaryState.CHOOSE_WORK_PROFILE -> {
                 content.addView(textView(getString(R.string.choose_work_profile), textSize = 18f))
                 content.addView(
                     textView(
@@ -152,29 +164,31 @@ class MainActivity : Activity() {
                 renderProfileChoices(profileSelection.availableProfiles)
                 content.addView(button(getString(R.string.check_again)) { render() })
             }
-            !permissionGranted -> {
+            HomePrimaryState.SETUP_REQUIRED -> {
                 content.addView(textView(getString(R.string.setup_required), textSize = 18f))
                 content.addView(textView(getString(R.string.setup_permission_message)))
                 renderSelectedProfile(profileSelection)
                 content.addView(button(getString(R.string.check_again)) { render() })
             }
-            quietMode?.value == true -> {
+            HomePrimaryState.WORK_PROFILE_PAUSED -> {
+                val selectedProfile = requireNotNull(primaryProfile)
                 content.addView(textView(getString(R.string.work_profile_paused), textSize = 18f))
                 renderSelectedProfile(profileSelection)
                 content.addView(button(getString(R.string.resume_work_profile)) {
-                    dispatchAction(primaryProfile.userHandle, QuietModeAction.Disable)
+                    dispatchAction(selectedProfile.userHandle, QuietModeAction.Disable)
                     render()
                 })
             }
-            quietMode?.value == false -> {
+            HomePrimaryState.WORK_PROFILE_ACTIVE -> {
+                val selectedProfile = requireNotNull(primaryProfile)
                 content.addView(textView(getString(R.string.work_profile_active), textSize = 18f))
                 renderSelectedProfile(profileSelection)
                 content.addView(button(getString(R.string.pause_work_profile)) {
-                    dispatchAction(primaryProfile.userHandle, QuietModeAction.Enable)
+                    dispatchAction(selectedProfile.userHandle, QuietModeAction.Enable)
                     render()
                 })
             }
-            else -> {
+            HomePrimaryState.WORK_PROFILE_UNKNOWN -> {
                 content.addView(textView(getString(R.string.work_profile_unknown), textSize = 18f))
                 renderSelectedProfile(profileSelection)
                 content.addView(button(getString(R.string.check_again)) { render() })
@@ -183,26 +197,23 @@ class MainActivity : Activity() {
     }
 
     private fun renderSetup(
+        setup: HomeSetupState,
         profileSelection: ProfileSelection,
-        permissionGranted: Boolean,
         profilesError: Throwable?,
     ) {
-        val hasProfile = profileSelection.availableProfiles.isNotEmpty()
-        val hasSelectedProfile = profileSelection.selected != null
-        val ready = hasSelectedProfile && permissionGranted && profilesError == null
         content.addView(sectionTitle(getString(R.string.setup_title)))
-        content.addView(textView(if (ready) getString(R.string.setup_ready) else getString(R.string.setup_required)))
-        content.addView(textView(if (hasProfile) getString(R.string.setup_profile_found) else getString(R.string.setup_profile_missing)))
+        content.addView(textView(if (setup.ready) getString(R.string.setup_ready) else getString(R.string.setup_required)))
+        content.addView(textView(if (setup.profileFound) getString(R.string.setup_profile_found) else getString(R.string.setup_profile_missing)))
         content.addView(
             textView(
-                profileSelection.selected?.let {
-                    getString(R.string.selected_profile_format, it.profile.label)
+                setup.selectedProfileLabel?.let { label ->
+                    getString(R.string.selected_profile_format, label)
                 } ?: getString(R.string.selected_profile_none),
             ),
         )
         content.addView(
             textView(
-                if (permissionGranted) {
+                if (setup.permissionGranted) {
                     getString(R.string.setup_permission_granted)
                 } else {
                     getString(R.string.setup_permission_missing)
@@ -212,7 +223,7 @@ class MainActivity : Activity() {
         profilesError?.let { error ->
             content.addView(textView(formatFailure("getUserProfiles", error)))
         }
-        if (!permissionGranted) {
+        if (!setup.permissionGranted) {
             content.addView(sectionTitle(getString(R.string.adb_setup_title)))
             content.addView(textView(getString(R.string.adb_setup_description)))
             content.addView(textView(setupText()))
@@ -221,26 +232,27 @@ class MainActivity : Activity() {
     }
 
     private fun renderSchedulePreview(
+        state: HomeScheduleUiState,
         schedule: WorkProfileSchedule,
         runtimeResult: ScheduleRuntimeResult?,
     ) {
-        val exactAlarmAccessState = scheduleExactAlarmAccess.state()
-
         content.addView(sectionTitle(getString(R.string.schedule_title)))
-        if (schedule == WorkProfileSchedule()) {
+        if (!state.configured) {
             content.addView(textView(getString(R.string.schedule_not_configured)))
         } else {
-            content.addView(textView(scheduleSavedState(schedule, exactAlarmAccessState)))
-            renderScheduleExactAlarmAccess(exactAlarmAccessState)
+            content.addView(textView(scheduleSavedStateLabel(state.savedState)))
+            renderScheduleExactAlarmAccess(state.exactAlarmAccessState)
             content.addView(textView(getString(R.string.schedule_pause_at, formatScheduleTime(schedule.pauseAt))))
             content.addView(textView(getString(R.string.schedule_resume_at, formatScheduleTime(schedule.resumeAt))))
             content.addView(textView(getString(R.string.schedule_active_days, formatScheduleDays(schedule.activeDays))))
-            renderScheduleRuntimeStatus(schedule, runtimeResult)
-            content.addView(button(getString(R.string.copy_schedule_diagnostics)) {
-                copyScheduleDiagnostics(schedule, runtimeResult, exactAlarmAccessState)
-            })
+            renderScheduleRuntimeStatus(state.runtimeStatus)
+            if (state.canCopyDiagnostics) {
+                content.addView(button(getString(R.string.copy_schedule_diagnostics)) {
+                    copyScheduleDiagnostics(schedule, runtimeResult, state.exactAlarmAccessState)
+                })
+            }
         }
-        renderScheduleControls(schedule)
+        renderScheduleControls(state, schedule)
         content.addView(textView(getString(R.string.schedule_future_note)))
     }
 
@@ -260,17 +272,14 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun scheduleSavedState(
-        schedule: WorkProfileSchedule,
-        exactAlarmAccessState: ScheduleExactAlarmAccessState,
-    ): String {
-        return when {
-            schedule.enabled && exactAlarmAccessState == ScheduleExactAlarmAccessState.MISSING -> {
-                getString(R.string.schedule_saved_blocked_exact_alarm_access)
-            }
-            schedule.enabled -> getString(R.string.schedule_saved_enabled)
-            else -> getString(R.string.schedule_saved_disabled)
+    private fun scheduleSavedStateLabel(state: HomeScheduleSavedState): String {
+        val stringId = when (state) {
+            HomeScheduleSavedState.NOT_CONFIGURED -> R.string.schedule_not_configured
+            HomeScheduleSavedState.BLOCKED_EXACT_ALARM_ACCESS -> R.string.schedule_saved_blocked_exact_alarm_access
+            HomeScheduleSavedState.ENABLED -> R.string.schedule_saved_enabled
+            HomeScheduleSavedState.DISABLED -> R.string.schedule_saved_disabled
         }
+        return getString(stringId)
     }
 
     private fun requestScheduleExactAlarmAccess() {
@@ -285,14 +294,8 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun renderScheduleRuntimeStatus(
-        schedule: WorkProfileSchedule,
-        runtimeResult: ScheduleRuntimeResult?,
-    ) {
-        val status = ScheduleRuntimeStatusSummary.from(
-            schedule = schedule,
-            result = runtimeResult,
-        ) ?: return
+    private fun renderScheduleRuntimeStatus(status: ScheduleRuntimeStatusSummary?) {
+        status ?: return
 
         status.nextAction?.let { nextAction ->
             val formattedBoundary = formatScheduleDateTime(nextAction.boundary.at)
@@ -321,7 +324,10 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun renderScheduleControls(schedule: WorkProfileSchedule) {
+    private fun renderScheduleControls(
+        state: HomeScheduleUiState,
+        schedule: WorkProfileSchedule,
+    ) {
         content.addView(button(getString(R.string.schedule_set_pause_time)) {
             showScheduleTimePicker(
                 title = getString(R.string.schedule_set_pause_time),
@@ -341,8 +347,8 @@ class MainActivity : Activity() {
         content.addView(button(getString(R.string.schedule_choose_active_days)) {
             showScheduleDaysPicker(schedule)
         })
-        if (schedule != WorkProfileSchedule()) {
-            if (isScheduleComplete(schedule)) {
+        if (state.configured) {
+            if (state.enableToggleAvailable) {
                 content.addView(
                     button(
                         if (schedule.enabled) {
@@ -354,7 +360,7 @@ class MainActivity : Activity() {
                         saveSchedule(schedule.copy(enabled = !schedule.enabled))
                     },
                 )
-            } else {
+            } else if (state.showEnableRequirements) {
                 content.addView(textView(getString(R.string.schedule_enable_requirements)))
             }
             content.addView(button(getString(R.string.schedule_clear)) {
