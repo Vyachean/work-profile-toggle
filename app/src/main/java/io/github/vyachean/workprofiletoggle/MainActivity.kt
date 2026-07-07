@@ -35,6 +35,7 @@ class MainActivity : Activity() {
     private lateinit var scheduleRuntimeResultStore: ScheduleRuntimeResultStore
     private lateinit var scheduleBoundaryPlanner: ScheduleBoundaryPlanner
     private lateinit var scheduleExactAlarmAccess: AndroidScheduleExactAlarmAccess
+    private lateinit var scheduleTextFormatter: ScheduleUiTextFormatter
     private lateinit var quietModeController: QuietModeController
     private lateinit var workProfileRepository: WorkProfileRepository
     private lateinit var shortcutController: ShortcutController
@@ -52,6 +53,14 @@ class MainActivity : Activity() {
         scheduleRuntimeResultStore = dependencies.scheduleRuntimeResultStore
         scheduleBoundaryPlanner = dependencies.scheduleBoundaryPlanner
         scheduleExactAlarmAccess = AndroidScheduleExactAlarmAccess(this)
+        scheduleTextFormatter = ScheduleUiTextFormatter(
+            strings = object : ScheduleStringProvider {
+                override fun get(stringId: Int): String = getString(stringId)
+                override fun get(stringId: Int, vararg args: Any): String = getString(stringId, *args)
+            },
+            timeFormatter = ::formatScheduleTimeForDisplay,
+            dateTimeFormatter = ::formatScheduleDateTimeForDisplay,
+        )
         lastResult = actionResultStore.restore(savedInstanceState?.getString(STATE_LAST_RESULT))
         quietModeController = dependencies.quietModeController
         workProfileRepository = dependencies.workProfileRepository
@@ -240,11 +249,11 @@ class MainActivity : Activity() {
         if (!state.configured) {
             content.addView(textView(getString(R.string.schedule_not_configured)))
         } else {
-            content.addView(textView(scheduleSavedStateLabel(state.savedState)))
+            content.addView(textView(scheduleTextFormatter.savedStateLabel(state.savedState)))
             renderScheduleExactAlarmAccess(state.exactAlarmAccessState)
-            content.addView(textView(getString(R.string.schedule_pause_at, formatScheduleTime(schedule.pauseAt))))
-            content.addView(textView(getString(R.string.schedule_resume_at, formatScheduleTime(schedule.resumeAt))))
-            content.addView(textView(getString(R.string.schedule_active_days, formatScheduleDays(schedule.activeDays))))
+            content.addView(textView(getString(R.string.schedule_pause_at, scheduleTextFormatter.time(schedule.pauseAt))))
+            content.addView(textView(getString(R.string.schedule_resume_at, scheduleTextFormatter.time(schedule.resumeAt))))
+            content.addView(textView(getString(R.string.schedule_active_days, scheduleTextFormatter.days(schedule.activeDays))))
             renderScheduleRuntimeStatus(state.runtimeStatus)
             if (state.canCopyDiagnostics) {
                 content.addView(button(getString(R.string.copy_schedule_diagnostics)) {
@@ -257,12 +266,7 @@ class MainActivity : Activity() {
     }
 
     private fun renderScheduleExactAlarmAccess(state: ScheduleExactAlarmAccessState) {
-        val label = when (state) {
-            ScheduleExactAlarmAccessState.NOT_REQUIRED -> R.string.schedule_exact_alarm_not_required
-            ScheduleExactAlarmAccessState.GRANTED -> R.string.schedule_exact_alarm_granted
-            ScheduleExactAlarmAccessState.MISSING -> R.string.schedule_exact_alarm_missing
-        }
-        content.addView(textView(getString(label)))
+        content.addView(textView(scheduleTextFormatter.exactAlarmAccessLabel(state)))
 
         if (state == ScheduleExactAlarmAccessState.MISSING) {
             content.addView(textView(getString(R.string.schedule_exact_alarm_missing_description)))
@@ -270,16 +274,6 @@ class MainActivity : Activity() {
                 requestScheduleExactAlarmAccess()
             })
         }
-    }
-
-    private fun scheduleSavedStateLabel(state: HomeScheduleSavedState): String {
-        val stringId = when (state) {
-            HomeScheduleSavedState.NOT_CONFIGURED -> R.string.schedule_not_configured
-            HomeScheduleSavedState.BLOCKED_EXACT_ALARM_ACCESS -> R.string.schedule_saved_blocked_exact_alarm_access
-            HomeScheduleSavedState.ENABLED -> R.string.schedule_saved_enabled
-            HomeScheduleSavedState.DISABLED -> R.string.schedule_saved_disabled
-        }
-        return getString(stringId)
     }
 
     private fun requestScheduleExactAlarmAccess() {
@@ -298,29 +292,11 @@ class MainActivity : Activity() {
         status ?: return
 
         status.nextAction?.let { nextAction ->
-            val formattedBoundary = formatScheduleDateTime(nextAction.boundary.at)
-            val text = when (nextAction.type) {
-                ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE -> getString(
-                    R.string.schedule_next_action_pause,
-                    formattedBoundary,
-                )
-                ScheduleRuntimeNextActionType.RESUME_WORK_PROFILE -> getString(
-                    R.string.schedule_next_action_resume,
-                    formattedBoundary,
-                )
-            }
-            content.addView(textView(text))
+            content.addView(textView(scheduleTextFormatter.nextAction(nextAction)))
         }
 
         status.issue?.let { issue ->
-            content.addView(
-                textView(
-                    getString(
-                        R.string.schedule_runtime_issue,
-                        scheduleRuntimeIssueLabel(issue),
-                    ),
-                ),
-            )
+            content.addView(textView(scheduleTextFormatter.runtimeIssue(issue)))
         }
     }
 
@@ -396,7 +372,7 @@ class MainActivity : Activity() {
     private fun showScheduleDaysPicker(schedule: WorkProfileSchedule) {
         val orderedDays = ScheduleDay.values().toList()
         val selectedDays = schedule.activeDays.toMutableSet()
-        val labels = orderedDays.map { day -> getString(scheduleDayLabel(day)) }.toTypedArray()
+        val labels = orderedDays.map { day -> scheduleTextFormatter.dayLabel(day) }.toTypedArray()
         val checkedItems = orderedDays.map { day -> day in selectedDays }.toBooleanArray()
 
         AlertDialog.Builder(this)
@@ -590,8 +566,7 @@ class MainActivity : Activity() {
         return getString(stringId)
     }
 
-    private fun formatScheduleTime(scheduleTime: ScheduleTime?): String {
-        if (scheduleTime == null) return getString(R.string.schedule_time_not_set)
+    private fun formatScheduleTimeForDisplay(scheduleTime: ScheduleTime): String {
         val calendar = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, scheduleTime.hour)
             set(Calendar.MINUTE, scheduleTime.minute)
@@ -601,49 +576,11 @@ class MainActivity : Activity() {
         return DateFormat.getTimeFormat(this).format(calendar.time)
     }
 
-    private fun formatScheduleDateTime(dateTime: ZonedDateTime): String {
+    private fun formatScheduleDateTimeForDisplay(dateTime: ZonedDateTime): String {
         return java.text.DateFormat.getDateTimeInstance(
             java.text.DateFormat.MEDIUM,
             java.text.DateFormat.SHORT,
         ).format(Date.from(dateTime.toInstant()))
-    }
-
-    private fun formatScheduleDays(days: Set<ScheduleDay>): String {
-        return when {
-            days.isEmpty() -> getString(R.string.schedule_no_days)
-            days == ScheduleDay.defaultSet -> getString(R.string.schedule_all_days)
-            else -> days.sorted()
-                .joinToString(", ") { day -> getString(scheduleDayLabel(day)) }
-        }
-    }
-
-    private fun scheduleDayLabel(day: ScheduleDay): Int {
-        return when (day) {
-            ScheduleDay.MONDAY -> R.string.schedule_day_monday
-            ScheduleDay.TUESDAY -> R.string.schedule_day_tuesday
-            ScheduleDay.WEDNESDAY -> R.string.schedule_day_wednesday
-            ScheduleDay.THURSDAY -> R.string.schedule_day_thursday
-            ScheduleDay.FRIDAY -> R.string.schedule_day_friday
-            ScheduleDay.SATURDAY -> R.string.schedule_day_saturday
-            ScheduleDay.SUNDAY -> R.string.schedule_day_sunday
-        }
-    }
-
-    private fun scheduleRuntimeIssueLabel(issue: ScheduleRuntimeIssue): String {
-        val stringId = when (issue) {
-            ScheduleRuntimeIssue.PENDING -> R.string.schedule_runtime_issue_pending
-            ScheduleRuntimeIssue.SCHEDULE_DISABLED -> R.string.schedule_runtime_issue_disabled
-            ScheduleRuntimeIssue.SCHEDULE_INCOMPLETE -> R.string.schedule_runtime_issue_incomplete
-            ScheduleRuntimeIssue.SCHEDULE_INVALID -> R.string.schedule_runtime_issue_invalid
-            ScheduleRuntimeIssue.SELECTED_PROFILE_MISSING -> R.string.schedule_runtime_issue_selected_profile_missing
-            ScheduleRuntimeIssue.WORK_PROFILE_UNAVAILABLE -> R.string.schedule_runtime_issue_work_profile_unavailable
-            ScheduleRuntimeIssue.PERMISSION_MISSING -> R.string.schedule_runtime_issue_permission_missing
-            ScheduleRuntimeIssue.CREDENTIAL_REQUIRED -> R.string.schedule_runtime_issue_credential_required
-            ScheduleRuntimeIssue.ANDROID_REQUEST_REJECTED -> R.string.schedule_runtime_issue_android_request_rejected
-            ScheduleRuntimeIssue.EXACT_ALARM_ACCESS_MISSING -> R.string.schedule_runtime_issue_exact_alarm_access_missing
-            ScheduleRuntimeIssue.RUNTIME_EXCEPTION -> R.string.schedule_runtime_issue_runtime_exception
-        }
-        return getString(stringId)
     }
 
     private fun hasQuietModePermission(): Boolean {
