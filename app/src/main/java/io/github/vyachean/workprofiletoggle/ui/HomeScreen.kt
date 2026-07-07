@@ -43,7 +43,7 @@ internal fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(text = HomeScreenText.APP_TITLE)
+                    Text(text = HomeScreenText.appTitle())
                 },
             )
         },
@@ -101,24 +101,24 @@ private fun PrimaryActionRow(
             HomePrimaryState.WORK_PROFILE_ACTIVE -> Button(
                 onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.PauseWorkProfile) },
             ) {
-                Text(HomeScreenText.PAUSE_ACTION)
+                Text(HomeScreenText.pauseAction())
             }
             HomePrimaryState.WORK_PROFILE_PAUSED -> Button(
                 onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ResumeWorkProfile) },
             ) {
-                Text(HomeScreenText.RESUME_ACTION)
+                Text(HomeScreenText.resumeAction())
             }
             HomePrimaryState.CHOOSE_WORK_PROFILE -> Button(
                 onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ChangeProfile) },
             ) {
-                Text(HomeScreenText.CHOOSE_PROFILE_ACTION)
+                Text(HomeScreenText.chooseProfileAction())
             }
             HomePrimaryState.NO_WORK_PROFILE,
             HomePrimaryState.SETUP_REQUIRED,
             HomePrimaryState.WORK_PROFILE_UNKNOWN -> OutlinedButton(
                 onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.CheckAgain) },
             ) {
-                Text(HomeScreenText.CHECK_AGAIN_ACTION)
+                Text(HomeScreenText.checkAgainAction())
             }
         }
     }
@@ -132,21 +132,21 @@ private fun SetupCard(state: HomeUiState) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = HomeScreenText.SETUP_TITLE,
+                text = HomeScreenText.setupTitle(),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
             SetupRow(
-                label = HomeScreenText.WORK_PROFILE_LABEL,
-                value = if (state.setup.profileFound) HomeScreenText.FOUND_VALUE else HomeScreenText.MISSING_VALUE,
+                label = HomeScreenText.workProfileLabel(),
+                value = if (state.setup.profileFound) HomeScreenText.foundValue() else HomeScreenText.missingValue(),
             )
             SetupRow(
-                label = HomeScreenText.SELECTED_PROFILE_LABEL,
-                value = state.setup.selectedProfileLabel ?: HomeScreenText.NOT_SELECTED_VALUE,
+                label = HomeScreenText.selectedProfileLabel(),
+                value = state.setup.selectedProfileLabel ?: HomeScreenText.notSelectedValue(),
             )
             SetupRow(
-                label = HomeScreenText.PERMISSION_LABEL,
-                value = if (state.setup.permissionGranted) HomeScreenText.GRANTED_VALUE else HomeScreenText.MISSING_VALUE,
+                label = HomeScreenText.permissionLabel(),
+                value = if (state.setup.permissionGranted) HomeScreenText.grantedValue() else HomeScreenText.missingValue(),
             )
         }
     }
@@ -180,7 +180,7 @@ private fun ScheduleCard(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = HomeScreenText.SCHEDULE_TITLE,
+                text = HomeScreenText.scheduleTitle(),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -221,14 +221,14 @@ private fun ScheduleEditorActions(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.SetPauseTime) }) {
-                Text(HomeScreenText.SET_PAUSE_TIME_ACTION)
+                Text(HomeScreenText.setPauseTimeAction())
             }
             OutlinedButton(onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.SetResumeTime) }) {
-                Text(HomeScreenText.SET_RESUME_TIME_ACTION)
+                Text(HomeScreenText.setResumeTimeAction())
             }
         }
         OutlinedButton(onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ChooseActiveDays) }) {
-            Text(HomeScreenText.CHOOSE_ACTIVE_DAYS_ACTION)
+            Text(HomeScreenText.chooseActiveDaysAction())
         }
         val enableToggle = state.schedule.editor.enableToggle
         if (enableToggle != null) {
@@ -239,26 +239,26 @@ private fun ScheduleEditorActions(
             Button(onClick = { eventHandler.onHomeScreenEvent(event) }) {
                 Text(
                     when (enableToggle.action) {
-                        ScheduleEditorEnableToggleAction.ENABLE -> HomeScreenText.ENABLE_SCHEDULE_ACTION
-                        ScheduleEditorEnableToggleAction.DISABLE -> HomeScreenText.DISABLE_SCHEDULE_ACTION
+                        ScheduleEditorEnableToggleAction.ENABLE -> HomeScreenText.enableScheduleAction()
+                        ScheduleEditorEnableToggleAction.DISABLE -> HomeScreenText.disableScheduleAction()
                     },
                 )
             }
         } else if (state.schedule.editor.showEnableRequirements) {
             Text(
-                text = HomeScreenText.ENABLE_SCHEDULE_REQUIREMENTS,
+                text = HomeScreenText.enableScheduleRequirements(),
                 style = MaterialTheme.typography.bodySmall,
             )
         }
         if (state.schedule.canCopyDiagnostics) {
             OutlinedButton(onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.CopyDiagnostics) }) {
-                Text(HomeScreenText.COPY_DIAGNOSTICS_ACTION)
+                Text(HomeScreenText.copyDiagnosticsAction())
             }
         }
         if (state.schedule.editor.canClear) {
             Spacer(modifier = Modifier.height(4.dp))
             OutlinedButton(onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ClearSchedule) }) {
-                Text(HomeScreenText.CLEAR_SCHEDULE_ACTION)
+                Text(HomeScreenText.clearScheduleAction())
             }
         }
     }
