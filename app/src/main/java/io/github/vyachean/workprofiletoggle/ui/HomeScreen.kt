@@ -201,9 +201,9 @@ private fun ScheduleCard(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
-            state.schedule.runtimeStatus?.issue?.let { issue ->
+            state.schedule.runtimeStatus?.issue?.let { runtimeIssue ->
                 Text(
-                    text = "Issue: ${HomeScreenText.issue(issue)}",
+                    text = HomeScreenText.formattedIssue(runtimeIssue),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                 )
