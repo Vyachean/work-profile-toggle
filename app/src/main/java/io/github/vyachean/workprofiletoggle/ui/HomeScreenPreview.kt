@@ -163,4 +163,4 @@ private fun previewHomeState(
     )
 }
 
-private val previewEventHandler = HomeScreenEventHandler {}
+private val previewEventHandler = homeScreenEventHandler(NoOpHomeScreenActions)
