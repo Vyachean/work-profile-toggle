@@ -2,6 +2,12 @@
 
 Use this checklist for every signed APK before treating a release as usable.
 
+## Recorded validation
+
+- 2026-07-07: v0.1.3 was reported to work normally on a real device for schedule-driven work-profile pause and resume.
+
+This recorded result does not replace the full release checklist below; reboot recovery, shortcut behavior, exact-alarm recovery, and update install still need release smoke validation.
+
 ## Preconditions
 
 - Install the signed release APK from the GitHub Release asset.
