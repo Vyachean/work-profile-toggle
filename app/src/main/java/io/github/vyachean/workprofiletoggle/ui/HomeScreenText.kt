@@ -85,4 +85,8 @@ internal object HomeScreenText {
             ScheduleRuntimeIssue.RUNTIME_EXCEPTION -> "Runtime exception"
         }
     }
+
+    fun formattedIssue(issue: ScheduleRuntimeIssue): String {
+        return "Issue: ${issue(issue)}"
+    }
 }
