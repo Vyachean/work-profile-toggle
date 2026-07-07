@@ -16,4 +16,4 @@ This directory contains project documentation that should stay current with prod
 
 ## Documentation rule
 
-Any change that affects user-facing behavior, product scope, setup, platform assumptions, release process, testing, or planned work should update the relevant document in the same pull request.
+For any change that affects user-facing behavior, product scope, setup, platform assumptions, release process, testing, or planned work, the relevant document should be updated in the same pull request.
