@@ -21,7 +21,7 @@ The app currently supports manual and scheduled work-profile control after setup
 - user-facing schedule runtime status with next action or issue;
 - copyable schedule runtime diagnostics for real-world reports;
 - schedule rescheduling after app update, device reboot, manual time change, timezone change, selected-profile changes, schedule changes, and exact-alarm access changes;
-- initial real-device validation of v0.1.3 schedule-driven work-profile pause and resume on the user's device;
+- initial real-device validation of v0.1.3 schedule-driven work-profile pause and resume;
 - Jetpack Compose and Material 3 build baseline;
 - Compose Home screen skeleton, previews, and event model;
 - shared schedule date/time display formatter;
