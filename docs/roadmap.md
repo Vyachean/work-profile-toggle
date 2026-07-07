@@ -21,6 +21,9 @@ The app currently supports manual and scheduled work-profile control after setup
 - user-facing schedule runtime status with next action or issue;
 - copyable schedule runtime diagnostics for real-world reports;
 - schedule rescheduling after app update, device reboot, manual time change, timezone change, selected-profile changes, schedule changes, and exact-alarm access changes;
+- Jetpack Compose and Material 3 build baseline;
+- Compose Home screen skeleton and previews;
+- shared schedule date/time display formatter;
 - CI debug APK artifacts;
 - release APK workflow infrastructure.
 
@@ -29,6 +32,26 @@ The app currently supports manual and scheduled work-profile control after setup
 The main product direction is to provide a Digital Wellbeing-style work-profile schedule on devices where the built-in Google/OEM work-profile schedule is missing or unavailable.
 
 Manual pause/resume remains important, but it is the setup, fallback, and explicit override path for the larger schedule-focused product.
+
+The next product phase is not just a visual refresh. The goal is to make the schedule-first product understandable and reliable: users should always see whether setup is complete, whether scheduling is blocked, what the next scheduled action is, and what recovery action is available.
+
+## Development strategy
+
+The near-term strategy is incremental migration, not a large rewrite:
+
+1. Keep runtime behavior stable while refactoring UI boundaries.
+2. Keep each PR small enough to review thoroughly and verify with CI.
+3. Resolve review comments before merging.
+4. Prefer pure state models, helpers, and previews before replacing Activity rendering.
+5. Move to Compose Home wiring only after the existing View path is decomposed enough to keep callbacks and runtime behavior clear.
+
+Quality rules for this phase:
+
+- Do not merge without green CI for the exact head commit being merged.
+- Do not merge with unresolved relevant review comments.
+- Do not replace large files just to make a small behavior-neutral change.
+- Avoid broad UI rewrites until preview, state, and callback wiring are ready.
+- Keep documentation updated in the same PR as behavior, setup, or strategy changes.
 
 ## Stage 1 — Documentation and product clarity
 
@@ -47,37 +70,52 @@ Status: in progress.
 
 Goal: make UI states deterministic, testable, and suitable for stable screenshots.
 
-Planned work:
+Implemented baseline:
 
-- Extract Home UI state from direct Activity/system-service rendering.
-- Extract Schedule UI state and schedule editor state.
+- Home UI state extracted from direct Activity/system-service rendering.
+- Schedule editor UI state extracted from direct controls.
+- Advanced UI state extracted for advanced/status sections.
+- Shared schedule display formatter added for consistent next-action date/time text.
+
+Remaining work:
+
 - Keep Android system-service calls behind controllers/repositories.
 - Make primary UI use product terms: work profile, active, paused, pause, resume, schedule, setup.
 - Keep raw Android terms in Advanced/Diagnostics only.
 - Keep schedule runtime status derived from structured state rather than direct view logic.
+- Reduce `MainActivity` responsibilities before Compose Home wiring.
 
-Status: planned.
+Status: in progress.
 
-## Stage 3 — Modern Android UI
+## Stage 3 — Compose Material 3 Home
 
-Goal: replace the current utility-style View UI with a more polished Android UI.
+Goal: replace the current utility-style View UI with a polished Compose Material 3 Home screen.
 
-Options:
+Direction:
 
-- Jetpack Compose + Material 3 for a modern UI foundation.
-- Material Components with Views if an incremental migration is preferred.
+- Jetpack Compose + Material 3 is the selected UI path.
+- The current Compose Home screen is still a skeleton and preview surface, not the primary runtime UI.
+- The View-based `MainActivity` path remains the runtime UI until Compose callbacks are wired safely.
 
-Expected work:
+Near-term work:
+
+- Prepare `HomeScreenActions` wiring without changing runtime behavior.
+- Decompose `MainActivity` render logic into smaller helpers where safe.
+- Connect Compose Home to the existing `HomeUiState` and existing action handlers.
+- Keep the old View path available until parity is verified.
+- Verify manual pause/resume, setup states, exact-alarm blocked state, schedule enabled/disabled state, next action, and copy diagnostics on a real device.
+
+Expected polish after wiring:
 
 - Material-style Home screen sections.
-- Clear setup state.
+- Clear setup checklist.
 - Clear selected work-profile state.
 - Schedule settings as a settings-style form.
 - Better incomplete-schedule validation and guidance.
 - Clear schedule runtime status and issue recovery guidance.
 - Accessibility, font-scale, light/dark theme, and system inset handling.
 
-Status: planned.
+Status: in progress.
 
 ## Stage 4 — Deterministic screenshots
 
@@ -155,7 +193,7 @@ Status: planned.
 - Keep issue #25 aligned with this roadmap.
 - Run and document a real-device schedule smoke test.
 - Improve schedule setup/status UX.
+- Connect Compose Home to runtime state/actions after `MainActivity` responsibilities are reduced.
 - Create stable README screenshots after screenshot architecture exists.
-- Decide between Compose Material 3 and Material Components Views.
 - Add stronger automated coverage for schedule editor validation.
 - Evaluate whether an optional inexact fallback should exist for devices where exact-alarm access is unavailable.
