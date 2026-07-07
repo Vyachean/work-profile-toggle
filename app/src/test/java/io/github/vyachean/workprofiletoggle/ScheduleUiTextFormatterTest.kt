@@ -8,14 +8,10 @@ import org.junit.Test
 
 class ScheduleUiTextFormatterTest {
     private val formatter = ScheduleUiTextFormatter(
-        strings = ScheduleStringProvider { stringId, args ->
-            val value = requireNotNull(stringValues[stringId]) {
-                "Missing test string for resource id $stringId"
-            }
-            if (args.isEmpty()) {
-                value
-            } else {
-                String.format(Locale.ROOT, value, *args)
+        strings = object : ScheduleStringProvider {
+            override fun get(stringId: Int): String = stringValue(stringId)
+            override fun get(stringId: Int, vararg args: Any): String {
+                return String.format(Locale.ROOT, stringValue(stringId), *args)
             }
         },
         timeFormatter = { time -> "%02d:%02d".format(Locale.ROOT, time.hour, time.minute) },
@@ -57,6 +53,12 @@ class ScheduleUiTextFormatterTest {
     }
 
     private companion object {
+        private fun stringValue(stringId: Int): String {
+            return requireNotNull(stringValues[stringId]) {
+                "Missing test string for resource id $stringId"
+            }
+        }
+
         private val stringValues = mapOf(
             R.string.schedule_not_configured to "Not configured",
             R.string.schedule_saved_blocked_exact_alarm_access to "Saved schedule: Enabled, but exact alarm access is missing",
