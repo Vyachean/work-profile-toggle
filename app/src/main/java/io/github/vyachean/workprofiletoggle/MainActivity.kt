@@ -393,7 +393,7 @@ class MainActivity : Activity() {
     }
 
     private fun saveSchedule(schedule: WorkProfileSchedule) {
-        scheduleStore.save(normalizeSchedule(schedule))
+        scheduleStore.save(ScheduleSavePolicy.normalizeForSave(schedule))
         scheduleBoundaryPlanner.refresh()
         Toast.makeText(this, getString(R.string.schedule_saved), Toast.LENGTH_SHORT).show()
         render()
@@ -404,18 +404,6 @@ class MainActivity : Activity() {
         scheduleBoundaryPlanner.cancel()
         Toast.makeText(this, getString(R.string.schedule_cleared), Toast.LENGTH_SHORT).show()
         render()
-    }
-
-    private fun normalizeSchedule(schedule: WorkProfileSchedule): WorkProfileSchedule {
-        return if (isScheduleComplete(schedule)) {
-            schedule
-        } else {
-            schedule.copy(enabled = false)
-        }
-    }
-
-    private fun isScheduleComplete(schedule: WorkProfileSchedule): Boolean {
-        return schedule.pauseAt != null && schedule.resumeAt != null && schedule.activeDays.isNotEmpty()
     }
 
     private fun renderAdvanced(

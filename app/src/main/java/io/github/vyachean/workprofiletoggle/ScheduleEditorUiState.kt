@@ -23,9 +23,7 @@ internal object ScheduleEditorUiStateFactory {
 
     fun from(schedule: WorkProfileSchedule): ScheduleEditorUiState {
         val configured = schedule != WorkProfileSchedule()
-        val complete = schedule.pauseAt != null &&
-            schedule.resumeAt != null &&
-            schedule.activeDays.isNotEmpty()
+        val complete = ScheduleSavePolicy.isComplete(schedule)
         return ScheduleEditorUiState(
             pauseInitialTime = schedule.pauseAt ?: defaultPauseTime,
             resumeInitialTime = schedule.resumeAt ?: defaultResumeTime,
