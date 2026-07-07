@@ -1,93 +1,154 @@
 package io.github.vyachean.workprofiletoggle.ui
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import io.github.vyachean.workprofiletoggle.HomePrimaryState
 import io.github.vyachean.workprofiletoggle.HomeScheduleSavedState
+import io.github.vyachean.workprofiletoggle.R
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeIssue
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextActionType
 
-// TODO: Move user-facing Home screen strings to Android string resources when Compose runtime wiring is ready.
 internal object HomeScreenText {
-    const val APP_TITLE = "Work Profile Toggle"
-    const val SETUP_TITLE = "Setup"
-    const val SCHEDULE_TITLE = "Schedule"
+    @Composable
+    fun appTitle(): String = stringResource(R.string.app_name)
 
-    const val PAUSE_ACTION = "Pause"
-    const val RESUME_ACTION = "Resume"
-    const val CHOOSE_PROFILE_ACTION = "Choose profile"
-    const val CHECK_AGAIN_ACTION = "Check again"
-    const val SET_PAUSE_TIME_ACTION = "Pause time"
-    const val SET_RESUME_TIME_ACTION = "Resume time"
-    const val CHOOSE_ACTIVE_DAYS_ACTION = "Active days"
-    const val ENABLE_SCHEDULE_ACTION = "Enable schedule"
-    const val DISABLE_SCHEDULE_ACTION = "Disable schedule"
-    const val COPY_DIAGNOSTICS_ACTION = "Copy diagnostics"
-    const val CLEAR_SCHEDULE_ACTION = "Clear schedule"
+    @Composable
+    fun setupTitle(): String = stringResource(R.string.setup_title)
 
-    const val WORK_PROFILE_LABEL = "Work profile"
-    const val SELECTED_PROFILE_LABEL = "Selected profile"
-    const val PERMISSION_LABEL = "Permission"
-    const val FOUND_VALUE = "Found"
-    const val MISSING_VALUE = "Missing"
-    const val GRANTED_VALUE = "Granted"
-    const val NOT_SELECTED_VALUE = "Not selected"
+    @Composable
+    fun scheduleTitle(): String = stringResource(R.string.schedule_title)
 
-    const val ENABLE_SCHEDULE_REQUIREMENTS = "Set pause time, resume time, and active days before enabling the schedule."
+    @Composable
+    fun pauseAction(): String = stringResource(R.string.home_screen_pause_action)
 
+    @Composable
+    fun resumeAction(): String = stringResource(R.string.home_screen_resume_action)
+
+    @Composable
+    fun chooseProfileAction(): String = stringResource(R.string.home_screen_choose_profile_action)
+
+    @Composable
+    fun checkAgainAction(): String = stringResource(R.string.check_again)
+
+    @Composable
+    fun setPauseTimeAction(): String = stringResource(R.string.home_screen_set_pause_time_action)
+
+    @Composable
+    fun setResumeTimeAction(): String = stringResource(R.string.home_screen_set_resume_time_action)
+
+    @Composable
+    fun chooseActiveDaysAction(): String = stringResource(R.string.schedule_choose_active_days)
+
+    @Composable
+    fun enableScheduleAction(): String = stringResource(R.string.home_screen_enable_schedule_action)
+
+    @Composable
+    fun disableScheduleAction(): String = stringResource(R.string.home_screen_disable_schedule_action)
+
+    @Composable
+    fun copyDiagnosticsAction(): String = stringResource(R.string.copy_schedule_diagnostics)
+
+    @Composable
+    fun clearScheduleAction(): String = stringResource(R.string.home_screen_clear_schedule_action)
+
+    @Composable
+    fun workProfileLabel(): String = stringResource(R.string.home_screen_work_profile_label)
+
+    @Composable
+    fun selectedProfileLabel(): String = stringResource(R.string.home_screen_selected_profile_label)
+
+    @Composable
+    fun permissionLabel(): String = stringResource(R.string.home_screen_permission_label)
+
+    @Composable
+    fun foundValue(): String = stringResource(R.string.home_screen_found_value)
+
+    @Composable
+    fun missingValue(): String = stringResource(R.string.home_screen_missing_value)
+
+    @Composable
+    fun grantedValue(): String = stringResource(R.string.home_screen_granted_value)
+
+    @Composable
+    fun notSelectedValue(): String = stringResource(R.string.home_screen_not_selected_value)
+
+    @Composable
+    fun enableScheduleRequirements(): String = stringResource(R.string.schedule_enable_requirements)
+
+    @Composable
     fun primaryTitle(state: HomePrimaryState): String {
-        return when (state) {
-            HomePrimaryState.NO_WORK_PROFILE -> "No work profile found"
-            HomePrimaryState.CHOOSE_WORK_PROFILE -> "Choose work profile"
-            HomePrimaryState.SETUP_REQUIRED -> "Setup required"
-            HomePrimaryState.WORK_PROFILE_PAUSED -> "Work profile paused"
-            HomePrimaryState.WORK_PROFILE_ACTIVE -> "Work profile active"
-            HomePrimaryState.WORK_PROFILE_UNKNOWN -> "Work profile status unknown"
-        }
+        return stringResource(
+            when (state) {
+                HomePrimaryState.NO_WORK_PROFILE -> R.string.home_screen_no_work_profile_title
+                HomePrimaryState.CHOOSE_WORK_PROFILE -> R.string.home_screen_choose_work_profile_title
+                HomePrimaryState.SETUP_REQUIRED -> R.string.setup_required
+                HomePrimaryState.WORK_PROFILE_PAUSED -> R.string.home_screen_work_profile_paused_title
+                HomePrimaryState.WORK_PROFILE_ACTIVE -> R.string.home_screen_work_profile_active_title
+                HomePrimaryState.WORK_PROFILE_UNKNOWN -> R.string.home_screen_work_profile_unknown_title
+            },
+        )
     }
 
+    @Composable
     fun primaryDescription(state: HomePrimaryState, selectedProfileLabel: String?): String {
         return when (state) {
-            HomePrimaryState.NO_WORK_PROFILE -> "Create or enable a work profile, then check again."
-            HomePrimaryState.CHOOSE_WORK_PROFILE -> "Select the profile that this app should control."
-            HomePrimaryState.SETUP_REQUIRED -> "Grant quiet mode control permission before using manual actions or schedule."
-            HomePrimaryState.WORK_PROFILE_PAUSED -> selectedProfileLabel?.let { "$it is paused." } ?: "The selected work profile is paused."
-            HomePrimaryState.WORK_PROFILE_ACTIVE -> selectedProfileLabel?.let { "$it is active." } ?: "The selected work profile is active."
-            HomePrimaryState.WORK_PROFILE_UNKNOWN -> "The app could not read the current quiet mode state."
+            HomePrimaryState.NO_WORK_PROFILE -> stringResource(R.string.home_screen_no_work_profile_description)
+            HomePrimaryState.CHOOSE_WORK_PROFILE -> stringResource(R.string.home_screen_choose_work_profile_description)
+            HomePrimaryState.SETUP_REQUIRED -> stringResource(R.string.home_screen_setup_required_description)
+            HomePrimaryState.WORK_PROFILE_PAUSED -> selectedProfileLabel?.let { label ->
+                stringResource(R.string.home_screen_work_profile_paused_labeled_description, label)
+            } ?: stringResource(R.string.home_screen_work_profile_paused_description)
+            HomePrimaryState.WORK_PROFILE_ACTIVE -> selectedProfileLabel?.let { label ->
+                stringResource(R.string.home_screen_work_profile_active_labeled_description, label)
+            } ?: stringResource(R.string.home_screen_work_profile_active_description)
+            HomePrimaryState.WORK_PROFILE_UNKNOWN -> stringResource(R.string.home_screen_work_profile_unknown_description)
         }
     }
 
+    @Composable
     fun scheduleStatus(state: HomeScheduleSavedState): String {
-        return when (state) {
-            HomeScheduleSavedState.NOT_CONFIGURED -> "Schedule is not configured."
-            HomeScheduleSavedState.ENABLED -> "Schedule is enabled."
-            HomeScheduleSavedState.DISABLED -> "Schedule is saved but disabled."
-            HomeScheduleSavedState.BLOCKED_EXACT_ALARM_ACCESS -> "Schedule is blocked until exact alarm access is granted."
-        }
+        return stringResource(
+            when (state) {
+                HomeScheduleSavedState.NOT_CONFIGURED -> R.string.home_screen_schedule_not_configured
+                HomeScheduleSavedState.ENABLED -> R.string.home_screen_schedule_enabled
+                HomeScheduleSavedState.DISABLED -> R.string.home_screen_schedule_disabled
+                HomeScheduleSavedState.BLOCKED_EXACT_ALARM_ACCESS -> R.string.home_screen_schedule_blocked_exact_alarm_access
+            },
+        )
     }
 
+    @Composable
     fun nextAction(type: ScheduleRuntimeNextActionType, formattedBoundary: String): String {
-        return when (type) {
-            ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE -> "Next action: pause at $formattedBoundary"
-            ScheduleRuntimeNextActionType.RESUME_WORK_PROFILE -> "Next action: resume at $formattedBoundary"
-        }
+        return stringResource(
+            when (type) {
+                ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE -> R.string.home_screen_next_action_pause
+                ScheduleRuntimeNextActionType.RESUME_WORK_PROFILE -> R.string.home_screen_next_action_resume
+            },
+            formattedBoundary,
+        )
     }
 
+    @Composable
     fun issue(issue: ScheduleRuntimeIssue): String {
-        return when (issue) {
-            ScheduleRuntimeIssue.PENDING -> "Pending"
-            ScheduleRuntimeIssue.SCHEDULE_DISABLED -> "Schedule disabled"
-            ScheduleRuntimeIssue.SCHEDULE_INCOMPLETE -> "Schedule incomplete"
-            ScheduleRuntimeIssue.SCHEDULE_INVALID -> "Schedule invalid"
-            ScheduleRuntimeIssue.SELECTED_PROFILE_MISSING -> "Selected profile missing"
-            ScheduleRuntimeIssue.WORK_PROFILE_UNAVAILABLE -> "Work profile unavailable"
-            ScheduleRuntimeIssue.PERMISSION_MISSING -> "Permission missing"
-            ScheduleRuntimeIssue.CREDENTIAL_REQUIRED -> "Credential required"
-            ScheduleRuntimeIssue.ANDROID_REQUEST_REJECTED -> "Android request rejected"
-            ScheduleRuntimeIssue.EXACT_ALARM_ACCESS_MISSING -> "Exact alarm access missing"
-            ScheduleRuntimeIssue.RUNTIME_EXCEPTION -> "Runtime exception"
-        }
+        return stringResource(
+            when (issue) {
+                ScheduleRuntimeIssue.PENDING -> R.string.home_screen_issue_pending
+                ScheduleRuntimeIssue.SCHEDULE_DISABLED -> R.string.home_screen_issue_schedule_disabled
+                ScheduleRuntimeIssue.SCHEDULE_INCOMPLETE -> R.string.home_screen_issue_schedule_incomplete
+                ScheduleRuntimeIssue.SCHEDULE_INVALID -> R.string.home_screen_issue_schedule_invalid
+                ScheduleRuntimeIssue.SELECTED_PROFILE_MISSING -> R.string.home_screen_issue_selected_profile_missing
+                ScheduleRuntimeIssue.WORK_PROFILE_UNAVAILABLE -> R.string.home_screen_issue_work_profile_unavailable
+                ScheduleRuntimeIssue.PERMISSION_MISSING -> R.string.home_screen_issue_permission_missing
+                ScheduleRuntimeIssue.CREDENTIAL_REQUIRED -> R.string.home_screen_issue_credential_required
+                ScheduleRuntimeIssue.ANDROID_REQUEST_REJECTED -> R.string.home_screen_issue_android_request_rejected
+                ScheduleRuntimeIssue.EXACT_ALARM_ACCESS_MISSING -> R.string.home_screen_issue_exact_alarm_access_missing
+                ScheduleRuntimeIssue.RUNTIME_EXCEPTION -> R.string.home_screen_issue_runtime_exception
+            },
+        )
     }
 
+    @Composable
     fun formattedIssue(issue: ScheduleRuntimeIssue): String {
-        return "Issue: ${issue(issue)}"
+        return stringResource(R.string.home_screen_issue, issue(issue))
     }
 }
