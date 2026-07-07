@@ -119,7 +119,7 @@ private fun PreviewHomeScreen(state: HomeUiState) {
     WorkProfileToggleTheme {
         HomeScreen(
             state = state,
-            onEvent = previewEventHandler,
+            eventHandler = previewEventHandler,
         )
     }
 }
@@ -163,4 +163,4 @@ private fun previewHomeState(
     )
 }
 
-private val previewEventHandler: (HomeScreenEvent) -> Unit = {}
+private val previewEventHandler = HomeScreenEventHandler {}
