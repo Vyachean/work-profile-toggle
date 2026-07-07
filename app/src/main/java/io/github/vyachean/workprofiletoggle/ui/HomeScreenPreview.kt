@@ -58,10 +58,10 @@ private fun HomeScreenSetupRequiredPreview() {
         state = previewHomeState(
             primary = HomePrimaryState.SETUP_REQUIRED,
             profileLabel = "Work",
-            permissionGranted = false,
             scheduleSavedState = HomeScheduleSavedState.BLOCKED_EXACT_ALARM_ACCESS,
             scheduleIssue = ScheduleRuntimeIssue.PERMISSION_MISSING,
             editorToggleAction = null,
+            permissionGranted = false,
         ),
         actions = previewActions,
     )
@@ -76,6 +76,7 @@ private fun HomeScreenNextScheduleActionPreview() {
             profileLabel = "Work",
             scheduleSavedState = HomeScheduleSavedState.ENABLED,
             scheduleIssue = null,
+            editorToggleAction = ScheduleEditorEnableToggleAction.DISABLE,
             nextAction = ScheduleRuntimeNextAction(
                 type = ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE,
                 boundary = WorkProfileScheduleBoundary(
@@ -92,7 +93,6 @@ private fun HomeScreenNextScheduleActionPreview() {
                     expectedState = WorkProfileScheduleExpectedState.PAUSED,
                 ),
             ),
-            editorToggleAction = ScheduleEditorEnableToggleAction.DISABLE,
         ),
         actions = previewActions,
     )
@@ -101,11 +101,11 @@ private fun HomeScreenNextScheduleActionPreview() {
 private fun previewHomeState(
     primary: HomePrimaryState,
     profileLabel: String?,
-    permissionGranted: Boolean = true,
     scheduleSavedState: HomeScheduleSavedState,
     scheduleIssue: ScheduleRuntimeIssue?,
-    nextAction: ScheduleRuntimeNextAction? = null,
     editorToggleAction: ScheduleEditorEnableToggleAction?,
+    permissionGranted: Boolean = true,
+    nextAction: ScheduleRuntimeNextAction? = null,
 ): HomeUiState {
     return HomeUiState(
         primary = primary,
