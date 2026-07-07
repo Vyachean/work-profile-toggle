@@ -32,7 +32,7 @@ private fun HomeScreenActivePreview() {
             scheduleIssue = null,
             editorToggleAction = ScheduleEditorEnableToggleAction.DISABLE,
         ),
-        actions = previewActions,
+        onEvent = previewEventHandler,
     )
 }
 
@@ -47,7 +47,7 @@ private fun HomeScreenPausedPreview() {
             scheduleIssue = null,
             editorToggleAction = ScheduleEditorEnableToggleAction.ENABLE,
         ),
-        actions = previewActions,
+        onEvent = previewEventHandler,
     )
 }
 
@@ -63,7 +63,7 @@ private fun HomeScreenSetupRequiredPreview() {
             editorToggleAction = null,
             permissionGranted = false,
         ),
-        actions = previewActions,
+        onEvent = previewEventHandler,
     )
 }
 
@@ -94,7 +94,7 @@ private fun HomeScreenNextScheduleActionPreview() {
                 ),
             ),
         ),
-        actions = previewActions,
+        onEvent = previewEventHandler,
     )
 }
 
@@ -137,16 +137,4 @@ private fun previewHomeState(
     )
 }
 
-private val previewActions = HomeScreenActions(
-    onCheckAgain = {},
-    onPauseWorkProfile = {},
-    onResumeWorkProfile = {},
-    onChangeProfile = {},
-    onSetPauseTime = {},
-    onSetResumeTime = {},
-    onChooseActiveDays = {},
-    onEnableSchedule = {},
-    onDisableSchedule = {},
-    onClearSchedule = {},
-    onCopyDiagnostics = {},
-)
+private val previewEventHandler: (HomeScreenEvent) -> Unit = {}
