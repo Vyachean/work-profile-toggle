@@ -2,7 +2,8 @@ package io.github.vyachean.workprofiletoggle
 
 import java.time.ZonedDateTime
 
-internal fun interface ScheduleStringProvider {
+internal interface ScheduleStringProvider {
+    fun get(stringId: Int): String
     fun get(stringId: Int, vararg args: Any): String
 }
 
