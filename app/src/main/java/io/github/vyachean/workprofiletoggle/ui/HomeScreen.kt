@@ -13,10 +13,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -32,13 +34,23 @@ import io.github.vyachean.workprofiletoggle.ScheduleEditorEnableToggleAction
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeIssue
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextActionType
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun HomeScreen(
     state: HomeUiState,
     eventHandler: HomeScreenEventHandler,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(modifier = modifier) { innerPadding ->
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(text = "Work Profile Toggle")
+                },
+            )
+        },
+    ) { innerPadding ->
         val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
@@ -48,11 +60,6 @@ internal fun HomeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                text = "Work Profile Toggle",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
             PrimaryStatusCard(state = state, eventHandler = eventHandler)
             SetupCard(state = state)
             ScheduleCard(state = state, eventHandler = eventHandler)
