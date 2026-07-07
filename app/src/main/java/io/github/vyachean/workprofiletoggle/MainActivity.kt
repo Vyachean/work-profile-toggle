@@ -54,8 +54,9 @@ class MainActivity : Activity() {
         scheduleBoundaryPlanner = dependencies.scheduleBoundaryPlanner
         scheduleExactAlarmAccess = AndroidScheduleExactAlarmAccess(this)
         scheduleTextFormatter = ScheduleUiTextFormatter(
-            strings = ScheduleStringProvider { stringId, args ->
-                if (args.isEmpty()) getString(stringId) else getString(stringId, *args)
+            strings = object : ScheduleStringProvider {
+                override fun get(stringId: Int): String = getString(stringId)
+                override fun get(stringId: Int, vararg args: Any): String = getString(stringId, *args)
             },
             timeFormatter = ::formatScheduleTimeForDisplay,
             dateTimeFormatter = ::formatScheduleDateTimeForDisplay,
