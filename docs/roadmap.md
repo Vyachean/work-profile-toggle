@@ -22,7 +22,7 @@ The app currently supports manual and scheduled work-profile control after setup
 - copyable schedule runtime diagnostics for real-world reports;
 - schedule rescheduling after app update, device reboot, manual time change, timezone change, selected-profile changes, schedule changes, and exact-alarm access changes;
 - Jetpack Compose and Material 3 build baseline;
-- Compose Home screen skeleton and previews;
+- Compose Home screen skeleton, previews, and event model;
 - shared schedule date/time display formatter;
 - extracted schedule UI text and save policy helpers;
 - CI debug APK artifacts;
@@ -74,6 +74,7 @@ Goal: make UI states deterministic, testable, and suitable for stable screenshot
 Implemented baseline:
 
 - Home UI state extracted from direct Activity/system-service rendering.
+- Home screen event model added for future Compose action wiring.
 - Schedule editor UI state extracted from direct controls.
 - Advanced UI state extracted for advanced/status sections.
 - Shared schedule display formatter added for consistent next-action date/time text.
@@ -102,7 +103,7 @@ Direction:
 
 Near-term work:
 
-- Prepare `HomeScreenActions` wiring without changing runtime behavior.
+- Use the Home screen event model when wiring Compose Home actions without changing runtime behavior.
 - Decompose `MainActivity` render logic into smaller helpers where safe.
 - Connect Compose Home to the existing `HomeUiState` and existing action handlers.
 - Keep the old View path available until parity is verified.
