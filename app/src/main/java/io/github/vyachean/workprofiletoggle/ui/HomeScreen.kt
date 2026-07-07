@@ -30,24 +30,24 @@ import io.github.vyachean.workprofiletoggle.ScheduleEditorEnableToggleAction
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeIssue
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextActionType
 
-internal data class HomeScreenActions(
-    val onCheckAgain: () -> Unit,
-    val onPauseWorkProfile: () -> Unit,
-    val onResumeWorkProfile: () -> Unit,
-    val onChangeProfile: () -> Unit,
-    val onSetPauseTime: () -> Unit,
-    val onSetResumeTime: () -> Unit,
-    val onChooseActiveDays: () -> Unit,
-    val onEnableSchedule: () -> Unit,
-    val onDisableSchedule: () -> Unit,
-    val onClearSchedule: () -> Unit,
-    val onCopyDiagnostics: () -> Unit,
-)
+internal sealed interface HomeScreenEvent {
+    data object CheckAgain : HomeScreenEvent
+    data object PauseWorkProfile : HomeScreenEvent
+    data object ResumeWorkProfile : HomeScreenEvent
+    data object ChangeProfile : HomeScreenEvent
+    data object SetPauseTime : HomeScreenEvent
+    data object SetResumeTime : HomeScreenEvent
+    data object ChooseActiveDays : HomeScreenEvent
+    data object EnableSchedule : HomeScreenEvent
+    data object DisableSchedule : HomeScreenEvent
+    data object ClearSchedule : HomeScreenEvent
+    data object CopyDiagnostics : HomeScreenEvent
+}
 
 @Composable
 internal fun HomeScreen(
     state: HomeUiState,
-    actions: HomeScreenActions,
+    onEvent: (HomeScreenEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     WorkProfileToggleTheme {
@@ -64,9 +64,9 @@ internal fun HomeScreen(
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    PrimaryStatusCard(state = state, actions = actions)
+                    PrimaryStatusCard(state = state, onEvent = onEvent)
                     SetupCard(state = state)
-                    ScheduleCard(state = state, actions = actions)
+                    ScheduleCard(state = state, onEvent = onEvent)
                 }
             }
         }
@@ -76,7 +76,7 @@ internal fun HomeScreen(
 @Composable
 private fun PrimaryStatusCard(
     state: HomeUiState,
-    actions: HomeScreenActions,
+    onEvent: (HomeScreenEvent) -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -92,7 +92,7 @@ private fun PrimaryStatusCard(
                 text = primaryDescription(state.primary, state.setup.selectedProfileLabel),
                 style = MaterialTheme.typography.bodyMedium,
             )
-            PrimaryActionRow(state = state.primary, actions = actions)
+            PrimaryActionRow(state = state.primary, onEvent = onEvent)
         }
     }
 }
@@ -100,25 +100,33 @@ private fun PrimaryStatusCard(
 @Composable
 private fun PrimaryActionRow(
     state: HomePrimaryState,
-    actions: HomeScreenActions,
+    onEvent: (HomeScreenEvent) -> Unit,
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         when (state) {
-            HomePrimaryState.WORK_PROFILE_ACTIVE -> Button(onClick = actions.onPauseWorkProfile) {
+            HomePrimaryState.WORK_PROFILE_ACTIVE -> Button(
+                onClick = { onEvent(HomeScreenEvent.PauseWorkProfile) },
+            ) {
                 Text("Pause")
             }
-            HomePrimaryState.WORK_PROFILE_PAUSED -> Button(onClick = actions.onResumeWorkProfile) {
+            HomePrimaryState.WORK_PROFILE_PAUSED -> Button(
+                onClick = { onEvent(HomeScreenEvent.ResumeWorkProfile) },
+            ) {
                 Text("Resume")
             }
-            HomePrimaryState.CHOOSE_WORK_PROFILE -> Button(onClick = actions.onChangeProfile) {
+            HomePrimaryState.CHOOSE_WORK_PROFILE -> Button(
+                onClick = { onEvent(HomeScreenEvent.ChangeProfile) },
+            ) {
                 Text("Choose profile")
             }
             HomePrimaryState.NO_WORK_PROFILE,
             HomePrimaryState.SETUP_REQUIRED,
-            HomePrimaryState.WORK_PROFILE_UNKNOWN -> OutlinedButton(onClick = actions.onCheckAgain) {
+            HomePrimaryState.WORK_PROFILE_UNKNOWN -> OutlinedButton(
+                onClick = { onEvent(HomeScreenEvent.CheckAgain) },
+            ) {
                 Text("Check again")
             }
         }
@@ -164,7 +172,7 @@ private fun SetupRow(label: String, value: String) {
 @Composable
 private fun ScheduleCard(
     state: HomeUiState,
-    actions: HomeScreenActions,
+    onEvent: (HomeScreenEvent) -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -200,7 +208,7 @@ private fun ScheduleCard(
                     color = MaterialTheme.colorScheme.error,
                 )
             }
-            ScheduleEditorActions(state = state, actions = actions)
+            ScheduleEditorActions(state = state, onEvent = onEvent)
         }
     }
 }
@@ -208,28 +216,27 @@ private fun ScheduleCard(
 @Composable
 private fun ScheduleEditorActions(
     state: HomeUiState,
-    actions: HomeScreenActions,
+    onEvent: (HomeScreenEvent) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = actions.onSetPauseTime) {
+            OutlinedButton(onClick = { onEvent(HomeScreenEvent.SetPauseTime) }) {
                 Text("Pause time")
             }
-            OutlinedButton(onClick = actions.onSetResumeTime) {
+            OutlinedButton(onClick = { onEvent(HomeScreenEvent.SetResumeTime) }) {
                 Text("Resume time")
             }
         }
-        OutlinedButton(onClick = actions.onChooseActiveDays) {
+        OutlinedButton(onClick = { onEvent(HomeScreenEvent.ChooseActiveDays) }) {
             Text("Active days")
         }
         val enableToggle = state.schedule.editor.enableToggle
         if (enableToggle != null) {
-            Button(
-                onClick = when (enableToggle.action) {
-                    ScheduleEditorEnableToggleAction.ENABLE -> actions.onEnableSchedule
-                    ScheduleEditorEnableToggleAction.DISABLE -> actions.onDisableSchedule
-                },
-            ) {
+            val event = when (enableToggle.action) {
+                ScheduleEditorEnableToggleAction.ENABLE -> HomeScreenEvent.EnableSchedule
+                ScheduleEditorEnableToggleAction.DISABLE -> HomeScreenEvent.DisableSchedule
+            }
+            Button(onClick = { onEvent(event) }) {
                 Text(
                     when (enableToggle.action) {
                         ScheduleEditorEnableToggleAction.ENABLE -> "Enable schedule"
@@ -244,13 +251,13 @@ private fun ScheduleEditorActions(
             )
         }
         if (state.schedule.canCopyDiagnostics) {
-            OutlinedButton(onClick = actions.onCopyDiagnostics) {
+            OutlinedButton(onClick = { onEvent(HomeScreenEvent.CopyDiagnostics) }) {
                 Text("Copy diagnostics")
             }
         }
         if (state.schedule.editor.canClear) {
             Spacer(modifier = Modifier.height(4.dp))
-            OutlinedButton(onClick = actions.onClearSchedule) {
+            OutlinedButton(onClick = { onEvent(HomeScreenEvent.ClearSchedule) }) {
                 Text("Clear schedule")
             }
         }
