@@ -12,8 +12,14 @@ import io.github.vyachean.workprofiletoggle.ScheduleEditorEnableToggleAction
 import io.github.vyachean.workprofiletoggle.ScheduleEditorUiState
 import io.github.vyachean.workprofiletoggle.ScheduleExactAlarmAccessState
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeIssue
+import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextAction
+import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextActionType
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeStatusSummary
 import io.github.vyachean.workprofiletoggle.ScheduleTime
+import io.github.vyachean.workprofiletoggle.WorkProfileScheduleBoundary
+import io.github.vyachean.workprofiletoggle.WorkProfileScheduleExpectedState
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 @Preview(showBackground = true, name = "Active profile")
 @Composable
@@ -52,10 +58,41 @@ private fun HomeScreenSetupRequiredPreview() {
         state = previewHomeState(
             primary = HomePrimaryState.SETUP_REQUIRED,
             profileLabel = "Work",
-            permissionGranted = false,
             scheduleSavedState = HomeScheduleSavedState.BLOCKED_EXACT_ALARM_ACCESS,
             scheduleIssue = ScheduleRuntimeIssue.PERMISSION_MISSING,
             editorToggleAction = null,
+            permissionGranted = false,
+        ),
+        actions = previewActions,
+    )
+}
+
+@Preview(showBackground = true, name = "Next schedule action")
+@Composable
+private fun HomeScreenNextScheduleActionPreview() {
+    HomeScreen(
+        state = previewHomeState(
+            primary = HomePrimaryState.WORK_PROFILE_ACTIVE,
+            profileLabel = "Work",
+            scheduleSavedState = HomeScheduleSavedState.ENABLED,
+            scheduleIssue = null,
+            editorToggleAction = ScheduleEditorEnableToggleAction.DISABLE,
+            nextAction = ScheduleRuntimeNextAction(
+                type = ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE,
+                boundary = WorkProfileScheduleBoundary(
+                    at = ZonedDateTime.of(
+                        2026,
+                        1,
+                        2,
+                        18,
+                        0,
+                        0,
+                        0,
+                        ZoneId.of("Asia/Tbilisi"),
+                    ),
+                    expectedState = WorkProfileScheduleExpectedState.PAUSED,
+                ),
+            ),
         ),
         actions = previewActions,
     )
@@ -64,10 +101,11 @@ private fun HomeScreenSetupRequiredPreview() {
 private fun previewHomeState(
     primary: HomePrimaryState,
     profileLabel: String?,
-    permissionGranted: Boolean = true,
     scheduleSavedState: HomeScheduleSavedState,
     scheduleIssue: ScheduleRuntimeIssue?,
     editorToggleAction: ScheduleEditorEnableToggleAction?,
+    permissionGranted: Boolean = true,
+    nextAction: ScheduleRuntimeNextAction? = null,
 ): HomeUiState {
     return HomeUiState(
         primary = primary,
@@ -82,7 +120,7 @@ private fun previewHomeState(
             savedState = scheduleSavedState,
             exactAlarmAccessState = ScheduleExactAlarmAccessState.GRANTED,
             runtimeStatus = ScheduleRuntimeStatusSummary(
-                nextAction = null,
+                nextAction = nextAction,
                 issue = scheduleIssue,
             ),
             canCopyDiagnostics = scheduleSavedState != HomeScheduleSavedState.NOT_CONFIGURED,
