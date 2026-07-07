@@ -56,7 +56,7 @@ class MainActivity : Activity() {
         scheduleTextFormatter = ScheduleUiTextFormatter(
             strings = ScheduleStringProvider { stringId, args -> getString(stringId, *args) },
             timeFormatter = ::formatScheduleTimeForDisplay,
-            dateTimeFormatter = { dateTime -> ScheduleDateTimeFormatter.formatForDisplay(dateTime) },
+            dateTimeFormatter = ::formatScheduleDateTimeForDisplay,
         )
         lastResult = actionResultStore.restore(savedInstanceState?.getString(STATE_LAST_RESULT))
         quietModeController = dependencies.quietModeController
@@ -571,6 +571,13 @@ class MainActivity : Activity() {
             set(Calendar.MILLISECOND, 0)
         }
         return DateFormat.getTimeFormat(this).format(calendar.time)
+    }
+
+    private fun formatScheduleDateTimeForDisplay(dateTime: ZonedDateTime): String {
+        return java.text.DateFormat.getDateTimeInstance(
+            java.text.DateFormat.MEDIUM,
+            java.text.DateFormat.SHORT,
+        ).format(Date.from(dateTime.toInstant()))
     }
 
     private fun hasQuietModePermission(): Boolean {
