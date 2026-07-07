@@ -24,6 +24,7 @@ The app currently supports manual and scheduled work-profile control after setup
 - Jetpack Compose and Material 3 build baseline;
 - Compose Home screen skeleton and previews;
 - shared schedule date/time display formatter;
+- extracted schedule UI text and save policy helpers;
 - CI debug APK artifacts;
 - release APK workflow infrastructure.
 
@@ -76,6 +77,8 @@ Implemented baseline:
 - Schedule editor UI state extracted from direct controls.
 - Advanced UI state extracted for advanced/status sections.
 - Shared schedule display formatter added for consistent next-action date/time text.
+- Schedule UI text formatting extracted from `MainActivity`.
+- Schedule save normalization extracted from `MainActivity`.
 
 Remaining work:
 
@@ -83,7 +86,7 @@ Remaining work:
 - Make primary UI use product terms: work profile, active, paused, pause, resume, schedule, setup.
 - Keep raw Android terms in Advanced/Diagnostics only.
 - Keep schedule runtime status derived from structured state rather than direct view logic.
-- Reduce `MainActivity` responsibilities before Compose Home wiring.
+- Continue reducing `MainActivity` responsibilities before Compose Home wiring.
 
 Status: in progress.
 
@@ -180,13 +183,13 @@ Goal: make the app safe to publish and easy to install.
 Planned work:
 
 - Configure release signing secrets.
-- Produce the first signed release APK.
+- Produce the next signed release APK.
 - Document release process and versioning rules.
 - Validate install/update path between debug and release builds.
 - Keep ADB permission setup clear for advanced users.
 - Validate the schedule runtime on at least one real device before publishing it as a stable feature.
 
-Status: planned.
+Status: in progress.
 
 ## Known follow-ups
 
