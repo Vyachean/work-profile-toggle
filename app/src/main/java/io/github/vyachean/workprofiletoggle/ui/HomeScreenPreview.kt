@@ -117,9 +117,9 @@ private fun HomeScreenCompactSetupRequiredPreview() {
 @Composable
 private fun PreviewHomeScreen(state: HomeUiState) {
     WorkProfileToggleTheme {
-        HomeScreen(
+        HomeScreenRoute(
             state = state,
-            eventHandler = previewEventHandler,
+            actions = NoOpHomeScreenActions,
         )
     }
 }
@@ -162,5 +162,3 @@ private fun previewHomeState(
         ),
     )
 }
-
-private val previewEventHandler = homeScreenEventHandler(NoOpHomeScreenActions)
