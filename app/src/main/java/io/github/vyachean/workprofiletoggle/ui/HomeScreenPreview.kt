@@ -24,7 +24,7 @@ import java.time.ZonedDateTime
 @Preview(showBackground = true, name = "Active profile")
 @Composable
 private fun HomeScreenActivePreview() {
-    HomeScreen(
+    PreviewHomeScreen(
         state = previewHomeState(
             primary = HomePrimaryState.WORK_PROFILE_ACTIVE,
             profileLabel = "Work",
@@ -32,14 +32,13 @@ private fun HomeScreenActivePreview() {
             scheduleIssue = null,
             editorToggleAction = ScheduleEditorEnableToggleAction.DISABLE,
         ),
-        onEvent = previewEventHandler,
     )
 }
 
 @Preview(showBackground = true, name = "Paused profile")
 @Composable
 private fun HomeScreenPausedPreview() {
-    HomeScreen(
+    PreviewHomeScreen(
         state = previewHomeState(
             primary = HomePrimaryState.WORK_PROFILE_PAUSED,
             profileLabel = "Work",
@@ -47,14 +46,13 @@ private fun HomeScreenPausedPreview() {
             scheduleIssue = null,
             editorToggleAction = ScheduleEditorEnableToggleAction.ENABLE,
         ),
-        onEvent = previewEventHandler,
     )
 }
 
 @Preview(showBackground = true, name = "Setup required")
 @Composable
 private fun HomeScreenSetupRequiredPreview() {
-    HomeScreen(
+    PreviewHomeScreen(
         state = previewHomeState(
             primary = HomePrimaryState.SETUP_REQUIRED,
             profileLabel = "Work",
@@ -63,14 +61,13 @@ private fun HomeScreenSetupRequiredPreview() {
             editorToggleAction = null,
             permissionGranted = false,
         ),
-        onEvent = previewEventHandler,
     )
 }
 
 @Preview(showBackground = true, name = "Next schedule action")
 @Composable
 private fun HomeScreenNextScheduleActionPreview() {
-    HomeScreen(
+    PreviewHomeScreen(
         state = previewHomeState(
             primary = HomePrimaryState.WORK_PROFILE_ACTIVE,
             profileLabel = "Work",
@@ -94,8 +91,17 @@ private fun HomeScreenNextScheduleActionPreview() {
                 ),
             ),
         ),
-        onEvent = previewEventHandler,
     )
+}
+
+@Composable
+private fun PreviewHomeScreen(state: HomeUiState) {
+    WorkProfileToggleTheme {
+        HomeScreen(
+            state = state,
+            onEvent = previewEventHandler,
+        )
+    }
 }
 
 private fun previewHomeState(

@@ -13,7 +13,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -50,25 +49,21 @@ internal fun HomeScreen(
     onEvent: (HomeScreenEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    WorkProfileToggleTheme {
-        Scaffold(modifier = modifier) { innerPadding ->
-            Surface(color = MaterialTheme.colorScheme.background) {
-                Column(
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Text(
-                        text = "Work Profile Toggle",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    PrimaryStatusCard(state = state, onEvent = onEvent)
-                    SetupCard(state = state)
-                    ScheduleCard(state = state, onEvent = onEvent)
-                }
-            }
+    Scaffold(modifier = modifier) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = "Work Profile Toggle",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            PrimaryStatusCard(state = state, onEvent = onEvent)
+            SetupCard(state = state)
+            ScheduleCard(state = state, onEvent = onEvent)
         }
     }
 }
