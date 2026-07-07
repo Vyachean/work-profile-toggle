@@ -94,6 +94,26 @@ private fun HomeScreenNextScheduleActionPreview() {
     )
 }
 
+@Preview(
+    showBackground = true,
+    name = "Compact setup required",
+    widthDp = 320,
+    heightDp = 480,
+)
+@Composable
+private fun HomeScreenCompactSetupRequiredPreview() {
+    PreviewHomeScreen(
+        state = previewHomeState(
+            primary = HomePrimaryState.SETUP_REQUIRED,
+            profileLabel = "Work",
+            scheduleSavedState = HomeScheduleSavedState.BLOCKED_EXACT_ALARM_ACCESS,
+            scheduleIssue = ScheduleRuntimeIssue.EXACT_ALARM_ACCESS_MISSING,
+            editorToggleAction = null,
+            permissionGranted = false,
+        ),
+    )
+}
+
 @Composable
 private fun PreviewHomeScreen(state: HomeUiState) {
     WorkProfileToggleTheme {
