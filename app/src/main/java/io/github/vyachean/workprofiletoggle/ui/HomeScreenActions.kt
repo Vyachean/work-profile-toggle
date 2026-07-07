@@ -14,8 +14,8 @@ internal interface HomeScreenActions {
     fun copyDiagnostics()
 }
 
-internal fun homeScreenEventHandler(actions: HomeScreenActions): HomeScreenEventHandler {
-    return HomeScreenEventHandler { event ->
+internal fun homeScreenEventHandler(actions: HomeScreenActions): HomeScreenEventHandler =
+    HomeScreenEventHandler { event ->
         when (event) {
             HomeScreenEvent.CheckAgain -> actions.checkAgain()
             HomeScreenEvent.PauseWorkProfile -> actions.pauseWorkProfile()
@@ -30,4 +30,3 @@ internal fun homeScreenEventHandler(actions: HomeScreenActions): HomeScreenEvent
             HomeScreenEvent.CopyDiagnostics -> actions.copyDiagnostics()
         }
     }
-}
