@@ -2,6 +2,8 @@ package io.github.vyachean.workprofiletoggle.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
@@ -93,33 +94,28 @@ private fun PrimaryActionRow(
     state: HomePrimaryState,
     eventHandler: HomeScreenEventHandler,
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        when (state) {
-            HomePrimaryState.WORK_PROFILE_ACTIVE -> Button(
-                onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.PauseWorkProfile) },
-            ) {
-                Text(HomeScreenText.pauseAction())
-            }
-            HomePrimaryState.WORK_PROFILE_PAUSED -> Button(
-                onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ResumeWorkProfile) },
-            ) {
-                Text(HomeScreenText.resumeAction())
-            }
-            HomePrimaryState.CHOOSE_WORK_PROFILE -> Button(
-                onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ChangeProfile) },
-            ) {
-                Text(HomeScreenText.chooseProfileAction())
-            }
-            HomePrimaryState.NO_WORK_PROFILE,
-            HomePrimaryState.SETUP_REQUIRED,
-            HomePrimaryState.WORK_PROFILE_UNKNOWN -> OutlinedButton(
-                onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.CheckAgain) },
-            ) {
-                Text(HomeScreenText.checkAgainAction())
-            }
+    when (state) {
+        HomePrimaryState.WORK_PROFILE_ACTIVE -> Button(
+            onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.PauseWorkProfile) },
+        ) {
+            Text(HomeScreenText.pauseAction())
+        }
+        HomePrimaryState.WORK_PROFILE_PAUSED -> Button(
+            onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ResumeWorkProfile) },
+        ) {
+            Text(HomeScreenText.resumeAction())
+        }
+        HomePrimaryState.CHOOSE_WORK_PROFILE -> Button(
+            onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ChangeProfile) },
+        ) {
+            Text(HomeScreenText.chooseProfileAction())
+        }
+        HomePrimaryState.NO_WORK_PROFILE,
+        HomePrimaryState.SETUP_REQUIRED,
+        HomePrimaryState.WORK_PROFILE_UNKNOWN -> OutlinedButton(
+            onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.CheckAgain) },
+        ) {
+            Text(HomeScreenText.checkAgainAction())
         }
     }
 }
@@ -213,13 +209,18 @@ private fun ScheduleCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ScheduleEditorActions(
     state: HomeUiState,
     eventHandler: HomeScreenEventHandler,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             OutlinedButton(onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.SetPauseTime) }) {
                 Text(HomeScreenText.setPauseTimeAction())
             }
