@@ -5,6 +5,7 @@ import io.github.vyachean.workprofiletoggle.HomeScheduleSavedState
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeIssue
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextActionType
 
+// TODO: Move user-facing Home screen strings to Android string resources when Compose runtime wiring is ready.
 internal object HomeScreenText {
     const val APP_TITLE = "Work Profile Toggle"
     const val SETUP_TITLE = "Setup"
