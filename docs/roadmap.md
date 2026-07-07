@@ -21,6 +21,7 @@ The app currently supports manual and scheduled work-profile control after setup
 - user-facing schedule runtime status with next action or issue;
 - copyable schedule runtime diagnostics for real-world reports;
 - schedule rescheduling after app update, device reboot, manual time change, timezone change, selected-profile changes, schedule changes, and exact-alarm access changes;
+- initial real-device validation of v0.1.3 schedule-driven work-profile pause and resume on the user's device;
 - Jetpack Compose and Material 3 build baseline;
 - Compose Home screen skeleton, previews, and event model;
 - shared schedule date/time display formatter;
@@ -163,7 +164,7 @@ Implemented baseline:
 
 Current limitations:
 
-- Runtime behavior still needs repeated real-device validation across Android/OEM variants.
+- Runtime behavior has initial real-device validation on v0.1.3, but still needs repeated validation across Android/OEM variants.
 - Android 12+ exact-alarm special access can block scheduling until the user grants it.
 - Exact alarms can still be affected by OEM background restrictions and platform behavior.
 - Direct Boot support is not enabled; the app uses normal credential-protected app storage.
@@ -171,7 +172,7 @@ Current limitations:
 
 Remaining work before this stage is complete:
 
-- Manual smoke test on a real device with an actual work profile.
+- Broader real-device schedule smoke tests with actual work profiles.
 - Better setup/status guidance for permission missing, selected profile missing, credential required, Android request rejected, and exact-alarm access missing states.
 - Decide whether an inexact fallback mode is useful for users who cannot or do not want to grant exact-alarm access.
 
@@ -188,14 +189,14 @@ Planned work:
 - Document release process and versioning rules.
 - Validate install/update path between debug and release builds.
 - Keep ADB permission setup clear for advanced users.
-- Validate the schedule runtime on at least one real device before publishing it as a stable feature.
+- Expand real-device schedule runtime validation before publishing it as a stable feature.
 
 Status: in progress.
 
 ## Known follow-ups
 
 - Keep issue #25 aligned with this roadmap.
-- Run and document a real-device schedule smoke test.
+- Expand and document real-device schedule smoke test coverage.
 - Improve schedule setup/status UX.
 - Connect Compose Home to runtime state/actions after `MainActivity` responsibilities are reduced.
 - Create stable README screenshots after screenshot architecture exists.
