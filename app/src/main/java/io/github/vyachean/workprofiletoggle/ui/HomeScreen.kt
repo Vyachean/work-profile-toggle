@@ -27,12 +27,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.vyachean.workprofiletoggle.HomePrimaryState
-import io.github.vyachean.workprofiletoggle.HomeScheduleSavedState
 import io.github.vyachean.workprofiletoggle.HomeUiState
 import io.github.vyachean.workprofiletoggle.ScheduleDateTimeFormatter
 import io.github.vyachean.workprofiletoggle.ScheduleEditorEnableToggleAction
-import io.github.vyachean.workprofiletoggle.ScheduleRuntimeIssue
-import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextActionType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +43,7 @@ internal fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(text = "Work Profile Toggle")
+                    Text(text = HomeScreenText.APP_TITLE)
                 },
             )
         },
@@ -78,12 +75,12 @@ private fun PrimaryStatusCard(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = primaryTitle(state.primary),
+                text = HomeScreenText.primaryTitle(state.primary),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = primaryDescription(state.primary, state.setup.selectedProfileLabel),
+                text = HomeScreenText.primaryDescription(state.primary, state.setup.selectedProfileLabel),
                 style = MaterialTheme.typography.bodyMedium,
             )
             PrimaryActionRow(state = state.primary, eventHandler = eventHandler)
@@ -104,24 +101,24 @@ private fun PrimaryActionRow(
             HomePrimaryState.WORK_PROFILE_ACTIVE -> Button(
                 onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.PauseWorkProfile) },
             ) {
-                Text("Pause")
+                Text(HomeScreenText.PAUSE_ACTION)
             }
             HomePrimaryState.WORK_PROFILE_PAUSED -> Button(
                 onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ResumeWorkProfile) },
             ) {
-                Text("Resume")
+                Text(HomeScreenText.RESUME_ACTION)
             }
             HomePrimaryState.CHOOSE_WORK_PROFILE -> Button(
                 onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ChangeProfile) },
             ) {
-                Text("Choose profile")
+                Text(HomeScreenText.CHOOSE_PROFILE_ACTION)
             }
             HomePrimaryState.NO_WORK_PROFILE,
             HomePrimaryState.SETUP_REQUIRED,
             HomePrimaryState.WORK_PROFILE_UNKNOWN -> OutlinedButton(
                 onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.CheckAgain) },
             ) {
-                Text("Check again")
+                Text(HomeScreenText.CHECK_AGAIN_ACTION)
             }
         }
     }
@@ -135,13 +132,22 @@ private fun SetupCard(state: HomeUiState) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = "Setup",
+                text = HomeScreenText.SETUP_TITLE,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
-            SetupRow(label = "Work profile", value = if (state.setup.profileFound) "Found" else "Missing")
-            SetupRow(label = "Selected profile", value = state.setup.selectedProfileLabel ?: "Not selected")
-            SetupRow(label = "Permission", value = if (state.setup.permissionGranted) "Granted" else "Missing")
+            SetupRow(
+                label = HomeScreenText.WORK_PROFILE_LABEL,
+                value = if (state.setup.profileFound) HomeScreenText.FOUND_VALUE else HomeScreenText.MISSING_VALUE,
+            )
+            SetupRow(
+                label = HomeScreenText.SELECTED_PROFILE_LABEL,
+                value = state.setup.selectedProfileLabel ?: HomeScreenText.NOT_SELECTED_VALUE,
+            )
+            SetupRow(
+                label = HomeScreenText.PERMISSION_LABEL,
+                value = if (state.setup.permissionGranted) HomeScreenText.GRANTED_VALUE else HomeScreenText.MISSING_VALUE,
+            )
         }
     }
 }
@@ -174,12 +180,12 @@ private fun ScheduleCard(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Schedule",
+                text = HomeScreenText.SCHEDULE_TITLE,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = scheduleStatusText(state.schedule.savedState),
+                text = HomeScreenText.scheduleStatus(state.schedule.savedState),
                 style = MaterialTheme.typography.bodyMedium,
             )
             state.schedule.runtimeStatus?.nextAction?.let { nextAction ->
@@ -188,16 +194,16 @@ private fun ScheduleCard(
                     ScheduleDateTimeFormatter.formatForDisplay(nextAction.boundary.at)
                 }
                 Text(
-                    text = when (nextAction.type) {
-                        ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE -> "Next action: pause at $formattedBoundary"
-                        ScheduleRuntimeNextActionType.RESUME_WORK_PROFILE -> "Next action: resume at $formattedBoundary"
-                    },
+                    text = HomeScreenText.nextAction(
+                        type = nextAction.type,
+                        formattedBoundary = formattedBoundary,
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
             state.schedule.runtimeStatus?.issue?.let { issue ->
                 Text(
-                    text = "Issue: ${scheduleIssueText(issue)}",
+                    text = "Issue: ${HomeScreenText.issue(issue)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -215,14 +221,14 @@ private fun ScheduleEditorActions(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.SetPauseTime) }) {
-                Text("Pause time")
+                Text(HomeScreenText.SET_PAUSE_TIME_ACTION)
             }
             OutlinedButton(onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.SetResumeTime) }) {
-                Text("Resume time")
+                Text(HomeScreenText.SET_RESUME_TIME_ACTION)
             }
         }
         OutlinedButton(onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ChooseActiveDays) }) {
-            Text("Active days")
+            Text(HomeScreenText.CHOOSE_ACTIVE_DAYS_ACTION)
         }
         val enableToggle = state.schedule.editor.enableToggle
         if (enableToggle != null) {
@@ -233,74 +239,27 @@ private fun ScheduleEditorActions(
             Button(onClick = { eventHandler.onHomeScreenEvent(event) }) {
                 Text(
                     when (enableToggle.action) {
-                        ScheduleEditorEnableToggleAction.ENABLE -> "Enable schedule"
-                        ScheduleEditorEnableToggleAction.DISABLE -> "Disable schedule"
+                        ScheduleEditorEnableToggleAction.ENABLE -> HomeScreenText.ENABLE_SCHEDULE_ACTION
+                        ScheduleEditorEnableToggleAction.DISABLE -> HomeScreenText.DISABLE_SCHEDULE_ACTION
                     },
                 )
             }
         } else if (state.schedule.editor.showEnableRequirements) {
             Text(
-                text = "Set pause time, resume time, and active days before enabling the schedule.",
+                text = HomeScreenText.ENABLE_SCHEDULE_REQUIREMENTS,
                 style = MaterialTheme.typography.bodySmall,
             )
         }
         if (state.schedule.canCopyDiagnostics) {
             OutlinedButton(onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.CopyDiagnostics) }) {
-                Text("Copy diagnostics")
+                Text(HomeScreenText.COPY_DIAGNOSTICS_ACTION)
             }
         }
         if (state.schedule.editor.canClear) {
             Spacer(modifier = Modifier.height(4.dp))
             OutlinedButton(onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ClearSchedule) }) {
-                Text("Clear schedule")
+                Text(HomeScreenText.CLEAR_SCHEDULE_ACTION)
             }
         }
-    }
-}
-
-private fun primaryTitle(state: HomePrimaryState): String {
-    return when (state) {
-        HomePrimaryState.NO_WORK_PROFILE -> "No work profile found"
-        HomePrimaryState.CHOOSE_WORK_PROFILE -> "Choose work profile"
-        HomePrimaryState.SETUP_REQUIRED -> "Setup required"
-        HomePrimaryState.WORK_PROFILE_PAUSED -> "Work profile paused"
-        HomePrimaryState.WORK_PROFILE_ACTIVE -> "Work profile active"
-        HomePrimaryState.WORK_PROFILE_UNKNOWN -> "Work profile status unknown"
-    }
-}
-
-private fun primaryDescription(state: HomePrimaryState, selectedProfileLabel: String?): String {
-    return when (state) {
-        HomePrimaryState.NO_WORK_PROFILE -> "Create or enable a work profile, then check again."
-        HomePrimaryState.CHOOSE_WORK_PROFILE -> "Select the profile that this app should control."
-        HomePrimaryState.SETUP_REQUIRED -> "Grant quiet mode control permission before using manual actions or schedule."
-        HomePrimaryState.WORK_PROFILE_PAUSED -> selectedProfileLabel?.let { "$it is paused." } ?: "The selected work profile is paused."
-        HomePrimaryState.WORK_PROFILE_ACTIVE -> selectedProfileLabel?.let { "$it is active." } ?: "The selected work profile is active."
-        HomePrimaryState.WORK_PROFILE_UNKNOWN -> "The app could not read the current quiet mode state."
-    }
-}
-
-private fun scheduleStatusText(state: HomeScheduleSavedState): String {
-    return when (state) {
-        HomeScheduleSavedState.NOT_CONFIGURED -> "Schedule is not configured."
-        HomeScheduleSavedState.ENABLED -> "Schedule is enabled."
-        HomeScheduleSavedState.DISABLED -> "Schedule is saved but disabled."
-        HomeScheduleSavedState.BLOCKED_EXACT_ALARM_ACCESS -> "Schedule is blocked until exact alarm access is granted."
-    }
-}
-
-private fun scheduleIssueText(issue: ScheduleRuntimeIssue): String {
-    return when (issue) {
-        ScheduleRuntimeIssue.PENDING -> "Pending"
-        ScheduleRuntimeIssue.SCHEDULE_DISABLED -> "Schedule disabled"
-        ScheduleRuntimeIssue.SCHEDULE_INCOMPLETE -> "Schedule incomplete"
-        ScheduleRuntimeIssue.SCHEDULE_INVALID -> "Schedule invalid"
-        ScheduleRuntimeIssue.SELECTED_PROFILE_MISSING -> "Selected profile missing"
-        ScheduleRuntimeIssue.WORK_PROFILE_UNAVAILABLE -> "Work profile unavailable"
-        ScheduleRuntimeIssue.PERMISSION_MISSING -> "Permission missing"
-        ScheduleRuntimeIssue.CREDENTIAL_REQUIRED -> "Credential required"
-        ScheduleRuntimeIssue.ANDROID_REQUEST_REJECTED -> "Android request rejected"
-        ScheduleRuntimeIssue.EXACT_ALARM_ACCESS_MISSING -> "Exact alarm access missing"
-        ScheduleRuntimeIssue.RUNTIME_EXCEPTION -> "Runtime exception"
     }
 }
