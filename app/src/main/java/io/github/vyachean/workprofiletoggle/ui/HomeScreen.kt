@@ -89,40 +89,33 @@ private fun PrimaryStatusCard(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PrimaryActionRow(
     state: HomePrimaryState,
     eventHandler: HomeScreenEventHandler,
 ) {
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        when (state) {
-            HomePrimaryState.WORK_PROFILE_ACTIVE -> Button(
-                onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.PauseWorkProfile) },
-            ) {
-                Text(HomeScreenText.pauseAction())
-            }
-            HomePrimaryState.WORK_PROFILE_PAUSED -> Button(
-                onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ResumeWorkProfile) },
-            ) {
-                Text(HomeScreenText.resumeAction())
-            }
-            HomePrimaryState.CHOOSE_WORK_PROFILE -> Button(
-                onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ChangeProfile) },
-            ) {
-                Text(HomeScreenText.chooseProfileAction())
-            }
-            HomePrimaryState.NO_WORK_PROFILE,
-            HomePrimaryState.SETUP_REQUIRED,
-            HomePrimaryState.WORK_PROFILE_UNKNOWN -> OutlinedButton(
-                onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.CheckAgain) },
-            ) {
-                Text(HomeScreenText.checkAgainAction())
-            }
+    when (state) {
+        HomePrimaryState.WORK_PROFILE_ACTIVE -> Button(
+            onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.PauseWorkProfile) },
+        ) {
+            Text(HomeScreenText.pauseAction())
+        }
+        HomePrimaryState.WORK_PROFILE_PAUSED -> Button(
+            onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ResumeWorkProfile) },
+        ) {
+            Text(HomeScreenText.resumeAction())
+        }
+        HomePrimaryState.CHOOSE_WORK_PROFILE -> Button(
+            onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ChangeProfile) },
+        ) {
+            Text(HomeScreenText.chooseProfileAction())
+        }
+        HomePrimaryState.NO_WORK_PROFILE,
+        HomePrimaryState.SETUP_REQUIRED,
+        HomePrimaryState.WORK_PROFILE_UNKNOWN -> OutlinedButton(
+            onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.CheckAgain) },
+        ) {
+            Text(HomeScreenText.checkAgainAction())
         }
     }
 }
