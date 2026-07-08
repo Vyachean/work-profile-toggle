@@ -76,6 +76,15 @@ internal object HomeScreenText {
     fun enableScheduleRequirements(): String = stringResource(R.string.schedule_enable_requirements)
 
     @Composable
+    fun scheduleStatusLabel(): String = stringResource(R.string.home_screen_schedule_status_label)
+
+    @Composable
+    fun nextActionLabel(): String = stringResource(R.string.home_screen_next_action_label)
+
+    @Composable
+    fun issueLabel(): String = stringResource(R.string.home_screen_issue_label)
+
+    @Composable
     fun primaryTitle(state: HomePrimaryState): String {
         return stringResource(
             when (state) {
@@ -123,6 +132,17 @@ internal object HomeScreenText {
             when (type) {
                 ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE -> R.string.home_screen_next_action_pause
                 ScheduleRuntimeNextActionType.RESUME_WORK_PROFILE -> R.string.home_screen_next_action_resume
+            },
+            formattedBoundary,
+        )
+    }
+
+    @Composable
+    fun nextActionValue(type: ScheduleRuntimeNextActionType, formattedBoundary: String): String {
+        return stringResource(
+            when (type) {
+                ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE -> R.string.home_screen_next_action_pause_value
+                ScheduleRuntimeNextActionType.RESUME_WORK_PROFILE -> R.string.home_screen_next_action_resume_value
             },
             formattedBoundary,
         )

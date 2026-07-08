@@ -123,12 +123,17 @@
     <string name="home_screen_work_profile_active_description">The selected work profile is active.</string>
     <string name="home_screen_work_profile_active_labeled_description">%1$s is active.</string>
     <string name="home_screen_work_profile_unknown_description">The app could not read the current quiet mode state.</string>
+    <string name="home_screen_schedule_status_label">Status</string>
+    <string name="home_screen_next_action_label">Next action</string>
+    <string name="home_screen_issue_label">Issue</string>
     <string name="home_screen_schedule_not_configured">Schedule is not configured.</string>
     <string name="home_screen_schedule_enabled">Schedule is enabled.</string>
     <string name="home_screen_schedule_disabled">Schedule is saved but disabled.</string>
     <string name="home_screen_schedule_blocked_exact_alarm_access">Schedule is blocked until exact alarm access is granted.</string>
     <string name="home_screen_next_action_pause">Next action: pause at %1$s</string>
     <string name="home_screen_next_action_resume">Next action: resume at %1$s</string>
+    <string name="home_screen_next_action_pause_value">Pause at %1$s</string>
+    <string name="home_screen_next_action_resume_value">Resume at %1$s</string>
     <string name="home_screen_issue">Issue: %1$s</string>
     <string name="home_screen_issue_pending">Pending</string>
     <string name="home_screen_issue_schedule_disabled">Schedule disabled</string>
