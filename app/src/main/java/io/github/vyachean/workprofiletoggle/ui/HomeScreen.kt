@@ -180,32 +180,56 @@ private fun ScheduleCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
-            Text(
-                text = HomeScreenText.scheduleStatus(state.schedule.savedState),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            state.schedule.runtimeStatus?.nextAction?.let { nextAction ->
-                val configuration = LocalConfiguration.current
-                val formattedBoundary = remember(nextAction.boundary.at, configuration) {
-                    ScheduleDateTimeFormatter.formatForDisplay(nextAction.boundary.at)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ScheduleInfoRow(
+                    label = HomeScreenText.scheduleStatusLabel(),
+                    value = HomeScreenText.scheduleStatus(state.schedule.savedState),
+                )
+                state.schedule.runtimeStatus?.nextAction?.let { nextAction ->
+                    val configuration = LocalConfiguration.current
+                    val formattedBoundary = remember(nextAction.boundary.at, configuration) {
+                        ScheduleDateTimeFormatter.formatForDisplay(nextAction.boundary.at)
+                    }
+                    ScheduleInfoRow(
+                        label = HomeScreenText.nextActionLabel(),
+                        value = HomeScreenText.nextActionValue(
+                            type = nextAction.type,
+                            formattedBoundary = formattedBoundary,
+                        ),
+                    )
                 }
-                Text(
-                    text = HomeScreenText.nextAction(
-                        type = nextAction.type,
-                        formattedBoundary = formattedBoundary,
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            state.schedule.runtimeStatus?.issue?.let { runtimeIssue ->
-                Text(
-                    text = HomeScreenText.formattedIssue(runtimeIssue),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
+                state.schedule.runtimeStatus?.issue?.let { runtimeIssue ->
+                    ScheduleInfoRow(
+                        label = HomeScreenText.issueLabel(),
+                        value = HomeScreenText.issue(runtimeIssue),
+                        isError = true,
+                    )
+                }
             }
             ScheduleEditorActions(state = state, eventHandler = eventHandler)
         }
+    }
+}
+
+@Composable
+private fun ScheduleInfoRow(
+    label: String,
+    value: String,
+    isError: Boolean = false,
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium,
+        )
     }
 }
 
