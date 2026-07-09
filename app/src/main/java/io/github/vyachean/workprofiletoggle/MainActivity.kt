@@ -151,7 +151,7 @@ class MainActivity : Activity() {
 
         content.addView(textView(getString(R.string.home_title), textSize = 22f))
         renderPrimaryStatus(homeUiState.primary, profileSelection, homeScreenActions)
-        renderSetup(homeUiState.setup, profileSelection, profileDiscovery.error, homeScreenActions)
+        renderSetup(homeUiState.setup, profileSelection, profileDiscovery.error)
         renderSchedulePreview(homeUiState.schedule, schedule, homeScreenActions)
         renderAdvanced(profileEntries, shortcutUpdateResult)
     }
@@ -212,7 +212,6 @@ class MainActivity : Activity() {
         setup: HomeSetupState,
         profileSelection: ProfileSelection,
         profilesError: Throwable?,
-        actions: HomeScreenActions,
     ) {
         content.addView(sectionTitle(getString(R.string.setup_title)))
         content.addView(textView(if (setup.ready) getString(R.string.setup_ready) else getString(R.string.setup_required)))
@@ -241,7 +240,6 @@ class MainActivity : Activity() {
             content.addView(textView(getString(R.string.adb_setup_description)))
             content.addView(textView(setupText()))
             content.addView(button(getString(R.string.copy_setup_text)) { copySetupText() })
-            content.addView(button(getString(R.string.check_again)) { actions.checkAgain() })
         }
     }
 
