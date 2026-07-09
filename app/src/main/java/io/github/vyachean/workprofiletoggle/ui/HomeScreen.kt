@@ -133,36 +133,19 @@ private fun SetupCard(state: HomeUiState) {
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
-            SetupRow(
+            InfoRow(
                 label = HomeScreenText.workProfileLabel(),
                 value = if (state.setup.profileFound) HomeScreenText.foundValue() else HomeScreenText.missingValue(),
             )
-            SetupRow(
+            InfoRow(
                 label = HomeScreenText.selectedProfileLabel(),
                 value = state.setup.selectedProfileLabel ?: HomeScreenText.notSelectedValue(),
             )
-            SetupRow(
+            InfoRow(
                 label = HomeScreenText.permissionLabel(),
                 value = if (state.setup.permissionGranted) HomeScreenText.grantedValue() else HomeScreenText.missingValue(),
             )
         }
-    }
-}
-
-@Composable
-private fun SetupRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = label,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-        )
     }
 }
 
@@ -182,7 +165,7 @@ private fun ScheduleCard(
                 fontWeight = FontWeight.SemiBold,
             )
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ScheduleInfoRow(
+                InfoRow(
                     label = HomeScreenText.scheduleStatusLabel(),
                     value = HomeScreenText.scheduleStatus(state.schedule.savedState),
                 )
@@ -191,7 +174,7 @@ private fun ScheduleCard(
                     val formattedBoundary = remember(nextAction.boundary.at, configuration) {
                         ScheduleDateTimeFormatter.formatForDisplay(nextAction.boundary.at)
                     }
-                    ScheduleInfoRow(
+                    InfoRow(
                         label = HomeScreenText.nextActionLabel(),
                         value = HomeScreenText.nextActionValue(
                             type = nextAction.type,
@@ -200,7 +183,7 @@ private fun ScheduleCard(
                     )
                 }
                 state.schedule.runtimeStatus?.issue?.let { runtimeIssue ->
-                    ScheduleInfoRow(
+                    InfoRow(
                         label = HomeScreenText.issueLabel(),
                         value = HomeScreenText.issue(runtimeIssue),
                         isError = true,
@@ -213,7 +196,7 @@ private fun ScheduleCard(
 }
 
 @Composable
-private fun ScheduleInfoRow(
+private fun InfoRow(
     label: String,
     value: String,
     isError: Boolean = false,
