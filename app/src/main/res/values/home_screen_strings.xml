@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_screen_pause_time_label">Pause time</string>
+    <string name="home_screen_resume_time_label">Resume time</string>
+    <string name="home_screen_active_days_label">Active days</string>
+</resources>
