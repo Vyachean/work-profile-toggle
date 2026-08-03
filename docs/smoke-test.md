@@ -23,7 +23,7 @@ Record:
 
 - Use a device that already has an Android work profile.
 - Download the signed `work-profile-toggle-vX.Y.Z.apk` asset from the matching GitHub Release, replacing `X.Y.Z` with the version under test.
-- Keep the previous release APK available when testing update and rollback behavior.
+- Keep the previous release APK available when testing the update path.
 - Keep ADB available for permission and time-related checks.
 
 ## Install or update
@@ -37,7 +37,13 @@ Record:
 2. Open the app.
 3. Confirm that the selected profile and saved schedule remain present.
 4. Confirm that the Compose Home screen renders without a blank frame or crash.
-5. Confirm that the installed version matches the expected release.
+5. Verify the installed version:
+
+   ```sh
+   adb shell "dumpsys package io.github.vyachean.workprofiletoggle | grep versionName"
+   ```
+
+6. Confirm that `versionName` matches the release under test.
 
 For a fresh install, install without `-r` and complete profile selection and permission setup below.
 
