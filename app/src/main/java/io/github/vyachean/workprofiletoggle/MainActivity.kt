@@ -1,6 +1,5 @@
 package io.github.vyachean.workprofiletoggle
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.app.TimePickerDialog
 import android.content.ClipData
@@ -11,24 +10,25 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.UserHandle
 import android.text.format.DateFormat
-import android.view.ViewGroup
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import io.github.vyachean.workprofiletoggle.ui.HomeScreenActions
+import io.github.vyachean.workprofiletoggle.ui.HomeScreenRoute
+import io.github.vyachean.workprofiletoggle.ui.WorkProfileToggleTheme
 import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import kotlin.math.roundToInt
 
 private const val STATE_LAST_RESULT = "last_result"
 private const val MODIFY_QUIET_MODE_PERMISSION = "android.permission.MODIFY_QUIET_MODE"
 
-class MainActivity : Activity() {
+class MainActivity : ComponentActivity() {
     private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.ROOT)
     private lateinit var dependencies: WorkProfileAppDependencies
     private lateinit var actionResultStore: ActionResultStore
@@ -41,7 +41,7 @@ class MainActivity : Activity() {
     private lateinit var workProfileRepository: WorkProfileRepository
     private lateinit var shortcutController: ShortcutController
     private lateinit var actionDispatcher: WorkProfileActionDispatcher
-    private lateinit var content: LinearLayout
+    private var screenContent by mutableStateOf<MainScreenContent?>(null)
     private var lastResult: String = ""
     private var exactAlarmSettingsRequested = false
 
@@ -67,46 +67,42 @@ class MainActivity : Activity() {
         workProfileRepository = dependencies.workProfileRepository
         shortcutController = dependencies.shortcutController
         actionDispatcher = dependencies.actionDispatcher
-        content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(16.dp, 16.dp, 16.dp, 16.dp)
-        }
 
-        setContentView(
-            ScrollView(this).apply {
-                id = R.id.profile_scroll
-                addView(
-                    content,
-                    ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ),
-                )
-            },
-        )
+        setContent {
+            WorkProfileToggleTheme {
+                screenContent?.let { content ->
+                    HomeScreenRoute(
+                        state = content.state,
+                        actions = content.actions,
+                    )
+                }
+            }
+        }
 
         if (savedInstanceState == null) {
             handleShortcutIntent(intent)
         }
-        render()
+        refresh()
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         handleShortcutIntent(intent)
-        render()
+        refresh()
     }
 
     override fun onResume() {
         super.onResume()
+        if (!::scheduleStore.isInitialized) return
+
         if (exactAlarmSettingsRequested) {
             exactAlarmSettingsRequested = false
-            if (::scheduleStore.isInitialized && scheduleStore.load() != WorkProfileSchedule()) {
+            if (scheduleStore.load() != WorkProfileSchedule()) {
                 scheduleBoundaryPlanner.refresh()
             }
-            render()
         }
+        refresh()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -114,255 +110,74 @@ class MainActivity : Activity() {
         super.onSaveInstanceState(outState)
     }
 
-    private fun render() {
+    private fun refresh() {
         val profileDiscovery = workProfileRepository.discoverProfiles()
-        val profileEntries = profileDiscovery.profileEntries
-        val labeledEntries = profileDiscovery.labeledEntries
-        val profileSelection = workProfileRepository.resolveProfileSelection(labeledEntries)
-        val primaryProfile = profileSelection.selected
-        val primaryQuietMode = primaryProfile?.let { readQuietMode(it.userHandle) }
-        val permissionGranted = hasQuietModePermission()
+        val profileSelection = workProfileRepository.resolveProfileSelection(profileDiscovery.labeledEntries)
+        val selectedProfile = profileSelection.selected
+        val selectedQuietMode = selectedProfile?.let { readQuietMode(it.userHandle) }
         val schedule = scheduleStore.load()
-        val scheduleRuntimeResult = scheduleRuntimeResultStore.load()
+        val runtimeResult = scheduleRuntimeResultStore.load()
         val exactAlarmAccessState = scheduleExactAlarmAccess.state()
-        val shortcutUpdateResult = shortcutController.updateShortcuts(labeledEntries)
+        val shortcutUpdateResult = shortcutController.updateShortcuts(profileDiscovery.labeledEntries)
         val homeUiState = HomeUiStateFactory.from(
             input = HomeUiStateInput(
                 profilesAvailable = profileDiscovery.profilesAvailable,
                 availableProfileCount = profileSelection.availableProfiles.size,
-                selectedProfileLabel = primaryProfile?.profile?.label,
-                selectedProfileQuietMode = primaryQuietMode?.value,
-                permissionGranted = permissionGranted,
+                selectedProfileLabel = selectedProfile?.profile?.label,
+                selectedProfileQuietMode = selectedQuietMode?.value,
+                permissionGranted = hasQuietModePermission(),
                 schedule = schedule,
                 exactAlarmAccessState = exactAlarmAccessState,
-                scheduleRuntimeResult = scheduleRuntimeResult,
+                scheduleRuntimeResult = runtimeResult,
             ),
             now = ZonedDateTime.now(),
         )
-        val homeScreenActions = createHomeScreenActions(
+        val snapshot = RuntimeSnapshot(
+            state = homeUiState,
             profileSelection = profileSelection,
+            profileEntries = profileDiscovery.profileEntries,
+            profileDiscoveryError = profileDiscovery.error,
+            shortcutUpdateResult = shortcutUpdateResult,
             schedule = schedule,
-            runtimeResult = scheduleRuntimeResult,
+            runtimeResult = runtimeResult,
             exactAlarmAccessState = exactAlarmAccessState,
-            editorState = homeUiState.schedule.editor,
         )
 
-        content.removeAllViews()
-
-        content.addView(textView(getString(R.string.home_title), textSize = 22f))
-        renderPrimaryStatus(homeUiState.primary, profileSelection, homeScreenActions)
-        renderSetup(homeUiState.setup, profileSelection, profileDiscovery.error)
-        renderSchedulePreview(homeUiState.schedule, schedule, homeScreenActions)
-        renderAdvanced(profileEntries, shortcutUpdateResult)
-    }
-
-    private fun renderPrimaryStatus(
-        state: HomePrimaryState,
-        profileSelection: ProfileSelection,
-        actions: HomeScreenActions,
-    ) {
-        val primaryProfile = profileSelection.selected
-        when (state) {
-            HomePrimaryState.NO_WORK_PROFILE -> {
-                content.addView(textView(getString(R.string.no_work_profile_found_title), textSize = 18f))
-                content.addView(textView(getString(R.string.no_work_profile_found_description)))
-                content.addView(button(getString(R.string.check_again)) { actions.checkAgain() })
-            }
-            HomePrimaryState.CHOOSE_WORK_PROFILE -> {
-                content.addView(textView(getString(R.string.choose_work_profile), textSize = 18f))
-                content.addView(
-                    textView(
-                        if (profileSelection.missingSelectedProfile) {
-                            getString(R.string.selected_profile_unavailable)
-                        } else {
-                            getString(R.string.select_profile_to_control)
-                        },
-                    ),
-                )
-                renderProfileChoices(profileSelection.availableProfiles)
-                content.addView(button(getString(R.string.check_again)) { actions.checkAgain() })
-            }
-            HomePrimaryState.SETUP_REQUIRED -> {
-                content.addView(textView(getString(R.string.setup_required), textSize = 18f))
-                content.addView(textView(getString(R.string.setup_permission_message)))
-                renderSelectedProfile(profileSelection, actions)
-                content.addView(button(getString(R.string.check_again)) { actions.checkAgain() })
-            }
-            HomePrimaryState.WORK_PROFILE_PAUSED -> {
-                requireNotNull(primaryProfile)
-                content.addView(textView(getString(R.string.work_profile_paused), textSize = 18f))
-                renderSelectedProfile(profileSelection, actions)
-                content.addView(button(getString(R.string.resume_work_profile)) { actions.resumeWorkProfile() })
-            }
-            HomePrimaryState.WORK_PROFILE_ACTIVE -> {
-                requireNotNull(primaryProfile)
-                content.addView(textView(getString(R.string.work_profile_active), textSize = 18f))
-                renderSelectedProfile(profileSelection, actions)
-                content.addView(button(getString(R.string.pause_work_profile)) { actions.pauseWorkProfile() })
-            }
-            HomePrimaryState.WORK_PROFILE_UNKNOWN -> {
-                content.addView(textView(getString(R.string.work_profile_unknown), textSize = 18f))
-                renderSelectedProfile(profileSelection, actions)
-                content.addView(button(getString(R.string.check_again)) { actions.checkAgain() })
-            }
-        }
-    }
-
-    private fun renderSetup(
-        setup: HomeSetupState,
-        profileSelection: ProfileSelection,
-        profilesError: Throwable?,
-    ) {
-        content.addView(sectionTitle(getString(R.string.setup_title)))
-        content.addView(textView(if (setup.ready) getString(R.string.setup_ready) else getString(R.string.setup_required)))
-        content.addView(textView(if (setup.profileFound) getString(R.string.setup_profile_found) else getString(R.string.setup_profile_missing)))
-        content.addView(
-            textView(
-                setup.selectedProfileLabel?.let { label ->
-                    getString(R.string.selected_profile_format, label)
-                } ?: getString(R.string.selected_profile_none),
-            ),
+        screenContent = MainScreenContent(
+            state = homeUiState,
+            actions = createHomeScreenActions(snapshot),
         )
-        content.addView(
-            textView(
-                if (setup.permissionGranted) {
-                    getString(R.string.setup_permission_granted)
-                } else {
-                    getString(R.string.setup_permission_missing)
-                },
-            ),
-        )
-        profilesError?.let { error ->
-            content.addView(textView(formatFailure("getUserProfiles", error)))
-        }
-        if (!setup.permissionGranted) {
-            content.addView(sectionTitle(getString(R.string.adb_setup_title)))
-            content.addView(textView(getString(R.string.adb_setup_description)))
-            content.addView(textView(setupText()))
-            content.addView(button(getString(R.string.copy_setup_text)) { copySetupText() })
-        }
     }
 
-    private fun renderSchedulePreview(
-        state: HomeScheduleUiState,
-        schedule: WorkProfileSchedule,
-        actions: HomeScreenActions,
-    ) {
-        content.addView(sectionTitle(getString(R.string.schedule_title)))
-        if (!state.configured) {
-            content.addView(textView(getString(R.string.schedule_not_configured)))
-        } else {
-            content.addView(textView(scheduleTextFormatter.savedStateLabel(state.savedState)))
-            renderScheduleExactAlarmAccess(state.exactAlarmAccessState)
-            content.addView(textView(getString(R.string.schedule_pause_at, scheduleTextFormatter.time(schedule.pauseAt))))
-            content.addView(textView(getString(R.string.schedule_resume_at, scheduleTextFormatter.time(schedule.resumeAt))))
-            content.addView(textView(getString(R.string.schedule_active_days, scheduleTextFormatter.days(schedule.activeDays))))
-            renderScheduleRuntimeStatus(state.runtimeStatus)
-            if (state.canCopyDiagnostics) {
-                content.addView(button(getString(R.string.copy_schedule_diagnostics)) { actions.copyDiagnostics() })
-            }
-        }
-        renderScheduleControls(state.editor, actions)
-        content.addView(textView(getString(R.string.schedule_future_note)))
-    }
-
-    private fun renderScheduleExactAlarmAccess(state: ScheduleExactAlarmAccessState) {
-        content.addView(textView(scheduleTextFormatter.exactAlarmAccessLabel(state)))
-
-        if (state == ScheduleExactAlarmAccessState.MISSING) {
-            content.addView(textView(getString(R.string.schedule_exact_alarm_missing_description)))
-            content.addView(button(getString(R.string.schedule_open_app_settings)) {
-                requestScheduleExactAlarmAccess()
-            })
-        }
-    }
-
-    private fun requestScheduleExactAlarmAccess() {
-        exactAlarmSettingsRequested = true
-        if (!scheduleExactAlarmAccess.openAppSettings()) {
-            exactAlarmSettingsRequested = false
-            Toast.makeText(
-                this,
-                getString(R.string.schedule_exact_alarm_settings_unavailable),
-                Toast.LENGTH_SHORT,
-            ).show()
-        }
-    }
-
-    private fun renderScheduleRuntimeStatus(status: ScheduleRuntimeStatusSummary?) {
-        status ?: return
-
-        status.nextAction?.let { nextAction ->
-            content.addView(textView(scheduleTextFormatter.nextAction(nextAction)))
-        }
-
-        status.issue?.let { issue ->
-            content.addView(textView(scheduleTextFormatter.runtimeIssue(issue)))
-        }
-    }
-
-    private fun renderScheduleControls(
-        state: ScheduleEditorUiState,
-        actions: HomeScreenActions,
-    ) {
-        content.addView(button(getString(R.string.schedule_set_pause_time)) { actions.setPauseTime() })
-        content.addView(button(getString(R.string.schedule_set_resume_time)) { actions.setResumeTime() })
-        content.addView(button(getString(R.string.schedule_choose_active_days)) { actions.chooseActiveDays() })
-        state.enableToggle?.let { toggle ->
-            content.addView(
-                button(
-                    when (toggle.action) {
-                        ScheduleEditorEnableToggleAction.ENABLE -> getString(R.string.schedule_enable)
-                        ScheduleEditorEnableToggleAction.DISABLE -> getString(R.string.schedule_disable)
-                    },
-                ) {
-                    when (toggle.action) {
-                        ScheduleEditorEnableToggleAction.ENABLE -> actions.enableSchedule()
-                        ScheduleEditorEnableToggleAction.DISABLE -> actions.disableSchedule()
-                    }
-                },
-            )
-        } ?: run {
-            if (state.showEnableRequirements) {
-                content.addView(textView(getString(R.string.schedule_enable_requirements)))
-            }
-        }
-        if (state.canClear) {
-            content.addView(button(getString(R.string.schedule_clear)) { actions.clearSchedule() })
-        }
-    }
-
-    private fun createHomeScreenActions(
-        profileSelection: ProfileSelection,
-        schedule: WorkProfileSchedule,
-        runtimeResult: ScheduleRuntimeResult?,
-        exactAlarmAccessState: ScheduleExactAlarmAccessState,
-        editorState: ScheduleEditorUiState,
-    ): HomeScreenActions {
-        val selectedProfile = profileSelection.selected
+    private fun createHomeScreenActions(snapshot: RuntimeSnapshot): HomeScreenActions {
+        val selectedProfile = snapshot.profileSelection.selected
+        val editorState = snapshot.state.schedule.editor
 
         return object : HomeScreenActions {
             override fun checkAgain() {
-                render()
+                refresh()
             }
 
             override fun pauseWorkProfile() {
                 selectedProfile?.let { profile ->
                     dispatchAction(profile.userHandle, QuietModeAction.Enable)
                 }
-                render()
+                refresh()
             }
 
             override fun resumeWorkProfile() {
                 selectedProfile?.let { profile ->
                     dispatchAction(profile.userHandle, QuietModeAction.Disable)
                 }
-                render()
+                refresh()
             }
 
             override fun changeProfile() {
-                workProfileRepository.clearSelectedProfile()
-                render()
+                showProfilePicker(snapshot.profileSelection.availableProfiles)
+            }
+
+            override fun copySetupText() {
+                this@MainActivity.copySetupText()
             }
 
             override fun setPauseTime() {
@@ -370,7 +185,7 @@ class MainActivity : Activity() {
                     title = getString(R.string.schedule_set_pause_time),
                     initialTime = editorState.pauseInitialTime,
                 ) { selectedTime ->
-                    saveSchedule(schedule.copy(pauseAt = selectedTime))
+                    saveSchedule(snapshot.schedule.copy(pauseAt = selectedTime))
                 }
             }
 
@@ -379,20 +194,24 @@ class MainActivity : Activity() {
                     title = getString(R.string.schedule_set_resume_time),
                     initialTime = editorState.resumeInitialTime,
                 ) { selectedTime ->
-                    saveSchedule(schedule.copy(resumeAt = selectedTime))
+                    saveSchedule(snapshot.schedule.copy(resumeAt = selectedTime))
                 }
             }
 
             override fun chooseActiveDays() {
-                showScheduleDaysPicker(schedule)
+                showScheduleDaysPicker(snapshot.schedule)
             }
 
             override fun enableSchedule() {
-                saveSchedule(schedule.copy(enabled = true))
+                saveSchedule(snapshot.schedule.copy(enabled = true))
             }
 
             override fun disableSchedule() {
-                saveSchedule(schedule.copy(enabled = false))
+                saveSchedule(snapshot.schedule.copy(enabled = false))
+            }
+
+            override fun openExactAlarmSettings() {
+                requestScheduleExactAlarmAccess()
             }
 
             override fun clearSchedule() {
@@ -400,9 +219,40 @@ class MainActivity : Activity() {
             }
 
             override fun copyDiagnostics() {
-                copyScheduleDiagnostics(schedule, runtimeResult, exactAlarmAccessState)
+                copyScheduleDiagnostics(
+                    schedule = snapshot.schedule,
+                    runtimeResult = snapshot.runtimeResult,
+                    exactAlarmAccessState = snapshot.exactAlarmAccessState,
+                )
+            }
+
+            override fun showAdvanced() {
+                showAdvancedDialog(snapshot)
             }
         }
+    }
+
+    private fun showProfilePicker(profiles: List<ProfileEntry.Labeled>) {
+        if (profiles.isEmpty()) {
+            Toast.makeText(this, getString(R.string.no_switchable_profiles), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val labels = profiles.map { it.profile.label }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.home_screen_choose_work_profile_title))
+            .setItems(labels) { _, index ->
+                val selectedProfile = profiles[index]
+                workProfileRepository.saveSelectedProfile(selectedProfile)
+                Toast.makeText(
+                    this,
+                    getString(R.string.profile_selected_toast, selectedProfile.profile.label),
+                    Toast.LENGTH_SHORT,
+                ).show()
+                refresh()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun showScheduleTimePicker(
@@ -451,75 +301,121 @@ class MainActivity : Activity() {
         scheduleStore.save(ScheduleSavePolicy.normalizeForSave(schedule))
         scheduleBoundaryPlanner.refresh()
         Toast.makeText(this, getString(R.string.schedule_saved), Toast.LENGTH_SHORT).show()
-        render()
+        refresh()
     }
 
     private fun clearSchedule() {
         scheduleStore.clear()
         scheduleBoundaryPlanner.cancel()
         Toast.makeText(this, getString(R.string.schedule_cleared), Toast.LENGTH_SHORT).show()
-        render()
+        refresh()
     }
 
-    private fun renderAdvanced(
-        profileEntries: List<ProfileEntry>,
-        shortcutUpdateResult: Result<ShortcutUpdateState?>,
-    ) {
-        content.addView(sectionTitle(getString(R.string.advanced_title)))
-        content.addView(textView(getString(R.string.last_result, lastResult)))
-        content.addView(textView(getString(R.string.profiles_found, profileEntries.size)))
-        shortcutUpdateResult.getOrNull()?.let { updateState ->
-            content.addView(
-                textView(
+    private fun requestScheduleExactAlarmAccess() {
+        exactAlarmSettingsRequested = true
+        if (!scheduleExactAlarmAccess.openAppSettings()) {
+            exactAlarmSettingsRequested = false
+            Toast.makeText(
+                this,
+                getString(R.string.schedule_exact_alarm_settings_unavailable),
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+    private fun showAdvancedDialog(snapshot: RuntimeSnapshot) {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.diagnostics_title))
+            .setMessage(buildAdvancedDiagnostics(snapshot))
+            .setPositiveButton(android.R.string.ok, null)
+            .apply {
+                if (snapshot.profileEntries.isNotEmpty()) {
+                    setNeutralButton(getString(R.string.advanced_title)) { _, _ ->
+                        showAdvancedProfilePicker(snapshot.profileEntries)
+                    }
+                }
+            }
+            .show()
+    }
+
+    private fun showAdvancedProfilePicker(profiles: List<ProfileEntry>) {
+        val labels = profiles.map(::profileDisplayLabel).toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.advanced_title))
+            .setItems(labels) { _, index ->
+                showAdvancedProfileActions(profiles[index])
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showAdvancedProfileActions(profile: ProfileEntry) {
+        val actions = arrayOf(
+            getString(R.string.enable_quiet_mode),
+            getString(R.string.disable_quiet_mode),
+            getString(R.string.toggle_quiet_mode),
+        )
+        AlertDialog.Builder(this)
+            .setTitle(profileDisplayLabel(profile))
+            .setItems(actions) { _, index ->
+                val action = when (index) {
+                    0 -> QuietModeAction.Enable
+                    1 -> QuietModeAction.Disable
+                    else -> QuietModeAction.Toggle
+                }
+                dispatchAction(profile.userHandle, action)
+                refresh()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun buildAdvancedDiagnostics(snapshot: RuntimeSnapshot): String {
+        return buildString {
+            append(getString(R.string.last_result, lastResult))
+            append("\n\n")
+            append(getString(R.string.profiles_found, snapshot.profileEntries.size))
+
+            snapshot.profileDiscoveryError?.let { error ->
+                append("\n\n")
+                append(formatFailure("getUserProfiles", error))
+            }
+            snapshot.shortcutUpdateResult.getOrNull()?.let { updateState ->
+                append("\n\n")
+                append(
                     getString(
                         R.string.shortcuts_updated,
                         updateState.shortcutsCount,
                         updateState.maxShortcuts,
                     ),
-                ),
-            )
-        }
-        shortcutUpdateResult.exceptionOrNull()?.let { error ->
-            content.addView(textView(formatFailure("updateShortcuts", error)))
-        }
-
-        if (profileEntries.isEmpty()) {
-            content.addView(textView(getString(R.string.no_switchable_profiles)))
-        }
-        profileEntries.forEach { profileEntry ->
-            content.addView(profileView(profileEntry))
-        }
-    }
-
-    private fun renderSelectedProfile(
-        profileSelection: ProfileSelection,
-        actions: HomeScreenActions,
-    ) {
-        val selected = profileSelection.selected ?: return
-        content.addView(textView(getString(R.string.selected_profile_label, selected.profile.label)))
-        if (profileSelection.availableProfiles.size > 1) {
-            content.addView(button(getString(R.string.change_work_profile)) { actions.changeProfile() })
+                )
+            }
+            snapshot.shortcutUpdateResult.exceptionOrNull()?.let { error ->
+                append("\n\n")
+                append(formatFailure("updateShortcuts", error))
+            }
+            if (snapshot.profileEntries.isEmpty()) {
+                append("\n\n")
+                append(getString(R.string.no_switchable_profiles))
+            }
+            snapshot.profileEntries.forEach { profile ->
+                append("\n\n")
+                append(profileInfo(profile))
+            }
         }
     }
 
-    private fun renderProfileChoices(profiles: List<ProfileEntry.Labeled>) {
-        profiles.forEach { profileEntry ->
-            content.addView(button(getString(R.string.use_work_profile, profileEntry.profile.label)) {
-                workProfileRepository.saveSelectedProfile(profileEntry)
-                Toast.makeText(
-                    this,
-                    getString(R.string.profile_selected_toast, profileEntry.profile.label),
-                    Toast.LENGTH_SHORT,
-                ).show()
-                render()
-            })
+    private fun profileDisplayLabel(profileEntry: ProfileEntry): String {
+        return when (profileEntry) {
+            is ProfileEntry.Labeled -> profileEntry.profile.label
+            is ProfileEntry.Diagnostic -> getString(R.string.profile_serial_diagnostic_label)
         }
     }
 
-    private fun profileView(profileEntry: ProfileEntry): LinearLayout {
+    private fun profileInfo(profileEntry: ProfileEntry): String {
         val userHandle = profileEntry.userHandle
         val quietMode = readQuietMode(userHandle)
-        val profileInfo = when (profileEntry) {
+        return when (profileEntry) {
             is ProfileEntry.Labeled -> getString(
                 R.string.profile_info,
                 profileEntry.profile.label,
@@ -534,26 +430,6 @@ class MainActivity : Activity() {
                 profileEntry.serialDiagnostic,
                 quietMode.message,
             )
-        }
-
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, 16.dp, 0, 16.dp)
-
-            addView(textView(profileInfo))
-
-            addView(button(getString(R.string.enable_quiet_mode)) {
-                dispatchAction(userHandle, QuietModeAction.Enable)
-                render()
-            })
-            addView(button(getString(R.string.disable_quiet_mode)) {
-                dispatchAction(userHandle, QuietModeAction.Disable)
-                render()
-            })
-            addView(button(getString(R.string.toggle_quiet_mode)) {
-                dispatchAction(userHandle, QuietModeAction.Toggle)
-                render()
-            })
         }
     }
 
@@ -678,33 +554,26 @@ class MainActivity : Activity() {
         return dependencies.formatFailure(operation, error)
     }
 
-    private fun sectionTitle(text: String): TextView {
-        return textView(text, textSize = 16f)
-    }
-
-    private fun textView(text: String, textSize: Float = 14f): TextView {
-        return TextView(this).apply {
-            this.text = text
-            this.textSize = textSize
-            setTextIsSelectable(true)
-            setPadding(0, 8.dp, 0, 8.dp)
-        }
-    }
-
-    private fun button(text: String, onClick: () -> Unit): Button {
-        return Button(this).apply {
-            this.text = text
-            setOnClickListener { onClick() }
-        }
-    }
-
     private fun timestamp(): String {
         return timeFormat.format(Date())
     }
-
-    private val Int.dp: Int
-        get() = (this * resources.displayMetrics.density).roundToInt()
 }
+
+private data class MainScreenContent(
+    val state: HomeUiState,
+    val actions: HomeScreenActions,
+)
+
+private data class RuntimeSnapshot(
+    val state: HomeUiState,
+    val profileSelection: ProfileSelection,
+    val profileEntries: List<ProfileEntry>,
+    val profileDiscoveryError: Throwable?,
+    val shortcutUpdateResult: Result<ShortcutUpdateState?>,
+    val schedule: WorkProfileSchedule,
+    val runtimeResult: ScheduleRuntimeResult?,
+    val exactAlarmAccessState: ScheduleExactAlarmAccessState,
+)
 
 private data class QuietModeState(
     val value: Boolean?,
