@@ -11,7 +11,14 @@ import io.github.vyachean.workprofiletoggle.ScheduleEditorEnableToggle
 import io.github.vyachean.workprofiletoggle.ScheduleEditorEnableToggleAction
 import io.github.vyachean.workprofiletoggle.ScheduleEditorUiState
 import io.github.vyachean.workprofiletoggle.ScheduleExactAlarmAccessState
+import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextAction
+import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextActionType
+import io.github.vyachean.workprofiletoggle.ScheduleRuntimeStatusSummary
 import io.github.vyachean.workprofiletoggle.ScheduleTime
+import io.github.vyachean.workprofiletoggle.WorkProfileScheduleBoundary
+import io.github.vyachean.workprofiletoggle.WorkProfileScheduleExpectedState
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 
 @Composable
 fun HomeScreenActiveEnabledScreenshotFixture() {
@@ -45,7 +52,25 @@ private fun activeEnabledHomeState(): HomeUiState {
                 ScheduleDay.FRIDAY,
             ),
             exactAlarmAccessState = ScheduleExactAlarmAccessState.GRANTED,
-            runtimeStatus = null,
+            runtimeStatus = ScheduleRuntimeStatusSummary(
+                nextAction = ScheduleRuntimeNextAction(
+                    type = ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE,
+                    boundary = WorkProfileScheduleBoundary(
+                        at = ZonedDateTime.of(
+                            2026,
+                            1,
+                            2,
+                            18,
+                            0,
+                            0,
+                            0,
+                            ZoneOffset.UTC,
+                        ),
+                        expectedState = WorkProfileScheduleExpectedState.PAUSED,
+                    ),
+                ),
+                issue = null,
+            ),
             canCopyDiagnostics = true,
             editor = ScheduleEditorUiState(
                 pauseInitialTime = ScheduleTime(hour = 18, minute = 0),
