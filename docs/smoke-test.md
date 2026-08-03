@@ -22,7 +22,7 @@ Record:
 ## Preconditions
 
 - Use a device that already has an Android work profile.
-- Download the signed `work-profile-toggle-v<version>.apk` asset from the matching GitHub Release.
+- Download the signed `work-profile-toggle-vX.Y.Z.apk` asset from the matching GitHub Release, replacing `X.Y.Z` with the version under test.
 - Keep the previous release APK available when testing update and rollback behavior.
 - Keep ADB available for permission and time-related checks.
 
@@ -31,7 +31,7 @@ Record:
 1. Update an existing release install when validating an upgrade:
 
    ```sh
-   adb install -r work-profile-toggle-v<version>.apk
+   adb install -r work-profile-toggle-vX.Y.Z.apk
    ```
 
 2. Open the app.
