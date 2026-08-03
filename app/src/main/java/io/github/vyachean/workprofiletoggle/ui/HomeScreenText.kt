@@ -141,16 +141,22 @@ internal object HomeScreenText {
         if (days.isEmpty()) return stringResource(R.string.schedule_no_days)
         if (days.size == ScheduleDay.entries.size) return stringResource(R.string.schedule_all_days)
 
-        val labels = buildList {
-            if (ScheduleDay.MONDAY in days) add(stringResource(R.string.schedule_day_monday))
-            if (ScheduleDay.TUESDAY in days) add(stringResource(R.string.schedule_day_tuesday))
-            if (ScheduleDay.WEDNESDAY in days) add(stringResource(R.string.schedule_day_wednesday))
-            if (ScheduleDay.THURSDAY in days) add(stringResource(R.string.schedule_day_thursday))
-            if (ScheduleDay.FRIDAY in days) add(stringResource(R.string.schedule_day_friday))
-            if (ScheduleDay.SATURDAY in days) add(stringResource(R.string.schedule_day_saturday))
-            if (ScheduleDay.SUNDAY in days) add(stringResource(R.string.schedule_day_sunday))
-        }
-        return labels.joinToString(", ")
+        val monday = stringResource(R.string.schedule_day_monday)
+        val tuesday = stringResource(R.string.schedule_day_tuesday)
+        val wednesday = stringResource(R.string.schedule_day_wednesday)
+        val thursday = stringResource(R.string.schedule_day_thursday)
+        val friday = stringResource(R.string.schedule_day_friday)
+        val saturday = stringResource(R.string.schedule_day_saturday)
+        val sunday = stringResource(R.string.schedule_day_sunday)
+        return listOfNotNull(
+            monday.takeIf { ScheduleDay.MONDAY in days },
+            tuesday.takeIf { ScheduleDay.TUESDAY in days },
+            wednesday.takeIf { ScheduleDay.WEDNESDAY in days },
+            thursday.takeIf { ScheduleDay.THURSDAY in days },
+            friday.takeIf { ScheduleDay.FRIDAY in days },
+            saturday.takeIf { ScheduleDay.SATURDAY in days },
+            sunday.takeIf { ScheduleDay.SUNDAY in days },
+        ).joinToString(", ")
     }
 
     @Composable
