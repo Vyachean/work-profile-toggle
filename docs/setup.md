@@ -6,18 +6,18 @@ Work Profile Toggle requires Android 9 (API 28) or newer.
 
 ## Install a signed release APK
 
-Download `work-profile-toggle-v<version>.apk` from the matching GitHub Release.
+Download `work-profile-toggle-vX.Y.Z.apk` from the matching GitHub Release, replacing `X.Y.Z` with the required version.
 
 Install for the first time:
 
 ```sh
-adb install work-profile-toggle-v<version>.apk
+adb install work-profile-toggle-vX.Y.Z.apk
 ```
 
 Update an existing release install:
 
 ```sh
-adb install -r work-profile-toggle-v<version>.apk
+adb install -r work-profile-toggle-vX.Y.Z.apk
 ```
 
 A published APK is not considered validated until the real-device [release smoke test](smoke-test.md) is completed.
