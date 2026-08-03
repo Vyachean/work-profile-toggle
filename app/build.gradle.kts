@@ -3,11 +3,14 @@ import org.gradle.api.GradleException
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.android.compose.screenshot")
 }
 
 android {
     namespace = "io.github.vyachean.workprofiletoggle"
     compileSdk = 36
+
+    experimentalProperties["android.experimental.enableScreenshotTest"] = true
 
     defaultConfig {
         applicationId = "io.github.vyachean.workprofiletoggle"
@@ -62,6 +65,9 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling:1.11.4")
 
     testImplementation("junit:junit:4.13.2")
+
+    screenshotTestImplementation("com.android.tools.screenshot:screenshot-validation-api:0.0.1-alpha15")
+    screenshotTestImplementation("androidx.compose.ui:ui-tooling:1.11.4")
 }
 
 fun requiredGradleProperty(name: String): String {

@@ -38,6 +38,7 @@ The app supports:
 - a Compose Material 3 runtime Home screen with dynamic light and dark color schemes;
 - profile selection, ADB setup copying, exact-alarm recovery, schedule editing, and Diagnostics actions from the Compose Home screen;
 - CI checks for lint, unit tests, debug APK assembly, release APK assembly, and debug certificate verification;
+- a non-blocking deterministic Compose screenshot proof of concept;
 - signed release workflow infrastructure.
 
 ## Development rules
@@ -65,7 +66,8 @@ Completed in the 0.1.5 documentation audit:
 - aligned terminology with the Compose UI;
 - separated prepared, published, validated, and broadly validated release states;
 - replaced stale View-era screenshot planning;
-- established canonical documentation authority.
+- established canonical documentation authority;
+- closed superseded roadmap and release-workflow issues.
 
 Remaining work:
 
@@ -127,23 +129,35 @@ Validation required before calling the UI broadly validated:
 
 Goal: generate stable documentation screenshots without requiring a real work profile in hosted CI.
 
-Available prerequisites:
+Available foundation:
 
 - deterministic `HomeUiState`;
 - pure Compose Home rendering from state;
 - state-specific and compact previews;
 - no real profile requirement for fake-state rendering.
 
-Status: **planned infrastructure**.
+Implemented proof of concept:
+
+- official experimental Compose Preview Screenshot Testing plugin and `screenshotTest` source set;
+- one debug-only active-profile and enabled-schedule fixture;
+- fixed API level, viewport, density, locale, font scale, light appearance, runner image, and host timezone;
+- two clean renders with build cache disabled;
+- SHA-256 comparison proving byte-identical output inside one CI run;
+- visual inspection of the generated image;
+- non-blocking 14-day CI artifact containing both renders and hashes.
+
+Status: **proof of concept complete; cross-run calibration and baseline workflow in progress**.
 
 Next work:
 
-- prove one Compose-compatible screenshot tool in the current Gradle and CI environment;
-- fix dimensions, density, font scale, locale, time zone, and fallback theme;
-- generate required light, dark, compact, and increased-font states;
-- upload PNG and diff artifacts from CI;
-- define baseline approval rules;
-- commit approved screenshots under `docs/screenshots/` and link them from README.
+- confirm identical output across separate workflow runs and cache states;
+- extract reusable screenshot fixtures as the state set grows;
+- add light, dark, compact, and increased-font scenarios;
+- add representative setup, disabled, blocked, enabled, and runtime-issue states;
+- upload useful expected, actual, and diff reports;
+- define baseline review and update rules;
+- commit approved reference images and make comparison required only after stability is demonstrated;
+- commit selected screenshots under `docs/screenshots/` and link them from README.
 
 ## Stage 5 — Schedule runtime hardening
 
@@ -197,8 +211,7 @@ Still required before recording 0.1.5 as validated:
 
 ## Known follow-ups
 
-- Issue #25 is the original roadmap and should be marked superseded by this document rather than maintained as a second live roadmap.
-- Add deterministic screenshot tests and README screenshots.
+- Add complete deterministic screenshot coverage and README screenshots.
 - Expand real-device schedule validation.
 - Review accessibility and large-font behavior after runtime UI validation.
 - Reassess an inexact scheduling fallback only with a clearly documented reliability contract.

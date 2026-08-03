@@ -14,9 +14,9 @@ README should link committed images, not temporary CI artifacts.
 
 ## Current UI foundation
 
-The application now uses a Compose Material 3 runtime Home screen.
+The application uses a Compose Material 3 runtime Home screen.
 
-The screenshot prerequisites already available are:
+The screenshot prerequisites available are:
 
 - deterministic `HomeUiState` models;
 - a pure `HomeScreen` composable driven by state and typed events;
@@ -24,20 +24,55 @@ The screenshot prerequisites already available are:
 - compact-screen preview coverage;
 - no requirement for a real work profile when rendering the composable from fake state.
 
-The remaining work is screenshot-test infrastructure and reviewed baselines, not UI-state extraction.
+## Current proof of concept
 
-## Recommended implementation sequence
+The repository uses the official experimental Compose Preview Screenshot Testing tool as a provisional proof of concept.
 
-1. Create a small proof of concept with a Compose-compatible deterministic screenshot test tool.
-2. Reuse the existing fake Home states and add any missing screenshot-only states.
-3. Render each state with fixed dimensions, density, font scale, locale, light/dark appearance, and time zone.
-4. Compare generated images against reviewed baselines.
-5. Upload generated PNG files and comparison reports as CI artifacts.
-6. Review selected images for product correctness, not only pixel stability.
-7. Commit approved images under `docs/screenshots/`.
-8. Link approved images from README.
+Current setup:
 
-Do not lock the project to a screenshot library before a minimal proof of concept demonstrates stable Compose rendering in the repository's Gradle and CI environment.
+- plugin and validation API version `0.0.1-alpha15`;
+- dedicated `screenshotTest` source set;
+- one debug-only fixture for an active work profile with an enabled schedule;
+- one light-mode screenshot preview;
+- fixed API level 30 so the fallback Material color scheme is used instead of dynamic color;
+- fixed viewport of 360 dp by 800 dp at 420 dpi;
+- fixed English locale and font scale `1.0`;
+- pinned `ubuntu-24.04` CI runner with `TZ=UTC` and a stable UTF-8 locale.
+
+The `Compose screenshot POC` CI job:
+
+1. removes previous generated references;
+2. renders the preview with `updateDebugScreenshotTest` and build cache disabled;
+3. records PNG SHA-256 hashes;
+4. removes the generated references again;
+5. performs a second clean render;
+6. compares both hash lists;
+7. uploads both renders, hashes, and available test reports as a 14-day artifact.
+
+The first CI proof completed successfully. Both independent renders were byte-identical and the generated image was reviewed visually.
+
+The screenshot job remains non-blocking while cross-run stability and baseline workflow are being calibrated. No golden reference image is committed yet.
+
+The tool is still in alpha. Keep the integration isolated and reevaluate it if plugin upgrades introduce material build or rendering instability.
+
+## Implementation sequence
+
+Completed:
+
+1. Prove that the official Compose screenshot tool compiles and renders in the current AGP, Kotlin, JDK, and CI environment.
+2. Fix the initial viewport, density, API level, font scale, locale, light appearance, runner image, and host timezone.
+3. Prove byte-identical output from two clean renders in one CI run.
+4. Upload generated PNG files and hashes as a non-blocking CI artifact.
+
+Next:
+
+1. Repeat the same scenario across separate workflow runs and dependency-cache states.
+2. Extract shared screenshot fixtures rather than duplicating state construction as scenarios grow.
+3. Add the required light, dark, compact, and increased-font scenarios.
+4. Add representative setup, blocked, disabled, enabled, and runtime-issue states.
+5. Define baseline review and update rules.
+6. Commit approved reference images and enable `validateDebugScreenshotTest` as a required comparison check only after stability is demonstrated.
+7. Commit selected documentation images under `docs/screenshots/` and link them from README.
 
 ## Required scenarios
 
@@ -69,17 +104,17 @@ At least the release-candidate states should be checked in:
 
 Dynamic color should not be used for golden baselines unless the test controls the complete color scheme deterministically. Stable fallback themes are preferable for documentation screenshots.
 
-## CI policy
+## Baseline policy
 
-Screenshot generation may begin as a non-blocking artifact job while the harness is being calibrated.
+Reference images must not become a required merge gate until:
 
-It should become a required comparison check only after:
-
-- rendering is deterministic across repeated CI runs;
-- font and platform dependencies are controlled;
+- rendering is deterministic across repeated CI runs, not only twice inside one run;
+- runner image, API level, viewport, density, locale, font scale, theme, and relevant clock inputs are controlled;
 - baseline update rules are documented;
-- failures provide usable image diffs;
-- maintainers can intentionally approve baseline changes.
+- validation failures provide usable actual, expected, and diff outputs;
+- maintainers can intentionally review and approve baseline changes.
+
+A baseline update must be reviewed as a user-visible change. A green hash or pixel comparison does not establish that the represented product state is correct.
 
 ## Anti-patterns
 
@@ -88,5 +123,6 @@ Avoid:
 - `adb screencap` from an uncontrolled hosted emulator state;
 - screenshots that depend on a real work profile, current wall-clock time, device locale, or OEM theme;
 - temporary CI artifacts linked directly from README;
+- enabling a required screenshot gate before cross-run stability is demonstrated;
 - approving pixel changes without checking the represented product state;
 - keeping obsolete View-specific screenshot guidance after the runtime UI is Compose.
