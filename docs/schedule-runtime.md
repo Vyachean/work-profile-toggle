@@ -4,23 +4,23 @@
 
 Implemented baseline, still in real-device validation.
 
-The app now has a schedule runtime that calculates the next schedule boundary, schedules an Android exact alarm, reconciles the selected work profile at the boundary, persists a structured runtime result, shows user-facing runtime status, provides copyable schedule diagnostics, and reschedules after key app and system events.
+The app calculates the next schedule boundary, schedules an Android exact alarm, reconciles the selected work profile at the boundary, persists a structured runtime result, shows user-facing runtime status, provides copyable schedule diagnostics, and reschedules after key app and system events.
 
 This document is the runtime contract for future changes. Keep it updated in the same PR as behavior changes.
 
 ## Product intent
 
-The runtime provides a Digital Wellbeing-style schedule for an existing Android work profile on devices where the built-in Google/OEM work-profile schedule is missing or unavailable.
+The runtime provides a Digital Wellbeing-style schedule for an existing Android work profile on devices where the built-in Google or OEM schedule is missing or unavailable.
 
-The feature is not a generic automation engine. It only decides whether the selected work profile should be active or paused for the current schedule boundary.
+The feature is not a generic automation engine. It decides whether the selected work profile should be active or paused for the current schedule interval.
 
-## User model
+## User model and terminology
 
 The user configures:
 
-- work days;
-- work start time;
-- work end time;
+- **Resume time** — when the profile should become active;
+- **Pause time** — when the profile should become paused;
+- **Active days** — days on which the active interval begins;
 - schedule enabled or disabled.
 
 The intended state is:
@@ -30,7 +30,7 @@ inside configured work hours  -> work profile active
 outside configured work hours -> work profile paused
 ```
 
-Manual pause/resume remains available. The schedule runtime reconciles state at the next schedule boundary and reports when it could not apply the expected state.
+Manual Pause and Resume remain available. The schedule runtime reconciles state at the next boundary and reports when it could not apply the expected state.
 
 ## Implemented runtime model
 
@@ -58,65 +58,60 @@ The schedule engine calculates absolute next boundaries from the saved local sch
 Inputs:
 
 - enabled flag;
-- work days;
-- start time;
-- end time;
-- current local date/time;
+- active days;
+- resume time;
+- pause time;
+- current local date and time;
 - device timezone.
 
 Rules:
 
 - If the schedule is disabled, no runtime boundary is scheduled.
-- If work days are empty, the schedule is incomplete and does not run.
-- If start or end time is missing, the schedule is incomplete and does not run.
-- If start time is before end time, the active window is same-day.
-- If start time is after end time, the active window crosses midnight.
-- For an overnight active window, a selected work day is the day when the active window starts.
-  - Example: `MONDAY`, `22:00` -> `06:00` means active from Monday 22:00 until Tuesday 06:00.
+- If active days are empty, the schedule is incomplete and does not run.
+- If resume or pause time is missing, the schedule is incomplete and does not run.
+- If resume time is before pause time, the active window is same-day.
+- If resume time is after pause time, the active window crosses midnight.
+- For an overnight active window, an active day is the day when the interval starts.
+  - Example: `MONDAY`, resume `22:00`, pause `06:00` means active from Monday 22:00 until Tuesday 06:00.
   - Sunday 22:00 until Monday 06:00 is controlled by `SUNDAY`, not `MONDAY`.
-- If start time equals end time, the schedule is invalid.
-- An invalid schedule must not produce a next boundary and must not schedule an alarm. This prevents immediate rescheduling loops when the next boundary would otherwise be calculated as `now`.
-- Daylight saving and timezone changes are handled by recalculating boundaries from local time, not by repeating a fixed duration.
+- If resume time equals pause time, the schedule is invalid.
+- An invalid schedule must not produce a next boundary or schedule an alarm. This prevents immediate rescheduling loops when a boundary would otherwise be calculated as `now`.
+- Daylight-saving and timezone changes are handled by recalculating boundaries from local time, not by repeating a fixed duration.
 
 ## Trigger mechanism
 
 The current runtime uses:
 
 - `AlarmManager` for the next boundary;
-- exact alarms through `setExactAndAllowWhileIdle(...)` for scheduled boundaries;
+- `setExactAndAllowWhileIdle(...)` for scheduled boundaries;
 - an exact-alarm access check before planning exact alarms on Android versions that require it;
 - a `BroadcastReceiver` as the alarm entry point;
 - `BroadcastReceiver.goAsync()` for bounded background execution;
-- the shared work-profile action dispatcher/controller path for quiet-mode changes;
+- the shared work-profile action dispatcher/controller path for state changes;
 - explicit rescheduling after every handled boundary.
 
 The receiver must keep orchestration short and always finish its pending result. If reconciliation grows beyond short bounded work, move execution to a more appropriate background mechanism instead of expanding receiver work.
 
-## Alarm precision
+## Exact-alarm behavior
 
-The runtime currently uses exact alarms for schedule boundaries.
-
-Rationale:
-
-- work-profile boundaries are user-visible schedule events;
-- delayed boundaries can leave the work profile active outside work hours or paused inside work hours;
-- exact alarms make real-device validation clearer because expected boundary timing is explicit.
+The runtime currently uses exact alarms because delayed boundaries can leave the work profile active outside work hours or paused inside work hours.
 
 Setup and blocking behavior:
 
-- On Android versions where exact-alarm access is not required, schedule planning can proceed without extra user action.
-- On Android versions where exact-alarm access is required, the app checks `canScheduleExactAlarms()` before scheduling.
-- If exact-alarm access is missing, the app does not schedule the boundary and records a blocked runtime status with `exact alarm access missing`.
-- The UI should show the missing access state and guide the user to the relevant Android settings screen.
+- On Android versions where exact-alarm access is not required, planning can proceed without extra user action.
+- On Android versions where access is required, the app checks `canScheduleExactAlarms()` before scheduling.
+- If access is missing, the app does not schedule the boundary and records `EXACT_ALARM_ACCESS_MISSING`.
+- The Compose Schedule card shows the access state and a settings action for configured schedules.
+- An enabled configured schedule is shown as blocked while access is missing.
 - The app refreshes planning after returning from settings and after exact-alarm access change broadcasts.
 
 Known limitation:
 
-- Exact alarms reduce timing drift compared with inexact alarms, but Android/OEM power management can still affect background execution and work-profile APIs. Real-device validation remains required.
+- Exact alarms reduce timing drift compared with inexact alarms, but Android and OEM power management can still affect delivery and the subsequent work-profile API call.
 
 Future decision:
 
-- Add an optional inexact fallback only if there is a clear product reason for users who cannot or do not want to grant exact-alarm access. A fallback must be explicit in UI/status because delayed boundaries are not equivalent to the exact schedule behavior.
+- Add an optional inexact fallback only if there is a clear product reason. A fallback must be explicit in UI and diagnostics because delayed boundaries are not equivalent to exact schedule behavior.
 
 ## Rescheduling events
 
@@ -124,6 +119,7 @@ The runtime reschedules from persisted settings after:
 
 - schedule settings change;
 - selected work profile change;
+- a handled schedule boundary;
 - device reboot;
 - app update;
 - timezone change;
@@ -131,7 +127,7 @@ The runtime reschedules from persisted settings after:
 - exact-alarm access change;
 - returning to the app after exact-alarm settings.
 
-Direct Boot support is not currently enabled. App schedule state is stored in normal app storage and is available after credential-protected storage is unlocked.
+Direct Boot support is not enabled. Schedule state is stored in credential-protected app storage and becomes available after the device has been unlocked following a reboot.
 
 ## Manual override behavior
 
@@ -139,13 +135,13 @@ Manual actions remain allowed.
 
 Baseline rule:
 
-- Manual pause/resume changes the current state immediately.
-- The next schedule boundary may override the manual state according to the configured schedule.
-- The UI communicates the next scheduled boundary so the behavior is predictable.
+- Manual Pause or Resume changes the current state immediately.
+- The next schedule boundary may override that manual state according to the configured schedule.
+- The Home screen communicates the next scheduled boundary so the behavior is predictable.
 
 Future decision:
 
-- Add an explicit "override until next boundary" or "disable schedule for today" feature only if users need it. Do not add it without a separate product decision.
+- Add an explicit override-until-next-boundary or disable-for-today feature only after a separate product decision.
 
 ## Runtime result model
 
@@ -175,24 +171,24 @@ Failure categories:
 - exact alarm access missing;
 - runtime exception.
 
-User-facing diagnostics should be concise and actionable. Raw Android details belong in Advanced/Diagnostics or in explicitly copied diagnostics payloads.
+User-facing status should be concise and actionable. Raw Android details belong in Advanced/Diagnostics or explicitly copied diagnostics.
 
 ## Copyable diagnostics
 
-The Schedule section provides a copyable diagnostics payload for configured schedules.
+The Schedule card provides a copyable diagnostics payload for configured schedules.
 
-The copied payload is stable, plain text, and intended for debugging real-world reports. It includes:
+The payload is stable plain text intended for debugging real-world reports. It includes:
 
 - app version name;
 - current time and timezone;
-- saved schedule enabled flag;
-- saved work days;
-- saved resume/start time;
-- saved pause/end time;
+- saved enabled flag;
+- saved active days;
+- saved resume time;
+- saved pause time;
 - exact-alarm access state;
 - whether a runtime result is present;
 - runtime trigger time;
-- runtime expected state;
+- expected state;
 - selected profile status;
 - requested action;
 - action result;
@@ -200,72 +196,69 @@ The copied payload is stable, plain text, and intended for debugging real-world 
 - next boundary timestamp and expected state;
 - failure category.
 
-The payload must not include profile names or raw user/profile identifiers. If future diagnostics need more context, prefer stable enums and non-personal state fields over names, serials, or handles.
+The payload must not include profile names, serial numbers, or raw user/profile handles.
 
 ## Permission and setup model
 
-The runtime depends on the same work-profile control capability as manual actions.
-
-Before schedule runtime can work reliably, the app needs:
+Reliable schedule execution requires:
 
 - a selected switchable work profile;
 - readable quiet-mode state;
-- permission or platform capability to request pause/resume;
+- `MODIFY_QUIET_MODE` or an equivalent platform capability;
 - Android acceptance of the requested state change;
 - exact-alarm access when Android requires it.
 
-Schedule settings may remain saved when setup is incomplete, but runtime execution should report the missing requirement instead of silently pretending that scheduling is working.
+Schedule settings may remain saved when setup is incomplete. Runtime execution must report the missing requirement instead of pretending that scheduling is working.
+
+Exact-alarm access is schedule-specific. It does not block profile selection or manual Pause/Resume.
 
 ## Current automated coverage
 
 Existing unit tests cover:
 
-- same-day active window calculation;
-- overnight active window calculation;
-- overnight active-day semantics, where the selected day is the window start day;
+- same-day and overnight active windows;
+- overnight active-day semantics;
 - inactive days;
-- start equals end invalid case;
-- incomplete schedules;
-- disabled schedules;
-- current timezone boundary calculation;
-- alarm scheduling, cancellation, rejected alarms, past/now boundaries, and exact-alarm access checks inside the alarm abstraction;
+- equal resume/pause time invalidation;
+- incomplete and disabled schedules;
+- timezone-aware boundary calculation;
+- alarm scheduling, cancellation, rejected alarms, past/now boundaries, and exact-alarm checks;
 - boundary planner result persistence;
-- runtime handler reconciliation orchestration;
-- next-boundary refresh after runtime handling;
-- runtime failure precedence;
-- runtime exception persistence;
-- runtime status summary mapping for next action and issue states;
-- work-profile reconciliation for selected profile availability, no-op success, pause/resume dispatch, read failures, request failures, missing profile, and unconfirmed final state;
+- runtime reconciliation orchestration;
+- next-boundary refresh after handling;
+- runtime failure precedence and exception persistence;
+- runtime status summary mapping;
+- selected-profile availability, no-op success, Pause/Resume dispatch, read failures, request failures, and unconfirmed final state;
 - reschedule receiver action filtering;
-- schedule diagnostics payload formatting for complete and missing runtime results.
+- diagnostics formatting for complete and missing runtime results;
+- Home state mapping and the typed Home event-to-action contract.
 
 Known automated coverage gaps:
 
 - no end-to-end instrumentation test for `AlarmManager -> BroadcastReceiver -> UserManager.requestQuietModeEnabled`;
 - no deterministic screenshot tests;
 - no CI real-device or managed-device smoke test;
-- no automated reboot/timezone/time-change/exact-alarm-settings end-to-end verification.
+- no automated reboot, time, timezone, or exact-alarm-settings end-to-end verification.
 
-## Required real-device smoke test
+## Required real-device validation
 
-Before treating schedule runtime as release-ready, validate on a real device with an actual work profile:
+Use [Release smoke test](smoke-test.md) as the canonical release checklist.
 
-1. Install a current debug APK.
-2. Grant `android.permission.MODIFY_QUIET_MODE` through ADB.
-3. Grant exact-alarm access when Android requires it.
-4. Select the work profile in the app.
-5. Configure a near-future schedule boundary.
-6. Confirm that the UI shows the next action.
-7. Confirm that the selected profile pauses/resumes at the boundary.
-8. Confirm that manual pause/resume is reconciled at the next boundary.
-9. Confirm that reboot preserves and refreshes the next boundary.
-10. Confirm that manual time and timezone changes refresh the next boundary.
-11. Confirm that exact-alarm access loss is shown as a blocked schedule state.
-12. Confirm that blocked states are visible in the schedule runtime status.
-13. Copy schedule diagnostics and confirm that the payload is readable and does not include profile names, serials, or handles.
+Runtime-specific acceptance must include:
 
-## Current implementation follow-ups
+1. Install or update the signed release candidate while preserving app data when testing an update.
+2. Confirm the selected profile and saved schedule persist.
+3. Confirm the Home screen shows the correct next action.
+4. Confirm near-future Pause and Resume boundaries apply the expected state.
+5. Confirm a manual action is reconciled at the next boundary.
+6. Confirm reboot restores planning after unlock.
+7. Confirm manual time and timezone changes refresh the next boundary.
+8. Confirm exact-alarm access loss produces a blocked state and recovery action.
+9. Copy schedule diagnostics and confirm the payload is readable and contains no profile names, serials, or handles.
 
-- Improve schedule setup/status UX.
-- Decide whether an optional inexact fallback mode is useful.
-- Add deterministic screenshots after UI state extraction.
+## Current follow-ups
+
+- Complete real-device validation of the Compose schedule UI and runtime paths.
+- Add deterministic Compose screenshot tests from the existing `HomeUiState` and previews.
+- Broaden validation across Android versions and OEM power-management behavior.
+- Decide whether an explicit inexact fallback provides enough value without weakening reliability expectations.
