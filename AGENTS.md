@@ -13,7 +13,7 @@ The app should be a simple alternative for users whose devices do not expose a c
 - Schedule and background execution are active product functionality; expand them only when setup/status UX, Android capability checks, and runtime diagnostics stay clear.
 - Do not add widgets, profile provisioning, app cloning, network features, telemetry, or Shelter-like management features.
 - UI text must be in English.
-- Prefer the latest two Android versions. Support older Android versions only when it does not add meaningful code, UX, or testing complexity.
+- Prioritize validation and UX for the latest two Android versions. Keep older supported versions only when they do not add meaningful code, UX, or testing complexity.
 
 ## UX constraints
 
@@ -33,7 +33,15 @@ The app should be a simple alternative for users whose devices do not expose a c
 - Handle `SecurityException` and unsuccessful quiet-mode requests explicitly.
 - Keep ADB permission setup documented and reproducible.
 - Do not silently enable new scheduling modes unless the app has the Android capabilities needed to run them reliably.
-- Keep schedule runtime documentation current whenever runtime behavior, limitations, or validation status changes.
+- Keep `docs/schedule-runtime.md` current whenever runtime behavior, limitations, or validation status changes.
+
+## Documentation sources
+
+- `README.md` is the concise public entry point.
+- `docs/product.md` is the product terminology, scope, and user-flow contract.
+- `docs/schedule-runtime.md` is the schedule execution contract.
+- `docs/roadmap.md` is the canonical current roadmap and release-readiness status.
+- GitHub issues may track work, but must not contradict the canonical documents above.
 
 ## Implementation standards
 
@@ -53,6 +61,7 @@ Every implementation PR should include:
 - how it was tested;
 - known device/API limitations;
 - documentation updates for user-visible behavior or project rules;
-- screenshots only when visible UI changed.
+- updated deterministic previews or tests for visible UI changes;
+- screenshots when deterministic screenshot infrastructure exists, or an explicit note that real-device visual validation is still pending.
 
-CI must pass before merging once the Android project is bootstrapped.
+CI must pass for the exact PR head before merging.
