@@ -24,7 +24,7 @@ Record:
 - Use a device that already has an Android work profile.
 - Download the signed `work-profile-toggle-vX.Y.Z.apk` asset from the matching GitHub Release, replacing `X.Y.Z` with the version under test.
 - Keep the previous release APK available when testing the update path.
-- Keep ADB available for permission and time-related checks.
+- Keep ADB available for permission, alarm, and time-related checks.
 
 ## Install or update
 
@@ -106,6 +106,18 @@ For a fresh install, install without `-r` and complete profile selection and per
 4. Confirm that an Active day represents the day on which the overnight interval begins.
 5. Confirm that the profile remains active across midnight until Pause time.
 
+## Inspect the registered alarm
+
+Use this command when a test requires proof that Android has an alarm registered for the app:
+
+```sh
+adb shell "dumpsys alarm | grep -A 8 -B 8 io.github.vyachean.workprofiletoggle"
+```
+
+The exact output varies by Android and OEM version. Record the matching alarm entry and trigger time when available.
+
+The Home screen's **Next action** is calculated from the saved schedule and current local time. It is useful product status, but by itself it does not prove that `AlarmManager` contains the corresponding registered alarm.
+
 ## Exact-alarm recovery
 
 1. Configure a valid schedule.
@@ -119,39 +131,48 @@ For a fresh install, install without `-r` and complete profile selection and per
 
 3. Confirm that the Schedule card reports missing access and shows the settings action.
 4. Enable the schedule and confirm that it is reported as blocked rather than silently scheduled inexactly.
-5. Open settings from the app and grant access.
-6. Return to the app.
-7. Confirm that the blocked state disappears and schedule planning refreshes.
+5. Inspect `dumpsys alarm` and confirm that no work-profile boundary alarm is registered while the schedule is blocked.
+6. Open settings from the app and grant access.
+7. Return to the app.
+8. Confirm that the blocked state disappears and schedule planning refreshes.
+9. Inspect `dumpsys alarm` and confirm that a boundary alarm is registered again.
 
 ## Schedule execution
 
 1. Configure the next Resume or Pause boundary a few minutes ahead.
 2. Confirm that the displayed next action matches the expected operation and time.
-3. Wait for the boundary without keeping the app in the foreground.
-4. Confirm that Android applies the expected work-profile state.
-5. Reopen the app and confirm that the next action moved to the following boundary.
-6. Perform a manual action opposite to the schedule's current expected state.
-7. Confirm that the next boundary reconciles the profile to the scheduled state.
+3. Inspect `dumpsys alarm` and confirm that the registered trigger matches the expected boundary when the platform exposes that detail.
+4. Wait for the boundary without keeping the app in the foreground.
+5. Confirm that Android applies the expected work-profile state.
+6. Reopen the app and confirm that the next action moved to the following boundary.
+7. Inspect `dumpsys alarm` and confirm that the next boundary was registered.
+8. Perform a manual action opposite to the schedule's current expected state.
+9. Confirm that the next boundary reconciles the profile to the scheduled state.
 
 ## Time and timezone changes
 
-1. Keep a valid enabled schedule configured.
-2. Change the device time so the next expected boundary changes.
-3. Open the app and confirm that the displayed next action is recalculated.
-4. Restore automatic time.
-5. Change the device timezone.
-6. Open the app and confirm that the next boundary is recalculated from local schedule time.
-7. Restore the original timezone and confirm planning updates again.
+1. Keep a valid enabled schedule configured and record the current matching `dumpsys alarm` entry.
+2. Change the device time so the expected next boundary changes.
+3. Allow the system broadcast to be processed without relying on opening the app first.
+4. Inspect `dumpsys alarm` and confirm that the registered trigger was recalculated.
+5. Open the app and confirm that **Next action** agrees with the registered boundary.
+6. Restore automatic time and confirm the registered alarm updates again.
+7. Change the device timezone.
+8. Inspect `dumpsys alarm` and confirm that the boundary is recalculated from local schedule time.
+9. Open the app and confirm that **Next action** agrees with the registered boundary.
+10. Restore the original timezone and confirm planning updates again.
+11. Configure a near-future boundary and confirm delivery after the final restored time and timezone state.
 
 ## Reboot recovery
 
 1. Keep a valid enabled schedule configured.
 2. Reboot the device.
 3. Unlock the device.
-4. Open the app.
-5. Confirm that the profile selection and schedule remain present.
-6. Confirm that the next action is calculated from the current time.
-7. Wait for a near-future boundary and confirm that the expected state is applied.
+4. Before opening the app, inspect `dumpsys alarm` and confirm that the package has a future boundary alarm after boot rescheduling completes.
+5. Open the app.
+6. Confirm that the profile selection and schedule remain present.
+7. Confirm that **Next action** agrees with the registered boundary.
+8. Wait for a near-future boundary and confirm that the expected state is applied.
 
 ## Diagnostics privacy and usefulness
 
@@ -178,9 +199,9 @@ A release is accepted when:
 - profile selection and ADB permission recovery work;
 - manual Pause, Resume, and advanced Toggle work;
 - same-day and overnight schedule values and semantics are correct;
-- exact-alarm access is clear, blocking is explicit, and recovery works;
-- schedule boundaries apply the expected state and update the next action;
-- manual time, timezone, and reboot events restore correct planning;
+- exact-alarm access is clear, blocking is explicit, and recovery registers the expected alarm;
+- schedule boundaries apply the expected state and register the following boundary;
+- manual time, timezone, and reboot events update the actual registered alarm, not only displayed status;
 - shortcuts perform actions without opening the main UI;
 - Diagnostics remains useful and copied schedule diagnostics exclude profile identifiers;
 - the recorded test result contains the device and software context needed to reproduce failures.
