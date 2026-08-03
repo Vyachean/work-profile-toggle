@@ -27,6 +27,9 @@ internal data class HomeSetupState(
 internal data class HomeScheduleUiState(
     val configured: Boolean,
     val savedState: HomeScheduleSavedState,
+    val pauseAt: ScheduleTime?,
+    val resumeAt: ScheduleTime?,
+    val activeDays: Set<ScheduleDay>,
     val exactAlarmAccessState: ScheduleExactAlarmAccessState,
     val runtimeStatus: ScheduleRuntimeStatusSummary?,
     val canCopyDiagnostics: Boolean,
@@ -85,6 +88,9 @@ internal object HomeUiStateFactory {
         return HomeScheduleUiState(
             configured = configured,
             savedState = savedState(input.schedule, input.exactAlarmAccessState, configured),
+            pauseAt = input.schedule.pauseAt,
+            resumeAt = input.schedule.resumeAt,
+            activeDays = input.schedule.activeDays,
             exactAlarmAccessState = input.exactAlarmAccessState,
             runtimeStatus = ScheduleRuntimeStatusSummary.from(
                 schedule = input.schedule,
