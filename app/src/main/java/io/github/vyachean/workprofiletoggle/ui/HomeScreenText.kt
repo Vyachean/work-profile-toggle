@@ -5,6 +5,7 @@ import androidx.compose.ui.res.stringResource
 import io.github.vyachean.workprofiletoggle.HomePrimaryState
 import io.github.vyachean.workprofiletoggle.HomeScheduleSavedState
 import io.github.vyachean.workprofiletoggle.R
+import io.github.vyachean.workprofiletoggle.ScheduleExactAlarmAccessState
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeIssue
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextActionType
 
@@ -19,6 +20,12 @@ internal object HomeScreenText {
     fun scheduleTitle(): String = stringResource(R.string.schedule_title)
 
     @Composable
+    fun advancedTitle(): String = stringResource(R.string.advanced_title)
+
+    @Composable
+    fun diagnosticsAction(): String = stringResource(R.string.diagnostics_title)
+
+    @Composable
     fun pauseAction(): String = stringResource(R.string.home_screen_pause_action)
 
     @Composable
@@ -29,6 +36,12 @@ internal object HomeScreenText {
 
     @Composable
     fun checkAgainAction(): String = stringResource(R.string.check_again)
+
+    @Composable
+    fun copySetupTextAction(): String = stringResource(R.string.copy_setup_text)
+
+    @Composable
+    fun setupPermissionDescription(): String = stringResource(R.string.adb_setup_description)
 
     @Composable
     fun setPauseTimeAction(): String = stringResource(R.string.home_screen_set_pause_time_action)
@@ -44,6 +57,12 @@ internal object HomeScreenText {
 
     @Composable
     fun disableScheduleAction(): String = stringResource(R.string.home_screen_disable_schedule_action)
+
+    @Composable
+    fun openExactAlarmSettingsAction(): String = stringResource(R.string.schedule_open_app_settings)
+
+    @Composable
+    fun exactAlarmAccessDescription(): String = stringResource(R.string.schedule_exact_alarm_missing_description)
 
     @Composable
     fun copyDiagnosticsAction(): String = stringResource(R.string.copy_schedule_diagnostics)
@@ -83,6 +102,17 @@ internal object HomeScreenText {
 
     @Composable
     fun issueLabel(): String = stringResource(R.string.home_screen_issue_label)
+
+    @Composable
+    fun exactAlarmAccess(state: ScheduleExactAlarmAccessState): String {
+        return stringResource(
+            when (state) {
+                ScheduleExactAlarmAccessState.GRANTED -> R.string.schedule_exact_alarm_granted
+                ScheduleExactAlarmAccessState.MISSING -> R.string.schedule_exact_alarm_missing
+                ScheduleExactAlarmAccessState.NOT_REQUIRED -> R.string.schedule_exact_alarm_not_required
+            },
+        )
+    }
 
     @Composable
     fun primaryTitle(state: HomePrimaryState): String {
@@ -127,17 +157,6 @@ internal object HomeScreenText {
     }
 
     @Composable
-    fun nextAction(type: ScheduleRuntimeNextActionType, formattedBoundary: String): String {
-        return stringResource(
-            when (type) {
-                ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE -> R.string.home_screen_next_action_pause
-                ScheduleRuntimeNextActionType.RESUME_WORK_PROFILE -> R.string.home_screen_next_action_resume
-            },
-            formattedBoundary,
-        )
-    }
-
-    @Composable
     fun nextActionValue(type: ScheduleRuntimeNextActionType, formattedBoundary: String): String {
         return stringResource(
             when (type) {
@@ -165,10 +184,5 @@ internal object HomeScreenText {
                 ScheduleRuntimeIssue.RUNTIME_EXCEPTION -> R.string.home_screen_issue_runtime_exception
             },
         )
-    }
-
-    @Composable
-    fun formattedIssue(issue: ScheduleRuntimeIssue): String {
-        return stringResource(R.string.home_screen_issue, issue(issue))
     }
 }
