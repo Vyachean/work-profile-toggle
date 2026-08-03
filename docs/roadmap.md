@@ -1,204 +1,175 @@
 # Roadmap
 
-This roadmap records the current development direction. It should be updated when priorities, scope, or implementation decisions change.
+This document records the current product direction and implementation status. Update it whenever scope, runtime behavior, or release readiness changes.
+
+## Product goal
+
+Work Profile Toggle provides a Digital Wellbeing-style work-profile schedule on Android devices where Google or the OEM does not expose one.
+
+The primary flow is:
+
+1. detect and select an existing work profile;
+2. complete the required permission setup;
+3. show whether the profile is active or paused;
+4. allow manual pause or resume;
+5. configure and run a reliable schedule;
+6. keep technical details in Diagnostics.
 
 ## Current baseline
 
-The app currently supports manual and scheduled work-profile control after setup:
+The app supports:
 
-- setup-first Home screen;
-- persisted selected work profile;
-- pause, resume, and toggle actions;
-- dynamic launcher shortcuts;
-- legacy shortcut picker for automation apps;
+- setup-first work-profile status;
+- persisted selected profile;
+- manual pause, resume, and toggle actions;
+- launcher shortcuts and the legacy shortcut picker;
 - persisted last manual action result;
 - saved schedule settings;
-- schedule boundary calculation for same-day and overnight work windows;
-- exact Android alarm scheduling for the next schedule boundary;
-- exact-alarm access checks and user-facing blocked state;
-- bounded asynchronous schedule-boundary reconciliation through a broadcast receiver;
-- persisted last schedule runtime result;
-- user-facing schedule runtime status with next action or issue;
-- copyable schedule runtime diagnostics for real-world reports;
-- schedule rescheduling after app update, device reboot, manual time change, timezone change, selected-profile changes, schedule changes, and exact-alarm access changes;
-- initial real-device validation of v0.1.3 schedule-driven work-profile pause and resume;
-- Jetpack Compose and Material 3 build baseline;
-- Compose Home screen skeleton, previews, and event model;
-- shared schedule date/time display formatter;
-- extracted schedule UI text and save policy helpers;
-- CI debug APK artifacts;
-- release APK workflow infrastructure.
+- same-day and overnight work windows;
+- exact Android alarms for the next schedule boundary;
+- exact-alarm access checks and recovery action;
+- bounded asynchronous schedule reconciliation;
+- persisted runtime result, next action, issue, and copyable diagnostics;
+- rescheduling after app update, reboot, manual time change, timezone change, profile changes, schedule changes, and exact-alarm access changes;
+- initial real-device validation of schedule-driven pause and resume in version 0.1.3;
+- a Compose Material 3 runtime Home screen with dynamic light and dark color schemes;
+- profile selection, ADB setup copying, exact-alarm recovery, schedule editing, and Diagnostics actions from the Compose Home screen;
+- CI checks for lint, unit tests, debug APK assembly, release APK assembly, and debug certificate verification;
+- signed release workflow infrastructure.
 
-## Product direction
+## Development rules
 
-The main product direction is to provide a Digital Wellbeing-style work-profile schedule on devices where the built-in Google/OEM work-profile schedule is missing or unavailable.
+- Keep PRs focused on one clear product state.
+- Require green CI for the exact head commit before merging.
+- Resolve relevant review feedback before merging.
+- Preserve schedule runtime behavior while changing UI architecture.
+- Keep user-facing terminology simple and move Android implementation details to Diagnostics.
+- Update documentation with behavior, setup, architecture, and release changes.
+- Treat profile and background behavior as device-dependent until verified on real hardware.
 
-Manual pause/resume remains important, but it is the setup, fallback, and explicit override path for the larger schedule-focused product.
+## Stage 1 — Product and documentation clarity
 
-The next product phase is not just a visual refresh. The goal is to make the schedule-first product understandable and reliable: users should always see whether setup is complete, whether scheduling is blocked, what the next scheduled action is, and what recovery action is available.
+Goal: keep the repository understandable without chat history.
 
-## Development strategy
-
-The near-term strategy is incremental migration, not a large rewrite:
-
-1. Keep runtime behavior stable while refactoring UI boundaries.
-2. Keep each PR small enough to review thoroughly and verify with CI.
-3. Resolve review comments before merging.
-4. Prefer pure state models, helpers, and previews before replacing Activity rendering.
-5. Move to Compose Home wiring only after the existing View path is decomposed enough to keep callbacks and runtime behavior clear.
-
-Quality rules for this phase:
-
-- Do not merge without green CI for the exact head commit being merged.
-- Do not merge with unresolved relevant review comments.
-- Do not replace large files just to make a small behavior-neutral change.
-- Avoid broad UI rewrites until preview, state, and callback wiring are ready.
-- Keep documentation updated in the same PR as behavior, setup, or strategy changes.
-
-## Stage 1 — Documentation and product clarity
-
-Goal: make the repository understandable without reading issue or chat history.
-
-Planned work:
-
-- Keep README as the short public entry point.
-- Keep product model, roadmap, setup, release, schedule runtime, and screenshot/testing plans under `docs/`.
-- Update documentation in the same PR as behavior or scope changes.
-- Document known platform limitations and OEM variance.
-
-Status: in progress.
-
-## Stage 2 — UI architecture cleanup
-
-Goal: make UI states deterministic, testable, and suitable for stable screenshots.
-
-Implemented baseline:
-
-- Home UI state extracted from direct Activity/system-service rendering.
-- Home screen event model added for future Compose action wiring.
-- Schedule editor UI state extracted from direct controls.
-- Advanced UI state extracted for advanced/status sections.
-- Shared schedule display formatter added for consistent next-action date/time text.
-- Schedule UI text formatting extracted from `MainActivity`.
-- Schedule save normalization extracted from `MainActivity`.
+Status: **ongoing maintenance**.
 
 Remaining work:
 
-- Keep Android system-service calls behind controllers/repositories.
-- Make primary UI use product terms: work profile, active, paused, pause, resume, schedule, setup.
-- Keep raw Android terms in Advanced/Diagnostics only.
-- Keep schedule runtime status derived from structured state rather than direct view logic.
-- Continue reducing `MainActivity` responsibilities before Compose Home wiring.
+- keep README concise and user-oriented;
+- keep setup, platform limitations, schedule runtime, release, and testing details under `docs/`;
+- update validation status after each real-device test cycle.
 
-Status: in progress.
+## Stage 2 — UI architecture cleanup
+
+Goal: keep UI state deterministic and separate from Android platform actions.
+
+Implemented:
+
+- `HomeUiState` and schedule editor state factories;
+- structured runtime status and issue models;
+- resource-backed Compose screen text;
+- typed Home events and actions;
+- Compose runtime hosting from `MainActivity`;
+- Android dialogs, clipboard, profile operations, exact-alarm settings, and scheduling actions kept at the Activity boundary.
+
+Status: **complete for the current release scope**.
+
+Possible later cleanup:
+
+- move platform dialog construction into focused helpers if `MainActivity` grows again;
+- introduce a lifecycle-aware state holder only when asynchronous state sources require it.
 
 ## Stage 3 — Compose Material 3 Home
 
-Goal: replace the current utility-style View UI with a polished Compose Material 3 Home screen.
+Goal: replace the utility-style View UI with a clear modern runtime interface.
 
-Direction:
+Implemented:
 
-- Jetpack Compose + Material 3 is the selected UI path.
-- The current Compose Home screen is still a skeleton and preview surface, not the primary runtime UI.
-- The View-based `MainActivity` path remains the runtime UI until Compose callbacks are wired safely.
+- Material 3 app bar and structured cards;
+- primary work-profile state and pause/resume action;
+- setup status, profile picker, and ADB setup copying;
+- schedule status, next action, issue, editor actions, and exact-alarm recovery;
+- Diagnostics access with raw profile and shortcut information;
+- advanced per-profile pause, resume, and toggle actions;
+- dynamic color on Android 12+ and light/dark fallback themes;
+- compact and state-specific previews;
+- typed event-dispatch unit coverage.
 
-Near-term work:
+Status: **implementation complete; real-device visual and behavioral validation required**.
 
-- Use the Home screen event model when wiring Compose Home actions without changing runtime behavior.
-- Decompose `MainActivity` render logic into smaller helpers where safe.
-- Connect Compose Home to the existing `HomeUiState` and existing action handlers.
-- Keep the old View path available until parity is verified.
-- Verify manual pause/resume, setup states, exact-alarm blocked state, schedule enabled/disabled state, next action, and copy diagnostics on a real device.
+Validation required before calling the UI stable:
 
-Expected polish after wiring:
-
-- Material-style Home screen sections.
-- Clear setup checklist.
-- Clear selected work-profile state.
-- Schedule settings as a settings-style form.
-- Better incomplete-schedule validation and guidance.
-- Clear schedule runtime status and issue recovery guidance.
-- Accessibility, font-scale, light/dark theme, and system inset handling.
-
-Status: in progress.
+- setup missing and setup ready states;
+- one and multiple work-profile selection;
+- manual pause and resume;
+- incomplete, disabled, enabled, and exact-alarm-blocked schedules;
+- time and day pickers;
+- Diagnostics and advanced profile actions;
+- font scaling, dark theme, system insets, and compact screens.
 
 ## Stage 4 — Deterministic screenshots
 
-Goal: generate stable screenshots for documentation.
+Goal: generate stable documentation screenshots without requiring a real work profile in hosted CI.
+
+Status: **planned**.
 
 Planned work:
 
-- Add fake/demo UI states for screenshot scenarios.
-- Add screenshot tests through Roborazzi/Robolectric or another deterministic test tool.
-- Generate PNG artifacts in CI.
-- Review generated images before committing stable screenshots to `docs/screenshots/`.
-- Link committed screenshots from README.
+- add deterministic fake Home states;
+- add Roborazzi/Robolectric or an equivalent screenshot test tool;
+- upload PNG artifacts from CI;
+- review and commit stable screenshots under `docs/screenshots/`;
+- link approved screenshots from README.
 
-Avoid:
+## Stage 5 — Schedule runtime hardening
 
-- relying on ad-hoc emulator `screencap` output as a required CI check;
-- documenting screenshots through expiring GitHub Actions artifacts;
-- depending on a real Android work profile in hosted CI.
-
-Status: planned.
-
-## Stage 5 — Work-profile schedule runtime
-
-Goal: implement the core schedule behavior: work profile active during configured work hours and paused outside configured work hours.
-
-This fills the product gap on devices where the built-in Digital Wellbeing/OEM work-profile schedule is absent.
+Goal: make schedule-driven work-profile state reliable across supported Android devices.
 
 Implemented baseline:
 
-- State reconciliation model instead of fire-and-forget toggles.
-- Local schedule calculation from saved days/start/end settings.
-- Same-day and overnight active windows.
-- Invalid and incomplete schedule blocking.
-- Exact Android alarm scheduling for the next boundary.
-- Exact-alarm access status and setup guidance on Android versions that require it.
-- Alarm receiver that reconciles the selected work profile to the expected state.
-- Next-boundary rescheduling after each handled boundary.
-- Runtime result persistence for diagnostics and UI status.
-- Copyable diagnostics payload for blocked or failed real-world reports.
-- Rescheduling after reboot, app update, manual time change, timezone change, schedule changes, selected-profile changes, and exact-alarm access changes.
+- state reconciliation rather than blind toggles;
+- exact next-boundary alarms;
+- next-boundary rescheduling after every handled boundary;
+- reboot, update, time, timezone, profile, schedule, and permission rescheduling;
+- persisted diagnostic results;
+- initial real-device validation.
 
-Current limitations:
+Status: **in progress**.
 
-- Runtime behavior has initial real-device validation on v0.1.3, but still needs repeated validation across Android/OEM variants.
-- Android 12+ exact-alarm special access can block scheduling until the user grants it.
-- Exact alarms can still be affected by OEM background restrictions and platform behavior.
-- Direct Boot support is not enabled; the app uses normal credential-protected app storage.
-- Schedule UI is functional but not yet a polished setup-first flow.
+Remaining work:
 
-Remaining work before this stage is complete:
-
-- Broader real-device schedule smoke tests with actual work profiles.
-- Better setup/status guidance for permission missing, selected profile missing, credential required, Android request rejected, and exact-alarm access missing states.
-- Decide whether an inexact fallback mode is useful for users who cannot or do not want to grant exact-alarm access.
-
-Status: in progress.
+- broaden smoke testing across Android and OEM variants;
+- record behavior under battery restrictions and delayed process start;
+- validate credential-required and Android-request-rejected recovery paths;
+- decide whether an optional inexact fallback provides enough value without weakening expectations.
 
 ## Stage 6 — Release readiness
 
-Goal: make the app safe to publish and easy to install.
+Goal: produce a version that is safe to install and straightforward to validate.
 
-Planned work:
+Next release target: **0.1.5**.
 
-- Configure release signing secrets.
-- Produce the next signed release APK.
-- Document release process and versioning rules.
-- Validate install/update path between debug and release builds.
-- Keep ADB permission setup clear for advanced users.
-- Expand real-device schedule runtime validation before publishing it as a stable feature.
+Required before release preparation:
 
-Status: in progress.
+- green CI for the Compose runtime migration;
+- no unresolved relevant review feedback;
+- review the final diff for removed runtime behavior;
+- update README and smoke-test instructions for the Compose Home screen;
+- bump version only after the implementation branch is merged.
+
+Required after the release APK is produced:
+
+- install or update from 0.1.4;
+- confirm selected profile and schedule persistence;
+- run manual pause/resume;
+- confirm the next scheduled pause and resume;
+- verify exact-alarm recovery and Diagnostics;
+- record the result in project documentation.
 
 ## Known follow-ups
 
 - Keep issue #25 aligned with this roadmap.
-- Expand and document real-device schedule smoke test coverage.
-- Improve schedule setup/status UX.
-- Connect Compose Home to runtime state/actions after `MainActivity` responsibilities are reduced.
-- Create stable README screenshots after screenshot architecture exists.
-- Add stronger automated coverage for schedule editor validation.
-- Evaluate whether an optional inexact fallback should exist for devices where exact-alarm access is unavailable.
+- Add deterministic screenshot tests and README screenshots.
+- Expand real-device schedule validation.
+- Review accessibility and large-font behavior after runtime UI validation.
+- Reassess an inexact scheduling fallback only with a clearly documented reliability contract.
