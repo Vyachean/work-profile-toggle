@@ -5,13 +5,16 @@ internal interface HomeScreenActions {
     fun pauseWorkProfile()
     fun resumeWorkProfile()
     fun changeProfile()
+    fun copySetupText()
     fun setPauseTime()
     fun setResumeTime()
     fun chooseActiveDays()
     fun enableSchedule()
     fun disableSchedule()
+    fun openExactAlarmSettings()
     fun clearSchedule()
     fun copyDiagnostics()
+    fun showAdvanced()
 }
 
 internal fun homeScreenEventHandler(actions: HomeScreenActions): HomeScreenEventHandler =
@@ -21,12 +24,15 @@ internal fun homeScreenEventHandler(actions: HomeScreenActions): HomeScreenEvent
             HomeScreenEvent.PauseWorkProfile -> actions.pauseWorkProfile()
             HomeScreenEvent.ResumeWorkProfile -> actions.resumeWorkProfile()
             HomeScreenEvent.ChangeProfile -> actions.changeProfile()
+            HomeScreenEvent.CopySetupText -> actions.copySetupText()
             HomeScreenEvent.SetPauseTime -> actions.setPauseTime()
             HomeScreenEvent.SetResumeTime -> actions.setResumeTime()
             HomeScreenEvent.ChooseActiveDays -> actions.chooseActiveDays()
             HomeScreenEvent.EnableSchedule -> actions.enableSchedule()
             HomeScreenEvent.DisableSchedule -> actions.disableSchedule()
+            HomeScreenEvent.OpenExactAlarmSettings -> actions.openExactAlarmSettings()
             HomeScreenEvent.ClearSchedule -> actions.clearSchedule()
             HomeScreenEvent.CopyDiagnostics -> actions.copyDiagnostics()
+            HomeScreenEvent.ShowAdvanced -> actions.showAdvanced()
         }
     }

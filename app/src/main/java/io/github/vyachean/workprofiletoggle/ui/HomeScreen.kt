@@ -32,6 +32,7 @@ import io.github.vyachean.workprofiletoggle.HomePrimaryState
 import io.github.vyachean.workprofiletoggle.HomeUiState
 import io.github.vyachean.workprofiletoggle.ScheduleDateTimeFormatter
 import io.github.vyachean.workprofiletoggle.ScheduleEditorEnableToggleAction
+import io.github.vyachean.workprofiletoggle.ScheduleExactAlarmAccessState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,8 +61,9 @@ internal fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             PrimaryStatusCard(state = state, eventHandler = eventHandler)
-            SetupCard(state = state)
+            SetupCard(state = state, eventHandler = eventHandler)
             ScheduleCard(state = state, eventHandler = eventHandler)
+            AdvancedCard(eventHandler = eventHandler)
         }
     }
 }
@@ -122,7 +124,10 @@ private fun PrimaryActionRow(
 }
 
 @Composable
-private fun SetupCard(state: HomeUiState) {
+private fun SetupCard(
+    state: HomeUiState,
+    eventHandler: HomeScreenEventHandler,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -145,6 +150,24 @@ private fun SetupCard(state: HomeUiState) {
                 label = HomeScreenText.permissionLabel(),
                 value = if (state.setup.permissionGranted) HomeScreenText.grantedValue() else HomeScreenText.missingValue(),
             )
+            if (state.setup.profileFound) {
+                OutlinedButton(
+                    onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ChangeProfile) },
+                ) {
+                    Text(HomeScreenText.chooseProfileAction())
+                }
+            }
+            if (!state.setup.permissionGranted) {
+                Text(
+                    text = HomeScreenText.setupPermissionDescription(),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                OutlinedButton(
+                    onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.CopySetupText) },
+                ) {
+                    Text(HomeScreenText.copySetupTextAction())
+                }
+            }
         }
     }
 }
@@ -169,6 +192,24 @@ private fun ScheduleCard(
                     label = HomeScreenText.scheduleStatusLabel(),
                     value = HomeScreenText.scheduleStatus(state.schedule.savedState),
                 )
+                if (state.schedule.configured) {
+                    InfoRow(
+                        label = HomeScreenText.pauseTimeLabel(),
+                        value = HomeScreenText.scheduleTime(state.schedule.pauseAt),
+                    )
+                    InfoRow(
+                        label = HomeScreenText.resumeTimeLabel(),
+                        value = HomeScreenText.scheduleTime(state.schedule.resumeAt),
+                    )
+                    InfoRow(
+                        label = HomeScreenText.activeDaysLabel(),
+                        value = HomeScreenText.activeDays(state.schedule.activeDays),
+                    )
+                    Text(
+                        text = HomeScreenText.exactAlarmAccess(state.schedule.exactAlarmAccessState),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
                 state.schedule.runtimeStatus?.nextAction?.let { nextAction ->
                     val configuration = LocalConfiguration.current
                     val formattedBoundary = remember(nextAction.boundary.at, configuration) {
@@ -190,7 +231,42 @@ private fun ScheduleCard(
                     )
                 }
             }
+            if (
+                state.schedule.configured &&
+                state.schedule.exactAlarmAccessState == ScheduleExactAlarmAccessState.MISSING
+            ) {
+                Text(
+                    text = HomeScreenText.exactAlarmAccessDescription(),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                OutlinedButton(
+                    onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.OpenExactAlarmSettings) },
+                ) {
+                    Text(HomeScreenText.openExactAlarmSettingsAction())
+                }
+            }
             ScheduleEditorActions(state = state, eventHandler = eventHandler)
+        }
+    }
+}
+
+@Composable
+private fun AdvancedCard(eventHandler: HomeScreenEventHandler) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = HomeScreenText.advancedTitle(),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            OutlinedButton(
+                onClick = { eventHandler.onHomeScreenEvent(HomeScreenEvent.ShowAdvanced) },
+            ) {
+                Text(HomeScreenText.diagnosticsAction())
+            }
         }
     }
 }

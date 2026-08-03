@@ -1,12 +1,20 @@
 package io.github.vyachean.workprofiletoggle.ui
 
+import android.text.format.DateFormat
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.vyachean.workprofiletoggle.HomePrimaryState
 import io.github.vyachean.workprofiletoggle.HomeScheduleSavedState
 import io.github.vyachean.workprofiletoggle.R
+import io.github.vyachean.workprofiletoggle.ScheduleDay
+import io.github.vyachean.workprofiletoggle.ScheduleExactAlarmAccessState
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeIssue
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextActionType
+import io.github.vyachean.workprofiletoggle.ScheduleTime
+import java.util.Calendar
 
 internal object HomeScreenText {
     @Composable
@@ -19,6 +27,12 @@ internal object HomeScreenText {
     fun scheduleTitle(): String = stringResource(R.string.schedule_title)
 
     @Composable
+    fun advancedTitle(): String = stringResource(R.string.advanced_title)
+
+    @Composable
+    fun diagnosticsAction(): String = stringResource(R.string.diagnostics_title)
+
+    @Composable
     fun pauseAction(): String = stringResource(R.string.home_screen_pause_action)
 
     @Composable
@@ -29,6 +43,12 @@ internal object HomeScreenText {
 
     @Composable
     fun checkAgainAction(): String = stringResource(R.string.check_again)
+
+    @Composable
+    fun copySetupTextAction(): String = stringResource(R.string.copy_setup_text)
+
+    @Composable
+    fun setupPermissionDescription(): String = stringResource(R.string.adb_setup_description)
 
     @Composable
     fun setPauseTimeAction(): String = stringResource(R.string.home_screen_set_pause_time_action)
@@ -44,6 +64,12 @@ internal object HomeScreenText {
 
     @Composable
     fun disableScheduleAction(): String = stringResource(R.string.home_screen_disable_schedule_action)
+
+    @Composable
+    fun openExactAlarmSettingsAction(): String = stringResource(R.string.schedule_open_app_settings)
+
+    @Composable
+    fun exactAlarmAccessDescription(): String = stringResource(R.string.schedule_exact_alarm_missing_description)
 
     @Composable
     fun copyDiagnosticsAction(): String = stringResource(R.string.copy_schedule_diagnostics)
@@ -79,10 +105,70 @@ internal object HomeScreenText {
     fun scheduleStatusLabel(): String = stringResource(R.string.home_screen_schedule_status_label)
 
     @Composable
+    fun pauseTimeLabel(): String = stringResource(R.string.home_screen_pause_time_label)
+
+    @Composable
+    fun resumeTimeLabel(): String = stringResource(R.string.home_screen_resume_time_label)
+
+    @Composable
+    fun activeDaysLabel(): String = stringResource(R.string.home_screen_active_days_label)
+
+    @Composable
     fun nextActionLabel(): String = stringResource(R.string.home_screen_next_action_label)
 
     @Composable
     fun issueLabel(): String = stringResource(R.string.home_screen_issue_label)
+
+    @Composable
+    fun scheduleTime(time: ScheduleTime?): String {
+        if (time == null) return stringResource(R.string.schedule_time_not_set)
+
+        val context = LocalContext.current
+        val configuration = LocalConfiguration.current
+        return remember(time, configuration, context) {
+            val calendar = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, time.hour)
+                set(Calendar.MINUTE, time.minute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            DateFormat.getTimeFormat(context).format(calendar.time)
+        }
+    }
+
+    @Composable
+    fun activeDays(days: Set<ScheduleDay>): String {
+        if (days.isEmpty()) return stringResource(R.string.schedule_no_days)
+        if (days.size == ScheduleDay.entries.size) return stringResource(R.string.schedule_all_days)
+
+        val monday = stringResource(R.string.schedule_day_monday)
+        val tuesday = stringResource(R.string.schedule_day_tuesday)
+        val wednesday = stringResource(R.string.schedule_day_wednesday)
+        val thursday = stringResource(R.string.schedule_day_thursday)
+        val friday = stringResource(R.string.schedule_day_friday)
+        val saturday = stringResource(R.string.schedule_day_saturday)
+        val sunday = stringResource(R.string.schedule_day_sunday)
+        return listOfNotNull(
+            monday.takeIf { ScheduleDay.MONDAY in days },
+            tuesday.takeIf { ScheduleDay.TUESDAY in days },
+            wednesday.takeIf { ScheduleDay.WEDNESDAY in days },
+            thursday.takeIf { ScheduleDay.THURSDAY in days },
+            friday.takeIf { ScheduleDay.FRIDAY in days },
+            saturday.takeIf { ScheduleDay.SATURDAY in days },
+            sunday.takeIf { ScheduleDay.SUNDAY in days },
+        ).joinToString(", ")
+    }
+
+    @Composable
+    fun exactAlarmAccess(state: ScheduleExactAlarmAccessState): String {
+        return stringResource(
+            when (state) {
+                ScheduleExactAlarmAccessState.GRANTED -> R.string.schedule_exact_alarm_granted
+                ScheduleExactAlarmAccessState.MISSING -> R.string.schedule_exact_alarm_missing
+                ScheduleExactAlarmAccessState.NOT_REQUIRED -> R.string.schedule_exact_alarm_not_required
+            },
+        )
+    }
 
     @Composable
     fun primaryTitle(state: HomePrimaryState): String {
@@ -127,17 +213,6 @@ internal object HomeScreenText {
     }
 
     @Composable
-    fun nextAction(type: ScheduleRuntimeNextActionType, formattedBoundary: String): String {
-        return stringResource(
-            when (type) {
-                ScheduleRuntimeNextActionType.PAUSE_WORK_PROFILE -> R.string.home_screen_next_action_pause
-                ScheduleRuntimeNextActionType.RESUME_WORK_PROFILE -> R.string.home_screen_next_action_resume
-            },
-            formattedBoundary,
-        )
-    }
-
-    @Composable
     fun nextActionValue(type: ScheduleRuntimeNextActionType, formattedBoundary: String): String {
         return stringResource(
             when (type) {
@@ -165,10 +240,5 @@ internal object HomeScreenText {
                 ScheduleRuntimeIssue.RUNTIME_EXCEPTION -> R.string.home_screen_issue_runtime_exception
             },
         )
-    }
-
-    @Composable
-    fun formattedIssue(issue: ScheduleRuntimeIssue): String {
-        return stringResource(R.string.home_screen_issue, issue(issue))
     }
 }

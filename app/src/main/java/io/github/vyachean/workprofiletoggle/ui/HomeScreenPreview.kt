@@ -7,6 +7,7 @@ import io.github.vyachean.workprofiletoggle.HomeScheduleSavedState
 import io.github.vyachean.workprofiletoggle.HomeScheduleUiState
 import io.github.vyachean.workprofiletoggle.HomeSetupState
 import io.github.vyachean.workprofiletoggle.HomeUiState
+import io.github.vyachean.workprofiletoggle.ScheduleDay
 import io.github.vyachean.workprofiletoggle.ScheduleEditorEnableToggle
 import io.github.vyachean.workprofiletoggle.ScheduleEditorEnableToggleAction
 import io.github.vyachean.workprofiletoggle.ScheduleEditorUiState
@@ -133,6 +134,7 @@ private fun previewHomeState(
     permissionGranted: Boolean = true,
     nextAction: ScheduleRuntimeNextAction? = null,
 ): HomeUiState {
+    val configured = scheduleSavedState != HomeScheduleSavedState.NOT_CONFIGURED
     return HomeUiState(
         primary = primary,
         setup = HomeSetupState(
@@ -142,14 +144,33 @@ private fun previewHomeState(
             permissionGranted = permissionGranted,
         ),
         schedule = HomeScheduleUiState(
-            configured = scheduleSavedState != HomeScheduleSavedState.NOT_CONFIGURED,
+            configured = configured,
             savedState = scheduleSavedState,
-            exactAlarmAccessState = ScheduleExactAlarmAccessState.GRANTED,
+            pauseAt = if (configured) ScheduleTime(hour = 18, minute = 0) else null,
+            resumeAt = if (configured) ScheduleTime(hour = 9, minute = 0) else null,
+            activeDays = if (configured) {
+                setOf(
+                    ScheduleDay.MONDAY,
+                    ScheduleDay.TUESDAY,
+                    ScheduleDay.WEDNESDAY,
+                    ScheduleDay.THURSDAY,
+                    ScheduleDay.FRIDAY,
+                )
+            } else {
+                emptySet()
+            },
+            exactAlarmAccessState = if (
+                scheduleSavedState == HomeScheduleSavedState.BLOCKED_EXACT_ALARM_ACCESS
+            ) {
+                ScheduleExactAlarmAccessState.MISSING
+            } else {
+                ScheduleExactAlarmAccessState.GRANTED
+            },
             runtimeStatus = ScheduleRuntimeStatusSummary(
                 nextAction = nextAction,
                 issue = scheduleIssue,
             ),
-            canCopyDiagnostics = scheduleSavedState != HomeScheduleSavedState.NOT_CONFIGURED,
+            canCopyDiagnostics = configured,
             editor = ScheduleEditorUiState(
                 pauseInitialTime = ScheduleTime(hour = 18, minute = 0),
                 resumeInitialTime = ScheduleTime(hour = 9, minute = 0),
@@ -157,7 +178,7 @@ private fun previewHomeState(
                     ScheduleEditorEnableToggle(action = action)
                 },
                 showEnableRequirements = editorToggleAction == null,
-                canClear = scheduleSavedState != HomeScheduleSavedState.NOT_CONFIGURED,
+                canClear = configured,
             ),
         ),
     )
