@@ -64,3 +64,88 @@ jobs:
           name: work-profile-toggle-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+  compose-screenshot-poc:
+    name: Compose screenshot POC
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      TZ: UTC
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Render twice and compare
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          reference_dir="app/src/screenshotTestDebug/reference"
+          first_dir="$RUNNER_TEMP/compose-screenshot-first"
+          artifact_dir="$GITHUB_WORKSPACE/compose-screenshot-artifacts"
+          first_hashes="$RUNNER_TEMP/compose-screenshot-first.sha256"
+          second_hashes="$RUNNER_TEMP/compose-screenshot-second.sha256"
+
+          rm -rf "$reference_dir" "$first_dir" "$artifact_dir"
+
+          sh ./gradlew :app:updateDebugScreenshotTest --rerun-tasks --no-build-cache
+
+          if ! find "$reference_dir" -type f -name '*.png' -print -quit | grep -q .; then
+            echo "The first screenshot render produced no PNG files." >&2
+            exit 1
+          fi
+
+          mkdir -p "$first_dir"
+          cp -R "$reference_dir"/. "$first_dir"/
+          (
+            cd "$reference_dir"
+            find . -type f -name '*.png' -print0 | sort -z | xargs -0 sha256sum
+          ) > "$first_hashes"
+
+          rm -rf "$reference_dir"
+          sh ./gradlew :app:updateDebugScreenshotTest --rerun-tasks --no-build-cache
+
+          if ! find "$reference_dir" -type f -name '*.png' -print -quit | grep -q .; then
+            echo "The second screenshot render produced no PNG files." >&2
+            exit 1
+          fi
+
+          (
+            cd "$reference_dir"
+            find . -type f -name '*.png' -print0 | sort -z | xargs -0 sha256sum
+          ) > "$second_hashes"
+
+          diff -u "$first_hashes" "$second_hashes"
+
+          mkdir -p "$artifact_dir/first" "$artifact_dir/second"
+          cp -R "$first_dir"/. "$artifact_dir/first"/
+          cp -R "$reference_dir"/. "$artifact_dir/second"/
+          cp "$first_hashes" "$artifact_dir/first.sha256"
+          cp "$second_hashes" "$artifact_dir/second.sha256"
+
+      - name: Upload screenshot POC artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-screenshot-poc
+          path: |
+            compose-screenshot-artifacts/
+            app/build/reports/screenshotTest/
+            app/build/test-results/
+          if-no-files-found: warn
+          retention-days: 14
