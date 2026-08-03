@@ -88,6 +88,7 @@ Implemented:
 - Material 3 app bar and structured cards;
 - primary work-profile state and pause/resume action;
 - setup status, profile picker, and ADB setup copying;
+- saved pause time, resume time, and active-day display;
 - schedule status, next action, issue, editor actions, and exact-alarm recovery;
 - Diagnostics access with raw profile and shortcut information;
 - advanced per-profile pause, resume, and toggle actions;
@@ -97,7 +98,7 @@ Implemented:
 
 Status: **implementation complete; real-device visual and behavioral validation required**.
 
-Validation required before calling the UI stable:
+Validation required before calling the UI broadly validated:
 
 - setup missing and setup ready states;
 - one and multiple work-profile selection;
@@ -147,20 +148,21 @@ Remaining work:
 
 Goal: produce a version that is safe to install and straightforward to validate.
 
-Next release target: **0.1.5**.
+Release candidate: **0.1.5**.
 
-Required before release preparation:
+Prepared:
 
-- green CI for the Compose runtime migration;
-- no unresolved relevant review feedback;
-- review the final diff for removed runtime behavior;
-- update README and smoke-test instructions for the Compose Home screen;
-- bump version only after the implementation branch is merged.
+- Compose runtime migration merged after green exact-head CI;
+- no unresolved review threads;
+- final migration diff reviewed for lost runtime behavior;
+- README and release smoke-test instructions updated;
+- versionName increased to 0.1.5 and versionCode increased to 6.
 
-Required after the release APK is produced:
+Required after the signed release APK is produced:
 
 - install or update from 0.1.4;
 - confirm selected profile and schedule persistence;
+- validate the Compose Home screen in light, dark, compact, and increased-font configurations;
 - run manual pause/resume;
 - confirm the next scheduled pause and resume;
 - verify exact-alarm recovery and Diagnostics;

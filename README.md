@@ -8,12 +8,15 @@ The main goal is to provide a Digital Wellbeing-style work-profile schedule for 
 
 Work Profile Toggle is an early MVP under real-device validation.
 
-Current validated baseline:
+Current baseline:
 
+- a Compose Material 3 Home screen shows setup, work-profile state, schedule status, next action, and recovery guidance;
 - manual pause and resume work after the required ADB-granted permission is available;
-- schedule settings are persisted;
-- the app can plan and run work-profile schedule boundaries with Android exact alarms;
-- device and OEM behavior still needs broader validation.
+- schedule settings are persisted and displayed in the Home screen;
+- the app plans and runs work-profile schedule boundaries with Android exact alarms;
+- the schedule-driven pause and resume path was initially validated on a real device in version 0.1.3;
+- the new Compose runtime UI introduced for version 0.1.5 still requires release smoke validation;
+- device and OEM behavior needs broader validation.
 
 ## Who it is for
 
@@ -26,12 +29,14 @@ This app is for users who:
 
 ## What it does
 
-- Lists switchable Android work profiles associated with the current user.
-- Pauses or resumes the selected work profile.
-- Toggles the selected work profile state.
+- Detects switchable Android work profiles and lets the user select one.
+- Pauses or resumes the selected work profile from the Home screen.
 - Stores and runs work-hours schedule settings.
+- Shows the next scheduled action and relevant runtime issues.
+- Opens exact-alarm settings when reliable scheduling is blocked.
+- Keeps raw profile information, toggle actions, shortcut status, and runtime details under Diagnostics.
 - Provides launcher shortcuts and legacy Android shortcuts for automation apps such as MacroDroid.
-- Reschedules the next work-profile boundary after reboot, app update, manual time change, timezone change, and exact-alarm access changes.
+- Reschedules the next work-profile boundary after reboot, app update, manual time change, timezone change, profile changes, schedule changes, and exact-alarm access changes.
 
 ## What it does not do
 
@@ -59,14 +64,15 @@ Package name:
 io.github.vyachean.workprofiletoggle
 ```
 
-Development APKs are available as GitHub Actions artifacts from successful `main` runs. Signed release APKs are published through GitHub Releases when release signing is configured.
+Development APKs are available as GitHub Actions artifacts from successful `main` runs. Signed release APKs are published through GitHub Releases.
 
 Basic setup:
 
 1. Install the APK.
-2. Grant `android.permission.MODIFY_QUIET_MODE` with ADB.
-3. Grant exact alarm access on Android versions that require it.
-4. Select a work profile and configure the schedule.
+2. Open the app and select the work profile to control.
+3. Copy and run the ADB permission command shown by the app.
+4. Grant exact alarm access when the Schedule card reports that it is missing.
+5. Configure pause time, resume time, and active days, then enable the schedule.
 
 Full instructions: [Setup guide](docs/setup.md).
 
