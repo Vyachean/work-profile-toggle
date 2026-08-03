@@ -5,11 +5,14 @@ internal object NoOpHomeScreenActions : HomeScreenActions {
     override fun pauseWorkProfile() = Unit
     override fun resumeWorkProfile() = Unit
     override fun changeProfile() = Unit
+    override fun copySetupText() = Unit
     override fun setPauseTime() = Unit
     override fun setResumeTime() = Unit
     override fun chooseActiveDays() = Unit
     override fun enableSchedule() = Unit
     override fun disableSchedule() = Unit
+    override fun openExactAlarmSettings() = Unit
     override fun clearSchedule() = Unit
     override fun copyDiagnostics() = Unit
+    override fun showAdvanced() = Unit
 }
