@@ -193,6 +193,18 @@ private fun ScheduleCard(
                     value = HomeScreenText.scheduleStatus(state.schedule.savedState),
                 )
                 if (state.schedule.configured) {
+                    InfoRow(
+                        label = HomeScreenText.pauseTimeLabel(),
+                        value = HomeScreenText.scheduleTime(state.schedule.pauseAt),
+                    )
+                    InfoRow(
+                        label = HomeScreenText.resumeTimeLabel(),
+                        value = HomeScreenText.scheduleTime(state.schedule.resumeAt),
+                    )
+                    InfoRow(
+                        label = HomeScreenText.activeDaysLabel(),
+                        value = HomeScreenText.activeDays(state.schedule.activeDays),
+                    )
                     Text(
                         text = HomeScreenText.exactAlarmAccess(state.schedule.exactAlarmAccessState),
                         style = MaterialTheme.typography.bodySmall,
@@ -219,7 +231,10 @@ private fun ScheduleCard(
                     )
                 }
             }
-            if (state.schedule.exactAlarmAccessState == ScheduleExactAlarmAccessState.MISSING) {
+            if (
+                state.schedule.configured &&
+                state.schedule.exactAlarmAccessState == ScheduleExactAlarmAccessState.MISSING
+            ) {
                 Text(
                     text = HomeScreenText.exactAlarmAccessDescription(),
                     style = MaterialTheme.typography.bodySmall,
