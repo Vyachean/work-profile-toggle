@@ -1,13 +1,20 @@
 package io.github.vyachean.workprofiletoggle.ui
 
+import android.text.format.DateFormat
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.vyachean.workprofiletoggle.HomePrimaryState
 import io.github.vyachean.workprofiletoggle.HomeScheduleSavedState
 import io.github.vyachean.workprofiletoggle.R
+import io.github.vyachean.workprofiletoggle.ScheduleDay
 import io.github.vyachean.workprofiletoggle.ScheduleExactAlarmAccessState
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeIssue
 import io.github.vyachean.workprofiletoggle.ScheduleRuntimeNextActionType
+import io.github.vyachean.workprofiletoggle.ScheduleTime
+import java.util.Calendar
 
 internal object HomeScreenText {
     @Composable
@@ -98,10 +105,53 @@ internal object HomeScreenText {
     fun scheduleStatusLabel(): String = stringResource(R.string.home_screen_schedule_status_label)
 
     @Composable
+    fun pauseTimeLabel(): String = stringResource(R.string.home_screen_pause_time_label)
+
+    @Composable
+    fun resumeTimeLabel(): String = stringResource(R.string.home_screen_resume_time_label)
+
+    @Composable
+    fun activeDaysLabel(): String = stringResource(R.string.home_screen_active_days_label)
+
+    @Composable
     fun nextActionLabel(): String = stringResource(R.string.home_screen_next_action_label)
 
     @Composable
     fun issueLabel(): String = stringResource(R.string.home_screen_issue_label)
+
+    @Composable
+    fun scheduleTime(time: ScheduleTime?): String {
+        if (time == null) return stringResource(R.string.schedule_time_not_set)
+
+        val context = LocalContext.current
+        val configuration = LocalConfiguration.current
+        return remember(time, configuration, context) {
+            val calendar = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, time.hour)
+                set(Calendar.MINUTE, time.minute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            DateFormat.getTimeFormat(context).format(calendar.time)
+        }
+    }
+
+    @Composable
+    fun activeDays(days: Set<ScheduleDay>): String {
+        if (days.isEmpty()) return stringResource(R.string.schedule_no_days)
+        if (days.size == ScheduleDay.entries.size) return stringResource(R.string.schedule_all_days)
+
+        val labels = buildList {
+            if (ScheduleDay.MONDAY in days) add(stringResource(R.string.schedule_day_monday))
+            if (ScheduleDay.TUESDAY in days) add(stringResource(R.string.schedule_day_tuesday))
+            if (ScheduleDay.WEDNESDAY in days) add(stringResource(R.string.schedule_day_wednesday))
+            if (ScheduleDay.THURSDAY in days) add(stringResource(R.string.schedule_day_thursday))
+            if (ScheduleDay.FRIDAY in days) add(stringResource(R.string.schedule_day_friday))
+            if (ScheduleDay.SATURDAY in days) add(stringResource(R.string.schedule_day_saturday))
+            if (ScheduleDay.SUNDAY in days) add(stringResource(R.string.schedule_day_sunday))
+        }
+        return labels.joinToString(", ")
+    }
 
     @Composable
     fun exactAlarmAccess(state: ScheduleExactAlarmAccessState): String {
