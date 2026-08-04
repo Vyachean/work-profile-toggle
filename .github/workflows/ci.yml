@@ -65,8 +65,8 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
-  compose-screenshot-poc:
-    name: Compose screenshot POC
+  compose-screenshot-calibration:
+    name: Compose screenshot calibration
     runs-on: ubuntu-24.04
     continue-on-error: true
     env:
@@ -90,59 +90,41 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Render twice and compare
+      - name: Render and compare reviewed hashes
         shell: bash
         run: |
           set -euo pipefail
 
           reference_dir="app/src/screenshotTestDebug/reference"
-          first_dir="$RUNNER_TEMP/compose-screenshot-first"
+          expected_hashes="$GITHUB_WORKSPACE/.github/compose-screenshot-baselines.sha256"
+          actual_hashes="$RUNNER_TEMP/compose-screenshot-actual.sha256"
           artifact_dir="$GITHUB_WORKSPACE/compose-screenshot-artifacts"
-          first_hashes="$RUNNER_TEMP/compose-screenshot-first.sha256"
-          second_hashes="$RUNNER_TEMP/compose-screenshot-second.sha256"
 
-          rm -rf "$reference_dir" "$first_dir" "$artifact_dir"
-
+          rm -rf "$reference_dir" "$artifact_dir"
           sh ./gradlew :app:updateDebugScreenshotTest --rerun-tasks --no-build-cache
 
           if ! find "$reference_dir" -type f -name '*.png' -print -quit | grep -q .; then
-            echo "The first screenshot render produced no PNG files." >&2
-            exit 1
-          fi
-
-          mkdir -p "$first_dir"
-          cp -R "$reference_dir"/. "$first_dir"/
-          (
-            cd "$reference_dir"
-            find . -type f -name '*.png' -print0 | sort -z | xargs -0 sha256sum
-          ) > "$first_hashes"
-
-          rm -rf "$reference_dir"
-          sh ./gradlew :app:updateDebugScreenshotTest --rerun-tasks --no-build-cache
-
-          if ! find "$reference_dir" -type f -name '*.png' -print -quit | grep -q .; then
-            echo "The second screenshot render produced no PNG files." >&2
+            echo "Screenshot rendering produced no PNG files." >&2
             exit 1
           fi
 
           (
             cd "$reference_dir"
             find . -type f -name '*.png' -print0 | sort -z | xargs -0 sha256sum
-          ) > "$second_hashes"
+          ) > "$actual_hashes"
 
-          diff -u "$first_hashes" "$second_hashes"
+          mkdir -p "$artifact_dir/generated"
+          cp -R "$reference_dir"/. "$artifact_dir/generated"/
+          cp "$expected_hashes" "$artifact_dir/expected.sha256"
+          cp "$actual_hashes" "$artifact_dir/actual.sha256"
 
-          mkdir -p "$artifact_dir/first" "$artifact_dir/second"
-          cp -R "$first_dir"/. "$artifact_dir/first"/
-          cp -R "$reference_dir"/. "$artifact_dir/second"/
-          cp "$first_hashes" "$artifact_dir/first.sha256"
-          cp "$second_hashes" "$artifact_dir/second.sha256"
+          diff -u "$expected_hashes" "$actual_hashes"
 
-      - name: Upload screenshot POC artifacts
+      - name: Upload screenshot calibration artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: compose-screenshot-poc
+          name: compose-screenshot-calibration
           path: |
             compose-screenshot-artifacts/
             app/build/reports/screenshotTest/
