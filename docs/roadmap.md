@@ -38,7 +38,7 @@ The app supports:
 - a Compose Material 3 runtime Home screen with dynamic light and dark color schemes;
 - profile selection, ADB setup copying, exact-alarm recovery, schedule editing, and Diagnostics actions from the Compose Home screen;
 - CI checks for lint, unit tests, debug APK assembly, release APK assembly, and debug certificate verification;
-- a non-blocking deterministic Compose screenshot proof of concept;
+- a non-blocking deterministic Compose screenshot calibration matrix;
 - signed release workflow infrastructure.
 
 ## Development rules
@@ -133,30 +133,30 @@ Available foundation:
 
 - deterministic `HomeUiState`;
 - pure Compose Home rendering from state;
-- state-specific and compact previews;
-- no real profile requirement for fake-state rendering.
+- no real profile requirement for fake-state rendering;
+- the official experimental Compose Preview Screenshot Testing plugin and dedicated `screenshotTest` source set.
 
-Implemented proof of concept:
+Implemented calibration:
 
-- official experimental Compose Preview Screenshot Testing plugin and `screenshotTest` source set;
-- one debug-only active-profile and enabled-schedule fixture;
-- fixed API level, viewport, density, locale, font scale, light appearance, runner image, and host timezone;
-- two clean renders with build cache disabled;
-- SHA-256 comparison proving byte-identical output inside one CI run;
-- visual inspection of the generated image;
-- non-blocking 14-day CI artifact containing both renders and hashes.
+- reusable fixture rendering and typed screenshot-state catalogue kept out of APK source sets;
+- one reachable active-profile and enabled-schedule state with a fixed next action;
+- phone light, phone dark, compact light, and large-font light configurations;
+- fixed API level, viewport, density, locale, font scale, appearance, runner image, process locale, and host timezone;
+- clean rendering with Gradle task reruns and build cache disabled;
+- reviewed SHA-256 manifest produced from an earlier workflow artifact;
+- cross-workflow comparison of newly generated PNG hashes with the committed reviewed manifest;
+- non-blocking 14-day artifacts containing generated PNGs, expected and actual hashes, and test reports;
+- documented baseline review and update rules.
 
-Status: **proof of concept complete; cross-run calibration and baseline workflow in progress**.
+Status: **cross-run hash calibration implemented; PNG golden workflow and broader state coverage remain in progress**.
 
 Next work:
 
-- confirm identical output across separate workflow runs and cache states;
-- extract reusable screenshot fixtures as the state set grows;
-- add light, dark, compact, and increased-font scenarios;
 - add representative setup, disabled, blocked, enabled, and runtime-issue states;
-- upload useful expected, actual, and diff reports;
-- define baseline review and update rules;
-- commit approved reference images and make comparison required only after stability is demonstrated;
+- commit approved PNG references under `app/src/screenshotTestDebug/reference/`;
+- switch from hash-only calibration to `validateDebugScreenshotTest` expected/actual/diff reporting;
+- prove stable validation across repeated clean CI runs and dependency-cache states;
+- make screenshot comparison required only after the alpha tool and approval workflow are operationally reliable;
 - commit selected screenshots under `docs/screenshots/` and link them from README.
 
 ## Stage 5 — Schedule runtime hardening
@@ -211,7 +211,7 @@ Still required before recording 0.1.5 as validated:
 
 ## Known follow-ups
 
-- Add complete deterministic screenshot coverage and README screenshots.
+- Add complete deterministic screenshot coverage, PNG goldens, and README screenshots.
 - Expand real-device schedule validation.
 - Review accessibility and large-font behavior after runtime UI validation.
 - Reassess an inexact scheduling fallback only with a clearly documented reliability contract.
