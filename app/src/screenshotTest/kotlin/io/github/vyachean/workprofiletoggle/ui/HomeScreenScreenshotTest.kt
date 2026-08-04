@@ -66,6 +66,60 @@ fun HomeScreenActiveEnabledScreenshot() {
 @PreviewTest
 @PhoneLightScreenshot
 @Composable
+fun HomeScreenNoWorkProfileScreenshot() {
+    HomeScreenScreenshotFixture(
+        state = HomeScreenScreenshotStates.noWorkProfile(),
+    )
+}
+
+@PreviewTest
+@PhoneLightScreenshot
+@Composable
+fun HomeScreenChooseWorkProfileScreenshot() {
+    HomeScreenScreenshotFixture(
+        state = HomeScreenScreenshotStates.chooseWorkProfile(),
+    )
+}
+
+@PreviewTest
+@PhoneLightScreenshot
+@Composable
+fun HomeScreenPausedEnabledScreenshot() {
+    HomeScreenScreenshotFixture(
+        state = HomeScreenScreenshotStates.pausedEnabled(),
+    )
+}
+
+@PreviewTest
+@PhoneLightScreenshot
+@Composable
+fun HomeScreenProfileStateUnknownScreenshot() {
+    HomeScreenScreenshotFixture(
+        state = HomeScreenScreenshotStates.profileStateUnknown(),
+    )
+}
+
+@PreviewTest
+@PhoneLightScreenshot
+@Composable
+fun HomeScreenIncompleteScheduleScreenshot() {
+    HomeScreenScreenshotFixture(
+        state = HomeScreenScreenshotStates.incompleteSchedule(),
+    )
+}
+
+@PreviewTest
+@PhoneLightScreenshot
+@Composable
+fun HomeScreenDisabledScheduleScreenshot() {
+    HomeScreenScreenshotFixture(
+        state = HomeScreenScreenshotStates.disabledSchedule(),
+    )
+}
+
+@PreviewTest
+@PhoneLightScreenshot
+@Composable
 fun HomeScreenSetupRequiredScreenshot() {
     HomeScreenScreenshotFixture(
         state = HomeScreenScreenshotStates.setupRequired(),
