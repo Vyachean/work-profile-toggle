@@ -140,27 +140,24 @@ Implemented calibration:
 
 - reusable fixture rendering and typed screenshot-state catalogue kept out of APK source sets;
 - screenshot states derived through the production `HomeUiStateFactory` from deterministic inputs rather than manually assembled output models;
-- one reachable active-profile and enabled-schedule state with a fixed next action;
-- phone light, phone dark, compact light, and large-font light configurations;
-- phone-light coverage for permission setup required, exact-alarm blocking, and Android request rejection;
-- seven visually reviewed PNG outputs in the calibration manifest;
+- thirteen visually reviewed PNG outputs covering no profile, profile selection, active, paused, unknown, permission setup, incomplete schedule, disabled schedule, enabled schedule, exact-alarm blocking, and Android request rejection;
+- phone light, phone dark, compact light, and large-font light configurations for the main active/enabled state;
 - fixed API level, viewport, density, locale, font scale, appearance, runner image, process locale, and host timezone;
 - clean rendering with Gradle task reruns and build cache disabled;
 - cross-workflow comparison of generated PNG hashes with the committed reviewed manifest;
 - non-blocking 14-day artifacts containing generated PNGs, expected and actual hashes, and test reports;
 - documented baseline review and update rules.
 
-Status: **cross-run hash calibration covers primary display variants and high-risk recovery states; PNG golden workflow and remaining state coverage are in progress**.
+Status: **core Home state coverage and cross-run hash calibration are complete; PNG golden validation and documentation screenshots are next**.
 
 Next work:
 
-- add no-profile, profile-selection, paused, unknown, incomplete-schedule, and disabled-schedule states;
-- add further runtime failures only where wording or recovery differs materially;
 - commit approved PNG references under `app/src/screenshotTestDebug/reference/`;
 - switch from hash-only calibration to `validateDebugScreenshotTest` expected/actual/diff reporting;
 - prove stable validation across repeated clean CI runs and dependency-cache states;
 - make screenshot comparison required only after the alpha tool and approval workflow are operationally reliable;
-- commit selected screenshots under `docs/screenshots/` and link them from README.
+- commit selected screenshots under `docs/screenshots/` and link them from README;
+- add further states only when wording, recovery, layout, or interaction differs materially.
 
 ## Stage 5 — Schedule runtime hardening
 
@@ -214,7 +211,7 @@ Still required before recording 0.1.5 as validated:
 
 ## Known follow-ups
 
-- Add complete deterministic screenshot coverage, PNG goldens, and README screenshots.
+- Add PNG golden validation and README screenshots.
 - Expand real-device schedule validation.
 - Review accessibility and large-font behavior after runtime UI validation.
 - Reassess an inexact scheduling fallback only with a clearly documented reliability contract.

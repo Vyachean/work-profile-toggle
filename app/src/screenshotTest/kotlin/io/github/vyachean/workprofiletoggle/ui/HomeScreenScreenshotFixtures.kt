@@ -38,21 +38,65 @@ internal object HomeScreenScreenshotStates {
         ZoneOffset.UTC,
     )
 
+    private val activeDays = linkedSetOf(
+        ScheduleDay.MONDAY,
+        ScheduleDay.TUESDAY,
+        ScheduleDay.WEDNESDAY,
+        ScheduleDay.THURSDAY,
+        ScheduleDay.FRIDAY,
+    )
+
     private val enabledSchedule = WorkProfileSchedule(
         enabled = true,
         pauseAt = ScheduleTime(hour = 18, minute = 0),
         resumeAt = ScheduleTime(hour = 9, minute = 0),
-        activeDays = linkedSetOf(
-            ScheduleDay.MONDAY,
-            ScheduleDay.TUESDAY,
-            ScheduleDay.WEDNESDAY,
-            ScheduleDay.THURSDAY,
-            ScheduleDay.FRIDAY,
-        ),
+        activeDays = activeDays,
     )
 
     fun activeEnabled(): HomeUiState {
         return createState()
+    }
+
+    fun noWorkProfile(): HomeUiState {
+        return createState(
+            profilesAvailable = false,
+            availableProfileCount = 0,
+            selectedProfileLabel = null,
+            selectedProfileQuietMode = null,
+            schedule = WorkProfileSchedule(),
+        )
+    }
+
+    fun chooseWorkProfile(): HomeUiState {
+        return createState(
+            availableProfileCount = 2,
+            selectedProfileLabel = null,
+            selectedProfileQuietMode = null,
+            schedule = WorkProfileSchedule(),
+        )
+    }
+
+    fun pausedEnabled(): HomeUiState {
+        return createState(selectedProfileQuietMode = true)
+    }
+
+    fun profileStateUnknown(): HomeUiState {
+        return createState(selectedProfileQuietMode = null)
+    }
+
+    fun incompleteSchedule(): HomeUiState {
+        return createState(
+            schedule = WorkProfileSchedule(
+                enabled = false,
+                pauseAt = ScheduleTime(hour = 18, minute = 0),
+                resumeAt = null,
+                activeDays = activeDays,
+            ),
+        )
+    }
+
+    fun disabledSchedule(): HomeUiState {
+        return createState(schedule = enabledSchedule.copy(enabled = false))
     }
 
     fun setupRequired(): HomeUiState {
@@ -82,6 +126,10 @@ internal object HomeScreenScreenshotStates {
     }
 
     private fun createState(
+        profilesAvailable: Boolean = true,
+        availableProfileCount: Int = 1,
+        selectedProfileLabel: String? = "Work",
+        selectedProfileQuietMode: Boolean? = false,
         permissionGranted: Boolean = true,
         schedule: WorkProfileSchedule = enabledSchedule,
         exactAlarmAccessState: ScheduleExactAlarmAccessState = ScheduleExactAlarmAccessState.GRANTED,
@@ -89,10 +137,10 @@ internal object HomeScreenScreenshotStates {
     ): HomeUiState {
         return HomeUiStateFactory.from(
             input = HomeUiStateInput(
-                profilesAvailable = true,
-                availableProfileCount = 1,
-                selectedProfileLabel = "Work",
-                selectedProfileQuietMode = false,
+                profilesAvailable = profilesAvailable,
+                availableProfileCount = availableProfileCount,
+                selectedProfileLabel = selectedProfileLabel,
+                selectedProfileQuietMode = selectedProfileQuietMode,
                 permissionGranted = permissionGranted,
                 schedule = schedule,
                 exactAlarmAccessState = exactAlarmAccessState,
