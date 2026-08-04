@@ -139,20 +139,23 @@ Available foundation:
 Implemented calibration:
 
 - reusable fixture rendering and typed screenshot-state catalogue kept out of APK source sets;
+- screenshot states derived through the production `HomeUiStateFactory` from deterministic inputs rather than manually assembled output models;
 - one reachable active-profile and enabled-schedule state with a fixed next action;
 - phone light, phone dark, compact light, and large-font light configurations;
+- phone-light coverage for permission setup required, exact-alarm blocking, and Android request rejection;
+- seven visually reviewed PNG outputs in the calibration manifest;
 - fixed API level, viewport, density, locale, font scale, appearance, runner image, process locale, and host timezone;
 - clean rendering with Gradle task reruns and build cache disabled;
-- reviewed SHA-256 manifest produced from an earlier workflow artifact;
-- cross-workflow comparison of newly generated PNG hashes with the committed reviewed manifest;
+- cross-workflow comparison of generated PNG hashes with the committed reviewed manifest;
 - non-blocking 14-day artifacts containing generated PNGs, expected and actual hashes, and test reports;
 - documented baseline review and update rules.
 
-Status: **cross-run hash calibration implemented; PNG golden workflow and broader state coverage remain in progress**.
+Status: **cross-run hash calibration covers primary display variants and high-risk recovery states; PNG golden workflow and remaining state coverage are in progress**.
 
 Next work:
 
-- add representative setup, disabled, blocked, enabled, and runtime-issue states;
+- add no-profile, profile-selection, paused, unknown, incomplete-schedule, and disabled-schedule states;
+- add further runtime failures only where wording or recovery differs materially;
 - commit approved PNG references under `app/src/screenshotTestDebug/reference/`;
 - switch from hash-only calibration to `validateDebugScreenshotTest` expected/actual/diff reporting;
 - prove stable validation across repeated clean CI runs and dependency-cache states;
