@@ -14,6 +14,17 @@ import com.android.tools.screenshot.PreviewTest
     fontScale = 1.0f,
     uiMode = Configuration.UI_MODE_NIGHT_NO,
 )
+private annotation class PhoneLightScreenshot
+
+@Preview(
+    name = "Phone light",
+    showBackground = true,
+    device = "spec:width=360dp,height=800dp,dpi=420,orientation=portrait",
+    apiLevel = 30,
+    locale = "en",
+    fontScale = 1.0f,
+    uiMode = Configuration.UI_MODE_NIGHT_NO,
+)
 @Preview(
     name = "Phone dark",
     showBackground = true,
@@ -49,5 +60,32 @@ private annotation class HomeScreenshotConfigurations
 fun HomeScreenActiveEnabledScreenshot() {
     HomeScreenScreenshotFixture(
         state = HomeScreenScreenshotStates.activeEnabled(),
+    )
+}
+
+@PreviewTest
+@PhoneLightScreenshot
+@Composable
+fun HomeScreenSetupRequiredScreenshot() {
+    HomeScreenScreenshotFixture(
+        state = HomeScreenScreenshotStates.setupRequired(),
+    )
+}
+
+@PreviewTest
+@PhoneLightScreenshot
+@Composable
+fun HomeScreenExactAlarmBlockedScreenshot() {
+    HomeScreenScreenshotFixture(
+        state = HomeScreenScreenshotStates.exactAlarmBlocked(),
+    )
+}
+
+@PreviewTest
+@PhoneLightScreenshot
+@Composable
+fun HomeScreenAndroidRequestRejectedScreenshot() {
+    HomeScreenScreenshotFixture(
+        state = HomeScreenScreenshotStates.androidRequestRejected(),
     )
 }
