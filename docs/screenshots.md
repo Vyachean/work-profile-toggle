@@ -36,13 +36,19 @@ The active-profile and enabled-schedule state is rendered in four controlled con
 - compact light: 320 dp by 480 dp, font scale `1.0`;
 - large-font light: 360 dp by 800 dp, font scale `1.5`.
 
-Three additional high-risk states are rendered in the normal phone-light configuration:
+Nine additional states are rendered in the normal phone-light configuration:
 
+- no work profile found;
+- work-profile selection required;
+- work profile paused with an enabled schedule;
+- work-profile state unknown;
+- incomplete saved schedule;
+- complete saved schedule disabled;
 - ADB permission setup required;
 - enabled schedule blocked by missing exact-alarm access;
 - Android rejecting a schedule runtime request.
 
-The current calibration set therefore contains seven reviewed PNG outputs.
+The current calibration set therefore contains thirteen reviewed PNG outputs.
 
 Every configuration also fixes:
 
@@ -53,7 +59,7 @@ Every configuration also fixes:
 - UTC host timezone;
 - `ubuntu-24.04`, JDK 17, and a stable UTF-8 process locale.
 
-All fixture states use deterministic production inputs: profile availability, selected-profile state, permission state, schedule configuration, exact-alarm access, runtime result, and current time. Runtime output models are not manually assembled.
+All fixture states use deterministic production inputs: profile availability, selected-profile state, quiet mode, permission state, schedule configuration, exact-alarm access, runtime result, and current time. Runtime output models are not manually assembled.
 
 ## CI calibration
 
@@ -86,8 +92,14 @@ Renaming a `@PreviewTest` function or preview changes generated filenames and mu
 
 ## Covered scenarios
 
+- No work profile found.
+- Work-profile selection required.
 - Permission setup required.
 - Work profile active.
+- Work profile paused.
+- Work-profile state unknown.
+- Incomplete schedule.
+- Complete schedule disabled.
 - Schedule enabled with next action.
 - Schedule blocked by missing exact-alarm access.
 - Schedule runtime issue caused by an Android request rejection.
@@ -99,24 +111,19 @@ Renaming a `@PreviewTest` function or preview changes generated filenames and mu
 
 ## Remaining scenarios
 
-- No work profile found.
-- Work profile selection required.
-- Work profile paused.
-- Work profile state unknown.
-- Schedule not configured as a primary scenario.
-- Incomplete schedule.
-- Complete schedule disabled.
+- Schedule not configured with an otherwise fully ready active profile, when that distinction adds review value beyond the existing setup/profile states.
 - Additional runtime failures where wording or recovery differs materially.
 - Advanced card visible as a deliberately reviewed secondary surface.
+- Interaction-specific dialogs and pickers, which require a separate deterministic capture strategy.
 
 ## Next implementation steps
 
-1. Add the remaining primary and schedule states through `HomeUiStateFactory` inputs.
-2. Commit reviewed PNG reference images under `app/src/screenshotTestDebug/reference/`.
-3. Replace hash-only calibration with `validateDebugScreenshotTest` expected/actual/diff reporting.
-4. Prove stable validation across repeated clean CI runs and dependency-cache states.
-5. Make screenshot comparison a required check only after the alpha tool and baseline workflow are operationally reliable.
-6. Select user-facing images, copy them to `docs/screenshots/`, and link them from README.
+1. Commit reviewed PNG reference images under `app/src/screenshotTestDebug/reference/`.
+2. Replace hash-only calibration with `validateDebugScreenshotTest` expected/actual/diff reporting.
+3. Prove stable validation across repeated clean CI runs and dependency-cache states.
+4. Make screenshot comparison a required check only after the alpha tool and baseline workflow are operationally reliable.
+5. Select user-facing images, copy them to `docs/screenshots/`, and link them from README.
+6. Add further state screenshots only where they exercise materially different wording, recovery, layout, or interaction.
 
 Dynamic color should not be used for golden baselines unless the complete color scheme is controlled deterministically. Stable fallback themes are preferable for documentation screenshots.
 
