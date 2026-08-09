@@ -66,7 +66,7 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
 
-    screenshotTestImplementation("com.android.tools.screenshot:screenshot-validation-api:0.0.1-alpha15")
+    screenshotTestImplementation("com.android.tools.screenshot:screenshot-validation-api:0.0.1-alpha16")
     screenshotTestImplementation("androidx.compose.ui:ui-tooling:1.11.4")
 }
 
